@@ -13,17 +13,25 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { amount, offerteNummer } = await req.json();
+    const { amount, offerteNummer, stripeAccountId } = await req.json();
 
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(secretKey, { apiVersion: "2026-04-22.dahlia" });
+
+    // Commissie: 10% platform fee voor Servr
+    const PLATFORM_FEE_PCT = 0.10;
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
       currency: "eur",
       automatic_payment_methods: { enabled: true },
-      metadata: { offerte: offerteNummer ?? "" },
+      metadata: { offerte: offerteNummer ?? "", vakman_account: stripeAccountId ?? "" },
       description: `Servr betaling — ${offerteNummer ?? ""}`,
+      // Stripe Connect: stuur 90% naar vakman, 10% blijft bij Servr
+      ...(stripeAccountId ? {
+        application_fee_amount: Math.round(amount * PLATFORM_FEE_PCT * 100),
+        transfer_data: { destination: stripeAccountId },
+      } : {}),
     });
 
     return NextResponse.json({

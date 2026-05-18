@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Building2, CreditCard, FileText, Camera, CheckCircle, ChevronRight, Globe } from "lucide-react";
+import { ArrowLeft, Building2, CreditCard, FileText, Camera, CheckCircle, ChevronRight, Globe, ExternalLink, Loader2, Unlink } from "lucide-react";
 import { MOCK_BEDRIJF, LANDEN, type Bedrijf, type LandCode } from "@/lib/bedrijfStore";
+import { useStripeConnectStore } from "@/lib/stripeConnectStore";
 
 type Tab = "algemeen" | "financieel" | "factuur";
 
@@ -109,6 +110,26 @@ export default function BedrijfPage() {
   const [bedrijf, setBedrijf] = useState<Bedrijf>(MOCK_BEDRIJF);
   const [tab, setTab] = useState<Tab>("algemeen");
   const [saved, setSaved] = useState(false);
+  const { accountId, onboarded, setAccountId, reset } = useStripeConnectStore();
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  // Stripe Connect return: lees ?stripeAccountId= query param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sid = params.get("stripeAccountId");
+    const refresh = params.get("stripeRefresh");
+    if (sid) {
+      setAccountId(sid);
+      setTab("financieel");
+      window.history.replaceState({}, "", "/bedrijf");
+    } else if (refresh) {
+      // Onboarding mislukt / verlopen — verwijder en opnieuw proberen
+      setTab("financieel");
+      window.history.replaceState({}, "", "/bedrijf");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const update = (field: keyof Bedrijf) => (v: string) =>
     setBedrijf(b => ({ ...b, [field]: v }));
@@ -297,6 +318,100 @@ export default function BedrijfPage() {
         {/* ─── FINANCIEEL ─── */}
         {tab === "financieel" && (
           <>
+            {/* ── Stripe Connect sectie ── */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase" style={{ color: "var(--muted)" }}>
+                  Online betalingen
+                </p>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: onboarded ? "#dcfce7" : "var(--surface-2)", color: onboarded ? "#16a34a" : "var(--muted)" }}>
+                  {onboarded ? "✓ Gekoppeld" : "Niet actief"}
+                </span>
+              </div>
+
+              {onboarded && accountId ? (
+                <div className="card p-4 flex flex-col gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: "#635BFF" + "15" }}>
+                      <span className="text-lg">💳</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm">Stripe account gekoppeld</p>
+                      <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{accountId}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5 p-3 rounded-xl text-xs"
+                    style={{ background: "var(--surface-2)" }}>
+                    <div className="flex justify-between">
+                      <span style={{ color: "var(--muted)" }}>Jij ontvangt</span>
+                      <span className="font-bold text-green-600">90% van elke betaling</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span style={{ color: "var(--muted)" }}>Servr commissie</span>
+                      <span className="font-semibold">10%</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => reset()}
+                    className="touch-scale flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold border"
+                    style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+                    <Unlink size={13} /> Ontkoppelen
+                  </button>
+                </div>
+              ) : (
+                <div className="card p-4 flex flex-col gap-3">
+                  <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
+                    Ontvang betalingen rechtstreeks op jouw rekening via Stripe.
+                    Servr houdt <strong style={{ color: "var(--foreground)" }}>10% commissie</strong> in,
+                    jij krijgt <strong style={{ color: "var(--foreground)" }}>90%</strong>.
+                  </p>
+                  {connectError && (
+                    <div className="p-3 rounded-xl text-xs" style={{ background: "#fee2e2", color: "#dc2626" }}>
+                      ⚠️ {connectError}
+                    </div>
+                  )}
+                  <button
+                    disabled={connectLoading}
+                    onClick={async () => {
+                      setConnectLoading(true);
+                      setConnectError(null);
+                      try {
+                        const returnUrl = `${window.location.origin}/bedrijf`;
+                        const res = await fetch("/api/stripe/connect", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ returnUrl }),
+                        });
+                        const data = await res.json();
+                        if (!data.url) {
+                          setConnectError(data.error ?? "Kan Stripe niet starten");
+                          setConnectLoading(false);
+                          return;
+                        }
+                        window.location.href = data.url;
+                      } catch {
+                        setConnectError("Kan Stripe niet bereiken");
+                        setConnectLoading(false);
+                      }
+                    }}
+                    className="touch-scale w-full py-3.5 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
+                    style={{ background: connectLoading ? "var(--muted)" : "#635BFF" }}>
+                    {connectLoading
+                      ? <><Loader2 size={16} className="animate-spin" /> Openen…</>
+                      : <><ExternalLink size={16} /> Koppel Stripe account</>
+                    }
+                  </button>
+                  <p className="text-[11px] text-center" style={{ color: "var(--muted)" }}>
+                    Je wordt doorgestuurd naar Stripe om je identiteit te bevestigen
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="h-px" style={{ background: "var(--border)" }} />
+
             <div className="p-4 rounded-2xl" style={{ background: "var(--teal)" + "10" }}>
               <p className="font-bold text-sm mb-1" style={{ color: "var(--teal)" }}>🔒 Bankgegevens</p>
               <p className="text-xs" style={{ color: "var(--teal)" }}>

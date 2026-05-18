@@ -9,6 +9,7 @@ import {
 import { MOCK_OFFERTES, MOCK_OPDRACHTEN } from "@/lib/store";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useStripeConnectStore } from "@/lib/stripeConnectStore";
 
 type Fase = "overzicht" | "geaccepteerd" | "betalen" | "succes";
 
@@ -106,6 +107,7 @@ function StripeForm({ totaal, nummer, onSuccess, onBack }: {
 function BetaalSectie({ totaal, nummer, onSuccess, onBack }: {
   totaal: number; nummer: string; onSuccess: () => void; onBack: () => void;
 }) {
+  const { accountId: vakmanAccountId } = useStripeConnectStore();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [stripeInstance, setStripeInstance] = useState<Awaited<ReturnType<typeof loadStripe>> | null>(null);
   const [loading, setLoading] = useState(false);
@@ -121,7 +123,11 @@ function BetaalSectie({ totaal, nummer, onSuccess, onBack }: {
       const res = await fetch("/api/stripe/intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: totaal, offerteNummer: nummer }),
+        body: JSON.stringify({
+          amount: totaal,
+          offerteNummer: nummer,
+          stripeAccountId: vakmanAccountId ?? undefined,
+        }),
       });
       const data = await res.json();
       if (res.status === 503 || !data.clientSecret) {

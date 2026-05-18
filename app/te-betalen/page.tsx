@@ -7,6 +7,7 @@ import {
   Shield, X, Loader2, Lock,
 } from "lucide-react";
 import { useOfferteStore } from "@/lib/offerteStore";
+import { useStripeConnectStore } from "@/lib/stripeConnectStore";
 
 // Stripe (optioneel — alleen geladen als key aanwezig)
 import { loadStripe } from "@stripe/stripe-js";
@@ -157,6 +158,7 @@ const DEFAULT_METHODES = [
 
 export default function TeBetalenPage() {
   const { offertes, betaalOfferte, weigerOfferte } = useOfferteStore();
+  const { accountId: vakmanAccountId } = useStripeConnectStore();
 
   const [betalendId, setBetalendId]       = useState<string | null>(null);
   const [betaaldIds, setBetaaldIds]       = useState<string[]>([]);
@@ -207,7 +209,11 @@ export default function TeBetalenPage() {
       const res = await fetch("/api/stripe/intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: offerte.totaal, offerteNummer: offerte.nummer }),
+        body: JSON.stringify({
+          amount: offerte.totaal,
+          offerteNummer: offerte.nummer,
+          stripeAccountId: vakmanAccountId ?? undefined,
+        }),
       });
       const data = await res.json();
 
