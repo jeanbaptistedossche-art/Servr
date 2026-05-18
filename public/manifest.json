@@ -10,25 +10,25 @@
   "lang": "nl",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/api/pwa-icon?size=192",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-192.png",
+      "src": "/api/pwa-icon?size=192",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/api/pwa-icon?size=512",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/api/pwa-icon?size=512",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -41,16 +41,15 @@
       "short_name": "Panic",
       "url": "/panic",
       "description": "Direct een vakman vinden",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/api/pwa-icon?size=192", "sizes": "192x192" }]
     },
     {
       "name": "AI Prijsscanner",
       "short_name": "Scanner",
       "url": "/scan",
       "description": "Foto → prijsschatting",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/api/pwa-icon?size=192", "sizes": "192x192" }]
     }
   ],
-  "screenshots": [],
   "prefer_related_applications": false
 }
