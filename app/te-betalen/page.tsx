@@ -163,6 +163,7 @@ export default function TeBetalenPage() {
   const [betaaldIds, setBetaaldIds]     = useState<string[]>([]);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loadingSecret, setLoadingSecret] = useState(false);
+  const [stripeError, setStripeError]   = useState<string | null>(null);
 
   // Mock-fallback state
   const [gekozenIdx, setGekozenIdx]     = useState(0);
@@ -194,6 +195,7 @@ export default function TeBetalenPage() {
     setGekozenIdx(0);
     setRedirectBank(null);
     setClientSecret(null);
+    setStripeError(null);
 
     if (stripeReady) {
       const offerte = openstaand.find(o => o.id === id);
@@ -206,9 +208,13 @@ export default function TeBetalenPage() {
           body: JSON.stringify({ amount: offerte.totaal, offerteNummer: offerte.nummer }),
         });
         const data = await res.json();
-        if (data.clientSecret) setClientSecret(data.clientSecret);
-      } catch {
-        // Stripe niet beschikbaar → mock flow
+        if (data.clientSecret) {
+          setClientSecret(data.clientSecret);
+        } else {
+          setStripeError(data.error ?? "Stripe fout — controleer je API keys in Vercel");
+        }
+      } catch (e) {
+        setStripeError("Kan Stripe niet bereiken. Controleer je internetverbinding.");
       } finally {
         setLoadingSecret(false);
       }
@@ -432,6 +438,22 @@ export default function TeBetalenPage() {
                     <Loader2 size={28} className="animate-spin" style={{ color: "var(--teal)" }} />
                     <p className="text-sm" style={{ color: "var(--muted)" }}>Betaalmethoden laden…</p>
                   </div>
+                ) : stripeError ? (
+                  <div className="flex flex-col gap-4">
+                    <div className="p-4 rounded-2xl text-sm" style={{ background: "#fee2e2", color: "#dc2626" }}>
+                      <p className="font-bold mb-1">⚠️ Stripe fout</p>
+                      <p className="text-xs">{stripeError}</p>
+                    </div>
+                    <p className="text-xs text-center" style={{ color: "var(--muted)" }}>
+                      Tijdelijk: je kan de testmodus gebruiken hieronder
+                    </p>
+                    <MockBetaalForm
+                      betalende={betalende}
+                      gekozenIdx={gekozenIdx}
+                      setGekozenIdx={setGekozenIdx}
+                      onBevestig={handleMockBevestig}
+                    />
+                  </div>
                 ) : clientSecret ? (
                   <Elements
                     stripe={stripePromise}
@@ -449,13 +471,10 @@ export default function TeBetalenPage() {
                     />
                   </Elements>
                 ) : (
-                  /* Stripe fout — fall back naar mock */
-                  <MockBetaalForm
-                    betalende={betalende}
-                    gekozenIdx={gekozenIdx}
-                    setGekozenIdx={setGekozenIdx}
-                    onBevestig={handleMockBevestig}
-                  />
+                  <div className="flex flex-col items-center py-10 gap-3">
+                    <Loader2 size={28} className="animate-spin" style={{ color: "var(--teal)" }} />
+                    <p className="text-sm" style={{ color: "var(--muted)" }}>Verbinden met Stripe…</p>
+                  </div>
                 )
               ) : (
                 /* Geen Stripe key — mock flow */
