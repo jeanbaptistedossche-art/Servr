@@ -98,6 +98,6 @@ export const useOfferteStore = create<OfferteStoreState>()(
           offertes: state.offertes.map((o) => o.id === id ? { ...o, status: "geweigerd" } : o),
         })),
     }),
-    { name: "servr-offertes-v2" }
+    { name: "servr-offertes-v3" }
   )
 );
