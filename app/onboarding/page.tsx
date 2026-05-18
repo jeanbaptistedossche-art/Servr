@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 import type { UserRole } from "@/lib/store";
+import { registerVakman, genId } from "@/lib/db";
+import AdresAutoComplete from "@/components/AdresAutoComplete";
 
 type Step = "welcome" | "login" | "rol" | "location" | "signup" | "profiel";
 
@@ -38,6 +40,11 @@ export default function OnboardingPage() {
   const [phone, setPhone]       = useState("");
   const [naam, setNaam]         = useState("");
   const [adres, setAdres]       = useState("");
+  const [adresLat, setAdresLat] = useState<number | undefined>();
+  const [adresLng, setAdresLng] = useState<number | undefined>();
+  const [locAdres, setLocAdres]   = useState("");
+  const [locLat, setLocLat]       = useState<number | undefined>();
+  const [locLng, setLocLng]       = useState<number | undefined>();
   const [selectedCat, setSelectedCat] = useState("");
 
   // Login-with-name flow
@@ -61,13 +68,31 @@ export default function OnboardingPage() {
   };
 
   // ── Finish registration ───────────────────────────────────────────────────
-  const finish = () => {
+  const finish = async () => {
+    const finalAdres = adres.trim() || locAdres.trim() || "Amsterdam";
+    const finalLat   = adresLat ?? locLat ?? 52.3676;
+    const finalLng   = adresLng ?? locLng ?? 4.9041;
+
     login({
       role: rol,
       name: naam.trim() || "Gebruiker",
-      address: adres.trim() || "Amsterdam",
+      address: finalAdres,
       isAdmin: false,
     });
+
+    // Sla vakman op in database (als Supabase geconfigureerd is)
+    if (rol === "vakman") {
+      const id = genId();
+      registerVakman({
+        id,
+        name: naam.trim() || "Vakman",
+        address: finalAdres,
+        lat: finalLat,
+        lng: finalLng,
+        categorie: selectedCat || "Algemeen",
+      }).catch(() => {/* geen Supabase → stil falen */});
+    }
+
     router.replace(rol === "vakman" ? "/dashboard" : "/");
   };
 
@@ -319,7 +344,7 @@ export default function OnboardingPage() {
   if (step === "location") return (
     <div className="flex flex-col min-h-dvh px-6 pb-12 animate-slide-up">
       <div className="pt-14 pb-6"
-        style={{ background: `linear-gradient(160deg, ${accentColor} 0%, ${accentColor} 100%)`, opacity: 1 }}>
+        style={{ background: `linear-gradient(160deg, ${accentColor} 0%, ${accentColor} 100%)` }}>
         <button onClick={() => setStep("rol")}
           className="touch-scale mb-4 w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
           <ArrowLeft size={18} color="white" />
@@ -334,60 +359,47 @@ export default function OnboardingPage() {
         </p>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 pt-6 text-center">
-        <div className="w-24 h-24 rounded-3xl flex items-center justify-center"
-          style={{ background: accentColor + "18" }}>
-          <MapPin size={44} style={{ color: accentColor }} />
-        </div>
-
-        <div>
-          <h3 className="text-xl font-black mb-2">
-            {rol === "vakman" ? "Stel je werkgebied in" : "Deel je locatie"}
-          </h3>
+      <div className="flex-1 flex flex-col gap-6 pt-6">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
+            style={{ background: accentColor + "18" }}>
+            <MapPin size={32} style={{ color: accentColor }} />
+          </div>
           <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
             {rol === "vakman"
-              ? "We laten opdrachten zien binnen jouw radius. Klanten zien jouw afstand, niet je exacte adres."
-              : "Je adres wordt alleen gedeeld met de vakman die jij kiest. Nooit automatisch."}
+              ? "Klanten zien jouw afstand, niet je exacte adres."
+              : "Alleen gedeeld met de vakman die jij kiest."}
           </p>
         </div>
 
-        {/* Fake map */}
-        <div className="w-full h-40 rounded-3xl overflow-hidden relative"
-          style={{ background: "#e8f4ee" }}>
-          <div className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage: "repeating-linear-gradient(0deg, var(--teal) 0, var(--teal) 1px, transparent 0, transparent 40px), repeating-linear-gradient(90deg, var(--teal) 0, var(--teal) 1px, transparent 0, transparent 40px)",
-              backgroundSize: "40px 40px",
-            }} />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative flex items-center justify-center">
-              <div className="absolute w-20 h-20 rounded-full animate-pulse"
-                style={{ background: accentColor + "30" }} />
-              <div className="w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-lg"
-                style={{ background: accentColor }}>
-                <MapPin size={18} color="white" />
-              </div>
-            </div>
+        {/* Adres autocomplete */}
+        <AdresAutoComplete
+          value={locAdres}
+          onChange={(a, lat, lng) => {
+            setLocAdres(a);
+            setLocLat(lat);
+            setLocLng(lng);
+          }}
+          placeholder={rol === "vakman" ? "Jouw werkadres..." : "Jouw thuisadres..."}
+          label={rol === "vakman" ? "Werkgebied" : "Jouw adres"}
+          accent={accentColor}
+        />
+
+        {locAdres && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
+            style={{ background: accentColor + "15", color: accentColor }}>
+            <MapPin size={12} />
+            {locAdres} — gevonden!
           </div>
-          <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2">
-            <p className="text-xs font-semibold">📍 Jordaan, Amsterdam</p>
-            {rol === "vakman" && (
-              <p className="text-[11px]" style={{ color: "var(--muted)" }}>Werkgebied: 5 km radius</p>
-            )}
-          </div>
-        </div>
+        )}
       </div>
 
-      <div className="flex flex-col gap-3">
-        <button onClick={() => setStep("signup")}
+      <div className="flex flex-col gap-3 mt-6">
+        <button
+          onClick={() => setStep("signup")}
           className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-base"
           style={{ background: accentColor }}>
-          📍 Locatie toestaan
-        </button>
-        <button onClick={() => setStep("signup")}
-          className="touch-scale py-3 text-sm font-medium text-center"
-          style={{ color: "var(--muted)" }}>
-          Handmatig adres invoeren
+          {locAdres ? "Doorgaan →" : "📍 Adres overslaan"}
         </button>
       </div>
     </div>
@@ -482,34 +494,30 @@ export default function OnboardingPage() {
             placeholder={rol === "vakman" ? "Marco van den Berg" : "Lisa de Vries"}
             className="w-full px-4 py-3.5 rounded-2xl border outline-none text-sm"
             style={{
-              borderColor: naam ? "var(--teal)" : "var(--border)",
+              borderColor: naam ? accentColor : "var(--border)",
               background: "var(--surface)",
               color: "var(--foreground)",
             }}
           />
         </div>
 
-        <div>
-          <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
-            {rol === "vakman" ? "Werkadres / postcode" : "Thuisadres"}
-          </label>
-          <input
-            value={adres}
-            onChange={e => setAdres(e.target.value)}
-            placeholder="Prinsengracht 263, Amsterdam"
-            className="w-full px-4 py-3.5 rounded-2xl border outline-none text-sm"
-            style={{
-              borderColor: adres ? "var(--teal)" : "var(--border)",
-              background: "var(--surface)",
-              color: "var(--foreground)",
-            }}
-          />
-          <p className="text-xs mt-1.5" style={{ color: "var(--muted)" }}>
-            {rol === "vakman"
-              ? "Klanten zien alleen jouw afstand, niet je exacte adres."
-              : "Alleen zichtbaar voor de vakman die jij kiest."}
-          </p>
-        </div>
+        {/* Adres met autocomplete */}
+        <AdresAutoComplete
+          value={adres}
+          onChange={(a, lat, lng) => {
+            setAdres(a);
+            setAdresLat(lat);
+            setAdresLng(lng);
+          }}
+          placeholder="Tarwelaan 47, Kortrijk..."
+          label={rol === "vakman" ? "Werkadres / postcode" : "Thuisadres"}
+          accent={accentColor}
+        />
+        <p className="text-xs -mt-2" style={{ color: "var(--muted)" }}>
+          {rol === "vakman"
+            ? "Klanten zien alleen jouw afstand, niet je exacte adres."
+            : "Alleen zichtbaar voor de vakman die jij kiest."}
+        </p>
 
         {rol === "vakman" && (
           <div>
