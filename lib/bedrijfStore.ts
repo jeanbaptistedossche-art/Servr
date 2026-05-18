@@ -1,9 +1,13 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type LandCode = "BE" | "NL" | "DE" | "FR" | "LU" | "GB" | "anders";
+
 export type Bedrijf = {
+  land: LandCode;
   naam: string;
   handelsnaam: string;
-  kvk: string;
+  /** KvK (NL), Ondernemingsnummer (BE), SIRET (FR), Steuernummer (DE), … */
+  registratieNummer: string;
   btw: string;
   iban: string;
   bankNaam: string;
@@ -21,6 +25,134 @@ export type Bedrijf = {
   offerteVolgNr: number;
   factuurVolgNr: number;
   footer: string;
+  /** legacy — blijft voor backwards compat */
+  kvk?: string;
+};
+
+// ─── Land configuratie ────────────────────────────────────────────────────────
+
+export type LandConfig = {
+  naam: string;
+  vlag: string;
+  registratie: {
+    label: string;
+    placeholder: string;
+    hint: string;
+  };
+  btw: {
+    label: string;
+    placeholder: string;
+    hint: string;
+  } | null;            // null = BTW-veld niet tonen
+  btwPercentages: number[];
+};
+
+export const LANDEN: Record<LandCode, LandConfig> = {
+  BE: {
+    naam: "België",
+    vlag: "🇧🇪",
+    registratie: {
+      label: "Ondernemingsnummer",
+      placeholder: "0xxx.xxx.xxx",
+      hint: "9-cijferig nummer — te vinden via company.info of de KBO",
+    },
+    btw: {
+      label: "BTW-nummer",
+      placeholder: "BE0123.456.789",
+      hint: "Verplicht bij omzet > €25.000/jaar (kleine onderneming: optioneel)",
+    },
+    btwPercentages: [0, 6, 12, 21],
+  },
+  NL: {
+    naam: "Nederland",
+    vlag: "🇳🇱",
+    registratie: {
+      label: "KvK-nummer",
+      placeholder: "12345678",
+      hint: "8 cijfers — te vinden op kvk.nl",
+    },
+    btw: {
+      label: "BTW-nummer",
+      placeholder: "NL123456789B01",
+      hint: "Verplicht als je BTW-aangifte doet",
+    },
+    btwPercentages: [0, 9, 21],
+  },
+  DE: {
+    naam: "Duitsland",
+    vlag: "🇩🇪",
+    registratie: {
+      label: "Steuernummer",
+      placeholder: "12/345/67890",
+      hint: "Belastingnummer — afgegeven door het Finanzamt",
+    },
+    btw: {
+      label: "USt-IdNr. (btw)",
+      placeholder: "DE123456789",
+      hint: "Verplicht voor EU-grensoverschrijdende leveringen",
+    },
+    btwPercentages: [0, 7, 19],
+  },
+  FR: {
+    naam: "Frankrijk",
+    vlag: "🇫🇷",
+    registratie: {
+      label: "Numéro SIRET",
+      placeholder: "123 456 789 00012",
+      hint: "14 cijfers — te vinden op sirene.fr",
+    },
+    btw: {
+      label: "Numéro TVA",
+      placeholder: "FR12345678901",
+      hint: "Vereist bij btw-plichtige inschrijving",
+    },
+    btwPercentages: [0, 5.5, 10, 20],
+  },
+  LU: {
+    naam: "Luxemburg",
+    vlag: "🇱🇺",
+    registratie: {
+      label: "Numéro RCS",
+      placeholder: "B 123456",
+      hint: "Registratienummer Registre de Commerce et des Sociétés",
+    },
+    btw: {
+      label: "Numéro TVA",
+      placeholder: "LU12345678",
+      hint: "Verplicht bij omzet > €35.000/jaar",
+    },
+    btwPercentages: [0, 8, 17],
+  },
+  GB: {
+    naam: "Verenigd Koninkrijk",
+    vlag: "🇬🇧",
+    registratie: {
+      label: "Company number",
+      placeholder: "12345678",
+      hint: "8 characters — Companies House (companieshouse.gov.uk)",
+    },
+    btw: {
+      label: "VAT number",
+      placeholder: "GB123456789",
+      hint: "Required if turnover exceeds £90,000/year",
+    },
+    btwPercentages: [0, 5, 20],
+  },
+  anders: {
+    naam: "Ander land",
+    vlag: "🌍",
+    registratie: {
+      label: "Registratienummer",
+      placeholder: "Bedrijfsregistratienummer",
+      hint: "Officieel registratienummer in jouw land",
+    },
+    btw: {
+      label: "BTW / VAT-nummer",
+      placeholder: "Landcode + nummer",
+      hint: "Indien van toepassing",
+    },
+    btwPercentages: [0, 10, 20, 25],
+  },
 };
 
 export type Dienst = {
@@ -84,9 +216,10 @@ export type AgendaSlot = {
 // ─── Mock bedrijfsgegevens ────────────────────────────────────────────────────
 
 export const MOCK_BEDRIJF: Bedrijf = {
+  land: "NL",
   naam: "Marco van den Berg Loodgietersbedrijf",
   handelsnaam: "Marco Loodgieter",
-  kvk: "12345678",
+  registratieNummer: "12345678",
   btw: "NL123456789B01",
   iban: "NL91 ABNA 0417 1643 00",
   bankNaam: "ABN AMRO",

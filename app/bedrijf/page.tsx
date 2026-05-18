@@ -2,18 +2,30 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Building2, CreditCard, FileText, Camera, CheckCircle, ChevronRight } from "lucide-react";
-import { MOCK_BEDRIJF, type Bedrijf } from "@/lib/bedrijfStore";
+import { ArrowLeft, Building2, CreditCard, FileText, Camera, CheckCircle, ChevronRight, Globe } from "lucide-react";
+import { MOCK_BEDRIJF, LANDEN, type Bedrijf, type LandCode } from "@/lib/bedrijfStore";
 
 type Tab = "algemeen" | "financieel" | "factuur";
 
-function Field({ label, value, onChange, placeholder, type = "text", prefix, hint }: {
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function Field({
+  label, value, onChange, placeholder, type = "text", prefix, hint, optional,
+}: {
   label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; type?: string; prefix?: string; hint?: string;
+  placeholder?: string; type?: string; prefix?: string; hint?: string; optional?: boolean;
 }) {
   return (
     <div>
-      <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>{label}</label>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-xs font-bold uppercase" style={{ color: "var(--muted)" }}>{label}</label>
+        {optional && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+            style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+            Optioneel
+          </span>
+        )}
+      </div>
       <div className="flex items-center gap-2 px-4 py-3.5 rounded-2xl border transition-colors"
         style={{ borderColor: value ? "var(--teal)" : "var(--border)", background: "var(--surface)" }}>
         {prefix && <span className="text-sm font-semibold" style={{ color: "var(--muted)" }}>{prefix}</span>}
@@ -26,10 +38,72 @@ function Field({ label, value, onChange, placeholder, type = "text", prefix, hin
         />
         {value && <CheckCircle size={15} style={{ color: "var(--teal)", flexShrink: 0 }} />}
       </div>
-      {hint && <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>{hint}</p>}
+      {hint && <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "var(--muted)" }}>{hint}</p>}
     </div>
   );
 }
+
+// ─── Landkiezer ───────────────────────────────────────────────────────────────
+
+function LandKiezer({
+  geselecteerd, onChange,
+}: { geselecteerd: LandCode; onChange: (l: LandCode) => void }) {
+  const [open, setOpen] = useState(false);
+  const huidig = LANDEN[geselecteerd];
+
+  return (
+    <div className="relative">
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-xs font-bold uppercase" style={{ color: "var(--muted)" }}>
+          Land van vestiging
+        </label>
+        <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+          style={{ background: "var(--teal)" + "15", color: "var(--teal)" }}>
+          Bepaalt verplichte velden
+        </span>
+      </div>
+
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="touch-scale w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 text-left transition-all"
+        style={{ borderColor: "var(--teal)", background: "var(--surface)" }}>
+        <span className="text-2xl">{huidig.vlag}</span>
+        <span className="flex-1 font-semibold text-sm">{huidig.naam}</span>
+        <Globe size={16} style={{ color: "var(--muted)" }} />
+        <ChevronRight size={15}
+          style={{
+            color: "var(--muted)",
+            transform: open ? "rotate(90deg)" : "none",
+            transition: "transform 0.2s",
+          }} />
+      </button>
+
+      {open && (
+        <div className="absolute z-20 top-full left-0 right-0 mt-1.5 rounded-2xl border overflow-hidden shadow-lg"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+          {(Object.entries(LANDEN) as [LandCode, typeof LANDEN[LandCode]][]).map(([code, cfg]) => (
+            <button
+              key={code}
+              onClick={() => { onChange(code); setOpen(false); }}
+              className="touch-scale w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-0 transition-colors text-left"
+              style={{
+                borderColor: "var(--border)",
+                background: geselecteerd === code ? "var(--teal)" + "0f" : "transparent",
+              }}>
+              <span className="text-xl">{cfg.vlag}</span>
+              <span className="flex-1 text-sm font-semibold">{cfg.naam}</span>
+              {geselecteerd === code && (
+                <CheckCircle size={15} style={{ color: "var(--teal)" }} />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 
 export default function BedrijfPage() {
   const [bedrijf, setBedrijf] = useState<Bedrijf>(MOCK_BEDRIJF);
@@ -39,15 +113,31 @@ export default function BedrijfPage() {
   const update = (field: keyof Bedrijf) => (v: string) =>
     setBedrijf(b => ({ ...b, [field]: v }));
 
+  const setLand = (land: LandCode) => {
+    // Bewaar BTW-percentage uit het nieuwe land als het beschikbaar is
+    const cfg = LANDEN[land];
+    const nieuwBtwPct = cfg.btwPercentages.includes(bedrijf.btw_percentage)
+      ? bedrijf.btw_percentage
+      : cfg.btwPercentages[cfg.btwPercentages.length - 1];
+    setBedrijf(b => ({ ...b, land, btw_percentage: nieuwBtwPct }));
+  };
+
   const save = async () => {
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 400));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
+  const landCfg = LANDEN[bedrijf.land];
+
   const volledigheid = [
-    bedrijf.naam, bedrijf.kvk, bedrijf.btw, bedrijf.iban,
-    bedrijf.email, bedrijf.telefoon, bedrijf.adres,
+    bedrijf.naam,
+    bedrijf.registratieNummer,
+    landCfg.btw ? bedrijf.btw : "ok", // BTW is optioneel
+    bedrijf.iban,
+    bedrijf.email,
+    bedrijf.telefoon,
+    bedrijf.adres,
   ].filter(Boolean).length / 7 * 100;
 
   return (
@@ -101,7 +191,7 @@ export default function BedrijfPage() {
           </div>
           <div>
             <p className="font-black text-base">{bedrijf.handelsnaam || "Jouw bedrijf"}</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>Logo toevoegen voor professionele uitstraling</p>
+            <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>Logo voor professionele uitstraling</p>
             <button className="touch-scale mt-2 text-xs font-semibold px-3 py-1.5 rounded-full border"
               style={{ borderColor: "var(--teal)", color: "var(--teal)" }}>
               Logo uploaden
@@ -132,32 +222,74 @@ export default function BedrijfPage() {
       </div>
 
       <div className="px-5 flex flex-col gap-4">
+
         {/* ─── ALGEMEEN ─── */}
         {tab === "algemeen" && (
           <>
+            {/* Stap 1: Land kiezen */}
+            <LandKiezer geselecteerd={bedrijf.land} onChange={setLand} />
+
+            <div className="h-px" style={{ background: "var(--border)" }} />
+
+            {/* Bedrijfsnamen */}
             <Field label="Bedrijfsnaam (officieel)" value={bedrijf.naam} onChange={update("naam")}
               placeholder="Marco van den Berg Loodgietersbedrijf" />
             <Field label="Handelsnaam" value={bedrijf.handelsnaam} onChange={update("handelsnaam")}
-              placeholder="Marco Loodgieter" hint="Naam die klanten zien op offertes" />
-            <Field label="KvK-nummer" value={bedrijf.kvk} onChange={update("kvk")}
-              placeholder="12345678" hint="8 cijfers — te vinden op kvk.nl" />
-            <Field label="BTW-nummer" value={bedrijf.btw} onChange={update("btw")}
-              placeholder="NL123456789B01" />
+              placeholder="Marco Loodgieter" hint="Naam die klanten zien op offertes" optional />
+
             <div className="h-px" style={{ background: "var(--border)" }} />
+
+            {/* Land-specifieke registratie */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
+              style={{ background: "var(--teal)" + "10", color: "var(--teal)" }}>
+              <span>{landCfg.vlag}</span>
+              <span>{landCfg.naam} — verplichte bedrijfsgegevens</span>
+            </div>
+
+            <Field
+              label={landCfg.registratie.label}
+              value={bedrijf.registratieNummer}
+              onChange={update("registratieNummer")}
+              placeholder={landCfg.registratie.placeholder}
+              hint={landCfg.registratie.hint}
+            />
+
+            {landCfg.btw ? (
+              <Field
+                label={landCfg.btw.label}
+                value={bedrijf.btw}
+                onChange={update("btw")}
+                placeholder={landCfg.btw.placeholder}
+                hint={landCfg.btw.hint}
+                optional
+              />
+            ) : (
+              <div className="px-4 py-3 rounded-2xl text-xs"
+                style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+                Geen BTW-nummer vereist voor {landCfg.naam}
+              </div>
+            )}
+
+            <div className="h-px" style={{ background: "var(--border)" }} />
+
+            {/* Contact */}
             <Field label="E-mailadres" value={bedrijf.email} onChange={update("email")}
               type="email" placeholder="info@jouwbedrijf.nl" />
             <Field label="Telefoonnummer" value={bedrijf.telefoon} onChange={update("telefoon")}
-              placeholder="06-12345678" />
+              placeholder="+32 478 12 34 56" />
             <Field label="Website" value={bedrijf.website} onChange={update("website")}
-              placeholder="www.jouwbedrijf.nl" prefix="https://" />
+              placeholder="www.jouwbedrijf.be" prefix="https://" optional />
+
             <div className="h-px" style={{ background: "var(--border)" }} />
+
+            {/* Adres */}
             <Field label="Straat + huisnummer" value={bedrijf.adres} onChange={update("adres")}
               placeholder="Haarlemmerdijk 45" />
             <div className="grid grid-cols-2 gap-3">
               <Field label="Postcode" value={bedrijf.postcode} onChange={update("postcode")}
-                placeholder="1013 KA" />
+                placeholder={bedrijf.land === "BE" ? "9000" : bedrijf.land === "NL" ? "1013 KA" : "Postcode"} />
               <Field label="Stad" value={bedrijf.stad} onChange={update("stad")}
-                placeholder="Amsterdam" />
+                placeholder={bedrijf.land === "BE" ? "Gent" : "Amsterdam"} />
             </div>
           </>
         )}
@@ -172,10 +304,13 @@ export default function BedrijfPage() {
               </p>
             </div>
             <Field label="IBAN" value={bedrijf.iban} onChange={update("iban")}
-              placeholder="NL91 ABNA 0417 1643 00" hint="Je bankrekeningnummer" />
+              placeholder={bedrijf.land === "BE" ? "BE68 5390 0754 7034" : "NL91 ABNA 0417 1643 00"}
+              hint="Je bankrekeningnummer" />
             <Field label="Bank" value={bedrijf.bankNaam} onChange={update("bankNaam")}
-              placeholder="ABN AMRO" />
+              placeholder={bedrijf.land === "BE" ? "BNP Paribas Fortis" : "ABN AMRO"} />
+
             <div className="h-px" style={{ background: "var(--border)" }} />
+
             <div>
               <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
                 Betalingstermijn
@@ -197,14 +332,15 @@ export default function BedrijfPage() {
                 Klant heeft {bedrijf.betalingstermijn} dagen om de factuur te betalen
               </p>
             </div>
+
             <div>
               <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
-                BTW-percentage
+                {landCfg.btw?.label.replace("nummer", "percentage").replace("Numéro", "%") ?? "BTW-percentage"}
               </label>
-              <div className="flex gap-2">
-                {[0, 9, 21].map(p => (
+              <div className="flex gap-2 flex-wrap">
+                {landCfg.btwPercentages.map(p => (
                   <button key={p} onClick={() => setBedrijf(b => ({ ...b, btw_percentage: p }))}
-                    className="touch-scale flex-1 py-3 rounded-xl font-bold text-sm border-2 transition-all"
+                    className="touch-scale flex-1 min-w-[60px] py-3 rounded-xl font-bold text-sm border-2 transition-all"
                     style={{
                       borderColor: bedrijf.btw_percentage === p ? "var(--teal)" : "var(--border)",
                       background: bedrijf.btw_percentage === p ? "var(--teal)" + "10" : "var(--surface)",
@@ -214,6 +350,16 @@ export default function BedrijfPage() {
                   </button>
                 ))}
               </div>
+              {bedrijf.land === "BE" && (
+                <p className="text-xs mt-1.5" style={{ color: "var(--muted)" }}>
+                  🇧🇪 België: 6% (voeding/bouw), 12% (catering), 21% (standaard)
+                </p>
+              )}
+              {bedrijf.land === "NL" && (
+                <p className="text-xs mt-1.5" style={{ color: "var(--muted)" }}>
+                  🇳🇱 NL: 9% (voeding/meds), 21% (standaard)
+                </p>
+              )}
             </div>
           </>
         )}
@@ -241,7 +387,7 @@ export default function BedrijfPage() {
               </div>
             </div>
             <p className="text-xs" style={{ color: "var(--muted)" }}>
-              Volgende offerte krijgt nummer: <strong>{bedrijf.offertePrefix}{bedrijf.offerteVolgNr}</strong>
+              Volgende offerte: <strong>{bedrijf.offertePrefix}{bedrijf.offerteVolgNr}</strong>
             </p>
 
             <div className="grid grid-cols-2 gap-3">
@@ -264,33 +410,41 @@ export default function BedrijfPage() {
               </div>
             </div>
             <p className="text-xs" style={{ color: "var(--muted)" }}>
-              Volgende factuur krijgt nummer: <strong>{bedrijf.factuurPrefix}{bedrijf.factuurVolgNr}</strong>
+              Volgende factuur: <strong>{bedrijf.factuurPrefix}{bedrijf.factuurVolgNr}</strong>
             </p>
 
             <div>
               <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
-                Voettekst (verschijnt onderaan elke factuur)
+                Voettekst (onderaan elke factuur)
               </label>
               <textarea value={bedrijf.footer} onChange={e => update("footer")(e.target.value)}
                 rows={3} className="w-full px-4 py-3 rounded-2xl border outline-none text-sm resize-none"
                 style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
             </div>
 
-            {/* Preview */}
+            {/* Preview factuurkop */}
             <div className="card p-4">
               <p className="text-xs font-bold uppercase mb-3" style={{ color: "var(--muted)" }}>Voorbeeld koptekst</p>
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-black text-base">{bedrijf.handelsnaam}</p>
+                  <p className="font-black text-base">{bedrijf.handelsnaam || bedrijf.naam}</p>
                   <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{bedrijf.adres}</p>
                   <p className="text-xs" style={{ color: "var(--muted)" }}>{bedrijf.postcode} {bedrijf.stad}</p>
-                  <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>KvK: {bedrijf.kvk}</p>
-                  <p className="text-xs" style={{ color: "var(--muted)" }}>BTW: {bedrijf.btw}</p>
+                  {bedrijf.registratieNummer && (
+                    <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                      {LANDEN[bedrijf.land].registratie.label}: {bedrijf.registratieNummer}
+                    </p>
+                  )}
+                  {bedrijf.btw && (
+                    <p className="text-xs" style={{ color: "var(--muted)" }}>
+                      {LANDEN[bedrijf.land].btw?.label}: {bedrijf.btw}
+                    </p>
+                  )}
                 </div>
                 <div className="w-16 h-16 rounded-xl flex items-center justify-center"
                   style={{ background: "var(--teal)" }}>
                   <span className="text-white font-black text-xl">
-                    {bedrijf.handelsnaam.charAt(0)}
+                    {(bedrijf.handelsnaam || bedrijf.naam || "B").charAt(0)}
                   </span>
                 </div>
               </div>
