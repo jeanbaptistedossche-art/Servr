@@ -23,9 +23,20 @@ function fmt(n: number) {
   return n.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "";
-const stripeReady = Boolean(stripeKey && stripeKey !== "your_stripe_publishable_key");
-const stripePromise = stripeReady ? loadStripe(stripeKey) : null;
+// Stripe key wordt runtime opgehaald via API (niet build-time)
+let stripePromiseCache: ReturnType<typeof loadStripe> | null = null;
+
+async function getStripePromise(): Promise<ReturnType<typeof loadStripe> | null> {
+  try {
+    const res = await fetch("/api/stripe/config");
+    const { publishableKey } = await res.json();
+    if (!publishableKey) return null;
+    if (!stripePromiseCache) stripePromiseCache = loadStripe(publishableKey);
+    return stripePromiseCache;
+  } catch {
+    return null;
+  }
+}
 
 // ─── Stripe checkout form ─────────────────────────────────────────────────────
 
@@ -159,11 +170,12 @@ const DEFAULT_METHODES = [
 export default function TeBetalenPage() {
   const { offertes, betaalOfferte, weigerOfferte } = useOfferteStore();
 
-  const [betalendId, setBetalendId]     = useState<string | null>(null);
-  const [betaaldIds, setBetaaldIds]     = useState<string[]>([]);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [betalendId, setBetalendId]       = useState<string | null>(null);
+  const [betaaldIds, setBetaaldIds]       = useState<string[]>([]);
+  const [clientSecret, setClientSecret]   = useState<string | null>(null);
+  const [stripeInstance, setStripeInstance] = useState<Awaited<ReturnType<typeof loadStripe>> | null>(null);
   const [loadingSecret, setLoadingSecret] = useState(false);
-  const [stripeError, setStripeError]   = useState<string | null>(null);
+  const [stripeError, setStripeError]     = useState<string | null>(null);
 
   // Mock-fallback state
   const [gekozenIdx, setGekozenIdx]     = useState(0);
@@ -196,28 +208,38 @@ export default function TeBetalenPage() {
     setRedirectBank(null);
     setClientSecret(null);
     setStripeError(null);
+    setLoadingSecret(true);
 
-    if (stripeReady) {
-      const offerte = openstaand.find(o => o.id === id);
-      if (!offerte) return;
-      setLoadingSecret(true);
-      try {
-        const res = await fetch("/api/stripe/intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: offerte.totaal, offerteNummer: offerte.nummer }),
-        });
-        const data = await res.json();
-        if (data.clientSecret) {
-          setClientSecret(data.clientSecret);
-        } else {
-          setStripeError(data.error ?? "Stripe fout — controleer je API keys in Vercel");
-        }
-      } catch (e) {
-        setStripeError("Kan Stripe niet bereiken. Controleer je internetverbinding.");
-      } finally {
+    const offerte = openstaand.find(o => o.id === id);
+    if (!offerte) { setLoadingSecret(false); return; }
+
+    try {
+      // Haal Stripe key op via API (runtime, niet build-time)
+      const sp = await getStripePromise();
+      if (!sp) {
+        // Geen Stripe geconfigureerd → mock flow
         setLoadingSecret(false);
+        return;
       }
+      const resolved = await sp;
+      setStripeInstance(resolved);
+
+      // Maak PaymentIntent aan
+      const res = await fetch("/api/stripe/intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: offerte.totaal, offerteNummer: offerte.nummer }),
+      });
+      const data = await res.json();
+      if (data.clientSecret) {
+        setClientSecret(data.clientSecret);
+      } else {
+        setStripeError(data.error ?? "Stripe fout — controleer je API keys in Vercel");
+      }
+    } catch {
+      setStripeError("Kan Stripe niet bereiken.");
+    } finally {
+      setLoadingSecret(false);
     }
   };
 
@@ -432,7 +454,7 @@ export default function TeBetalenPage() {
               </p>
 
               {/* Stripe flow */}
-              {stripeReady ? (
+              {(stripeInstance || loadingSecret || stripeError) ? (
                 loadingSecret ? (
                   <div className="flex flex-col items-center py-10 gap-3">
                     <Loader2 size={28} className="animate-spin" style={{ color: "var(--teal)" }} />
@@ -456,7 +478,7 @@ export default function TeBetalenPage() {
                   </div>
                 ) : clientSecret ? (
                   <Elements
-                    stripe={stripePromise}
+                    stripe={stripeInstance}
                     options={{
                       clientSecret,
                       appearance: {
