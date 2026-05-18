@@ -1,0 +1,167 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export type UserRole = "klant" | "vakman" | null;
+
+export type UserState = {
+  role: UserRole;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  isLoggedIn: boolean;
+  isAdmin: boolean;
+  // actions
+  login: (opts: { role: UserRole; name: string; address?: string; isAdmin?: boolean }) => void;
+  setRole: (r: UserRole) => void;
+  setProfile: (p: Partial<Pick<UserState, "name" | "address" | "lat" | "lng">>) => void;
+  logout: () => void;
+};
+
+export const useUserStore = create<UserState>()(
+  persist(
+    (set) => ({
+      role: null,
+      name: "",
+      address: "Amsterdam",
+      lat: 52.3676,
+      lng: 4.9041,
+      isLoggedIn: false,
+      isAdmin: false,
+
+      login: ({ role, name, address, isAdmin }) =>
+        set({
+          isLoggedIn: true,
+          role,
+          name: name || "Gebruiker",
+          address: address || "Amsterdam",
+          isAdmin: isAdmin ?? false,
+        }),
+
+      setRole: (role) => set({ role }),
+
+      setProfile: (p) => set(p),
+
+      logout: () =>
+        set({ role: null, isLoggedIn: false, isAdmin: false, name: "", address: "" }),
+    }),
+    { name: "servr-user-v1" }
+  )
+);
+
+// ─── shared types & mock data (unchanged) ─────────────────────────────────────
+
+export type Opdracht = {
+  id: string;
+  klant: string;
+  klantAvatar: string;
+  title: string;
+  beschrijving: string;
+  categorie: string;
+  categorieIcon: string;
+  adres: string;
+  lat: number;
+  lng: number;
+  afstand: string;
+  foto?: string;
+  budget: string;
+  status: "open" | "offerte_ontvangen" | "geaccepteerd" | "betaald" | "afgerond";
+  urgentie: "laag" | "middel" | "hoog";
+  aangemaakt: string;
+};
+
+export type Offerte = {
+  id: string;
+  opdrachtId: string;
+  vakman: string;
+  vakmanAvatar: string;
+  vakmanScore: number;
+  prijs: number;
+  beschrijving: string;
+  eta: string;
+  geldigTot: string;
+  status: "wachtend" | "geaccepteerd" | "betaald" | "geweigerd";
+};
+
+export const MOCK_OPDRACHTEN: Opdracht[] = [
+  {
+    id: "o1",
+    klant: "Lisa de Vries",
+    klantAvatar: "https://i.pravatar.cc/150?img=32",
+    title: "Lekkende kraan keuken",
+    beschrijving: "De kraan in de keuken lekt bij de aansluiting onder het aanrecht. Al 2 dagen last van. Graag snel opgelost.",
+    categorie: "Loodgieter",
+    categorieIcon: "🔧",
+    adres: "Jordaan, Prinsengracht 88, Amsterdam",
+    lat: 52.3738,
+    lng: 4.8847,
+    afstand: "0.4 km",
+    foto: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400",
+    budget: "€60-90",
+    status: "open",
+    urgentie: "hoog",
+    aangemaakt: "5 min geleden",
+  },
+  {
+    id: "o2",
+    klant: "Ahmed Mansour",
+    klantAvatar: "https://i.pravatar.cc/150?img=33",
+    title: "CV ketel inspectie",
+    beschrijving: "Jaarlijkse inspectie van de cv ketel. Liefst komende week.",
+    categorie: "HVAC",
+    categorieIcon: "❄️",
+    adres: "De Pijp, Ferdinand Bolstraat 45, Amsterdam",
+    lat: 52.3546,
+    lng: 4.8975,
+    afstand: "1.8 km",
+    budget: "€75",
+    status: "offerte_ontvangen",
+    urgentie: "laag",
+    aangemaakt: "2 uur geleden",
+  },
+  {
+    id: "o3",
+    klant: "Petra Jansen",
+    klantAvatar: "https://i.pravatar.cc/150?img=47",
+    title: "Woonkamer schilderen",
+    beschrijving: "Woonkamer + hal schilderen in warm wit. Ca. 45m². Inclusief plafond.",
+    categorie: "Schilder",
+    categorieIcon: "🖌️",
+    adres: "Oud-West, Kinkerstraat 120, Amsterdam",
+    lat: 52.3661,
+    lng: 4.8742,
+    afstand: "2.1 km",
+    foto: "https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=400",
+    budget: "€400-600",
+    status: "geaccepteerd",
+    urgentie: "middel",
+    aangemaakt: "Gisteren",
+  },
+];
+
+export const MOCK_OFFERTES: Offerte[] = [
+  {
+    id: "off1",
+    opdrachtId: "o1",
+    vakman: "Marco van den Berg",
+    vakmanAvatar: "https://i.pravatar.cc/150?img=11",
+    vakmanScore: 94,
+    prijs: 75,
+    beschrijving: "Ik kom dit vandaag nog oplossen. Inclusief materiaal en 3 maanden garantie.",
+    eta: "Vandaag, 15:00",
+    geldigTot: "Vandaag 20:00",
+    status: "wachtend",
+  },
+  {
+    id: "off2",
+    opdrachtId: "o1",
+    vakman: "Yusuf Aydın",
+    vakmanAvatar: "https://i.pravatar.cc/150?img=33",
+    vakmanScore: 91,
+    prijs: 85,
+    beschrijving: "Kan morgenochtend komen. Prijs inclusief nieuw afdichtingsmateriaal.",
+    eta: "Morgen, 09:00",
+    geldigTot: "Morgen 18:00",
+    status: "wachtend",
+  },
+];
