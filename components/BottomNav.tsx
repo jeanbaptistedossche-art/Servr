@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Zap, User, LayoutDashboard, ListChecks, CalendarDays, ArrowLeftRight, MessageCircle, LucideIcon } from "lucide-react";
+import { Home, Search, Zap, User, LayoutDashboard, ListChecks, CalendarDays, ArrowLeftRight, CreditCard, LucideIcon } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 import { useInstellingenStore } from "@/lib/instellingenStore";
 import { useT } from "@/lib/translations";
@@ -43,7 +43,7 @@ export default function BottomNav() {
         { href: "/", icon: Home, label: t("home") },
         { href: "/search", icon: Search, label: t("zoeken") },
         { href: "/panic", icon: Zap, label: "Panic", isPanic: true },
-        { href: "/berichten", icon: MessageCircle, label: t("berichten"), badge: 3 },
+        { href: "/te-betalen", icon: CreditCard, label: "Betalen" },
         { href: "/profile", icon: User, label: t("profiel") },
       ];
 
