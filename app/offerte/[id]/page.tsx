@@ -114,6 +114,8 @@ function BetaalSectie({ totaal, nummer, onSuccess, onBack }: {
   const [error, setError] = useState<string | null>(null);
   const [gestart, setGestart] = useState(false);
   const [mockBank, setMockBank] = useState("ING");
+  const [chargeAmount, setChargeAmount] = useState<number | null>(null);
+  const [serviceFee, setServiceFee]     = useState<number | null>(null);
 
   const startBetaling = async () => {
     setGestart(true);
@@ -141,6 +143,8 @@ function BetaalSectie({ totaal, nummer, onSuccess, onBack }: {
         setStripeInstance(si);
       }
       setClientSecret(data.clientSecret);
+      if (data.chargeAmount) setChargeAmount(data.chargeAmount);
+      if (data.serviceFee)   setServiceFee(data.serviceFee);
     } catch {
       setError("Kan Stripe niet bereiken");
     } finally {
@@ -175,7 +179,23 @@ function BetaalSectie({ totaal, nummer, onSuccess, onBack }: {
   // Stripe werkt → toon Elements
   if (clientSecret && stripeInstance) return (
     <Elements stripe={stripeInstance} options={{ clientSecret, appearance: { theme: "stripe", variables: { colorPrimary: "#0F6E56", borderRadius: "16px" } } }}>
-      <StripeForm totaal={totaal} nummer={nummer} onSuccess={onSuccess} onBack={onBack} />
+      <div className="flex flex-col gap-2 mb-3 p-3 rounded-2xl text-xs" style={{ background: "var(--surface-2)" }}>
+        <div className="flex justify-between">
+          <span style={{ color: "var(--muted)" }}>Klus</span>
+          <span>€{fmt(totaal)}</span>
+        </div>
+        {(serviceFee ?? 0) > 0 && (
+          <div className="flex justify-between">
+            <span style={{ color: "var(--muted)" }}>Service fee</span>
+            <span>€{fmt(serviceFee!)}</span>
+          </div>
+        )}
+        <div className="flex justify-between font-black border-t pt-2" style={{ borderColor: "var(--border)" }}>
+          <span>Totaal</span>
+          <span style={{ color: "var(--teal)" }}>€{fmt(chargeAmount ?? totaal)}</span>
+        </div>
+      </div>
+      <StripeForm totaal={chargeAmount ?? totaal} nummer={nummer} onSuccess={onSuccess} onBack={onBack} />
     </Elements>
   );
 
@@ -284,9 +304,19 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
               </div>
             ))}
           </div>
-          <div className="flex justify-between px-4 py-3 border-t" style={{ borderColor: "var(--border)" }}>
-            <span className="font-black text-base">Totaal te betalen</span>
-            <span className="font-black text-xl" style={{ color: "var(--teal)" }}>€{fmt(totaal)}</span>
+          <div className="px-4 py-3 border-t flex flex-col gap-1" style={{ borderColor: "var(--border)" }}>
+            <div className="flex justify-between text-sm">
+              <span style={{ color: "var(--muted)" }}>Klus subtotaal</span>
+              <span>€{fmt(totaal)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span style={{ color: "var(--muted)" }}>Service fee (5%)</span>
+              <span>€{fmt(totaal * 0.05)}</span>
+            </div>
+            <div className="flex justify-between font-black text-base pt-1">
+              <span>Totaal te betalen</span>
+              <span style={{ color: "var(--teal)" }}>€{fmt(totaal * 1.05)}</span>
+            </div>
           </div>
         </div>
         <BetaalSectie totaal={totaal} nummer={extra.nummer} onSuccess={() => setFase("succes")} onBack={() => setFase("geaccepteerd")} />

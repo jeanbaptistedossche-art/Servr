@@ -36,7 +36,7 @@ function StripeForm({
 }: {
   onSuccess: () => void;
   onCancel: () => void;
-  offerte: { totaal: number; nummer: string; vakmanNaam: string };
+  offerte: { totaal: number; chargeAmount: number; serviceFee: number; nummer: string; vakmanNaam: string };
 }) {
   const stripe   = useStripe();
   const elements = useElements();
@@ -68,15 +68,29 @@ function StripeForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {/* Bedrag header */}
-      <div className="rounded-2xl p-4 flex items-center justify-between"
+      <div className="rounded-2xl p-4 flex flex-col gap-2"
         style={{ background: "var(--teal)" + "12" }}>
-        <div>
-          <p className="font-bold text-sm">{offerte.vakmanNaam}</p>
-          <p className="text-xs" style={{ color: "var(--muted)" }}>{offerte.nummer}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-bold text-sm">{offerte.vakmanNaam}</p>
+            <p className="text-xs" style={{ color: "var(--muted)" }}>{offerte.nummer}</p>
+          </div>
+          <p className="font-black text-2xl" style={{ color: "var(--teal)" }}>
+            €{fmt(offerte.chargeAmount)}
+          </p>
         </div>
-        <p className="font-black text-2xl" style={{ color: "var(--teal)" }}>
-          €{fmt(offerte.totaal)}
-        </p>
+        {offerte.serviceFee > 0 && (
+          <div className="flex justify-between text-xs pt-1 border-t" style={{ borderColor: "var(--teal)" + "30" }}>
+            <span style={{ color: "var(--muted)" }}>Klus ({offerte.vakmanNaam})</span>
+            <span>€{fmt(offerte.totaal)}</span>
+          </div>
+        )}
+        {offerte.serviceFee > 0 && (
+          <div className="flex justify-between text-xs">
+            <span style={{ color: "var(--muted)" }}>Service fee</span>
+            <span>€{fmt(offerte.serviceFee)}</span>
+          </div>
+        )}
       </div>
 
       {/* Stripe PaymentElement — toont automatisch kaart / Bancontact / iDEAL / Apple Pay */}
@@ -102,7 +116,7 @@ function StripeForm({
           style={{ background: stripe && !bezig ? "var(--teal)" : "var(--muted)" }}>
           {bezig
             ? <><Loader2 size={18} className="animate-spin" /> Even wachten…</>
-            : <><Lock size={18} /> Betaling bevestigen · €{fmt(offerte.totaal)}</>}
+            : <><Lock size={18} /> Betaling bevestigen · €{fmt(offerte.chargeAmount)}</>}
         </button>
         <button type="button" onClick={onCancel}
           className="touch-scale w-full py-3 rounded-2xl font-semibold text-sm border"
@@ -162,10 +176,12 @@ export default function TeBetalenPage() {
 
   const [betalendId, setBetalendId]       = useState<string | null>(null);
   const [betaaldIds, setBetaaldIds]       = useState<string[]>([]);
-  const [clientSecret, setClientSecret]   = useState<string | null>(null);
+  const [clientSecret, setClientSecret]     = useState<string | null>(null);
   const [stripeInstance, setStripeInstance] = useState<Awaited<ReturnType<typeof loadStripe>> | null>(null);
-  const [loadingSecret, setLoadingSecret] = useState(false);
-  const [stripeError, setStripeError]     = useState<string | null>(null);
+  const [loadingSecret, setLoadingSecret]   = useState(false);
+  const [stripeError, setStripeError]       = useState<string | null>(null);
+  const [chargeAmount, setChargeAmount]     = useState<number | null>(null);
+  const [serviceFee, setServiceFee]         = useState<number | null>(null);
 
   // Mock-fallback state
   const [gekozenIdx, setGekozenIdx]     = useState(0);
@@ -199,6 +215,8 @@ export default function TeBetalenPage() {
     setClientSecret(null);
     setStripeError(null);
     setStripeInstance(null);
+    setChargeAmount(null);
+    setServiceFee(null);
     setLoadingSecret(true);
 
     const offerte = openstaand.find(o => o.id === id);
@@ -240,6 +258,8 @@ export default function TeBetalenPage() {
       if (!stripeCache) stripeCache = await loadStripe(pk);
       setStripeInstance(stripeCache);
       setClientSecret(data.clientSecret);
+      if (data.chargeAmount) setChargeAmount(data.chargeAmount);
+      if (data.serviceFee)   setServiceFee(data.serviceFee);
     } catch {
       setStripeError("Kan Stripe niet bereiken. Controleer je internetverbinding.");
     } finally {
@@ -491,7 +511,11 @@ export default function TeBetalenPage() {
                       },
                     }}>
                     <StripeForm
-                      offerte={betalende}
+                      offerte={{
+                        ...betalende,
+                        chargeAmount: chargeAmount ?? betalende.totaal,
+                        serviceFee: serviceFee ?? 0,
+                      }}
                       onSuccess={handleStripeSuccess}
                       onCancel={handleAnnuleer}
                     />
