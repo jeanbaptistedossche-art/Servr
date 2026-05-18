@@ -23,20 +23,8 @@ function fmt(n: number) {
   return n.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Stripe key wordt runtime opgehaald via API (niet build-time)
-let stripePromiseCache: ReturnType<typeof loadStripe> | null = null;
-
-async function getStripePromise(): Promise<ReturnType<typeof loadStripe> | null> {
-  try {
-    const res = await fetch("/api/stripe/config");
-    const { publishableKey } = await res.json();
-    if (!publishableKey) return null;
-    if (!stripePromiseCache) stripePromiseCache = loadStripe(publishableKey);
-    return stripePromiseCache;
-  } catch {
-    return null;
-  }
-}
+// Stripe instance cache
+let stripeCache: Awaited<ReturnType<typeof loadStripe>> | null = null;
 
 // ─── Stripe checkout form ─────────────────────────────────────────────────────
 
@@ -208,36 +196,46 @@ export default function TeBetalenPage() {
     setRedirectBank(null);
     setClientSecret(null);
     setStripeError(null);
+    setStripeInstance(null);
     setLoadingSecret(true);
 
     const offerte = openstaand.find(o => o.id === id);
     if (!offerte) { setLoadingSecret(false); return; }
 
     try {
-      // Haal Stripe key op via API (runtime, niet build-time)
-      const sp = await getStripePromise();
-      if (!sp) {
-        // Geen Stripe geconfigureerd → mock flow
-        setLoadingSecret(false);
-        return;
-      }
-      const resolved = await sp;
-      setStripeInstance(resolved);
-
-      // Maak PaymentIntent aan
+      // Eén API-call: maakt PaymentIntent én geeft publishableKey terug
       const res = await fetch("/api/stripe/intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: offerte.totaal, offerteNummer: offerte.nummer }),
       });
       const data = await res.json();
-      if (data.clientSecret) {
-        setClientSecret(data.clientSecret);
-      } else {
-        setStripeError(data.error ?? "Stripe fout — controleer je API keys in Vercel");
+
+      if (res.status === 503) {
+        // Stripe niet geconfigureerd → stil naar mock
+        setLoadingSecret(false);
+        return;
       }
+
+      if (!data.clientSecret) {
+        setStripeError(data.error ?? "Stripe kon geen betaling aanmaken");
+        setLoadingSecret(false);
+        return;
+      }
+
+      // Laad Stripe.js met de key die de server teruggeeft
+      const pk = data.publishableKey;
+      if (!pk) {
+        setStripeError("Publishable key ontbreekt — voeg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY toe in Vercel");
+        setLoadingSecret(false);
+        return;
+      }
+
+      if (!stripeCache) stripeCache = await loadStripe(pk);
+      setStripeInstance(stripeCache);
+      setClientSecret(data.clientSecret);
     } catch {
-      setStripeError("Kan Stripe niet bereiken.");
+      setStripeError("Kan Stripe niet bereiken. Controleer je internetverbinding.");
     } finally {
       setLoadingSecret(false);
     }
