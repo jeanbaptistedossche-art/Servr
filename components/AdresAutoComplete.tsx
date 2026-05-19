@@ -41,9 +41,17 @@ function formatSub(s: Suggestie): string {
   return parts.slice(0, 3).join(", ");
 }
 
+export type AdresParts = {
+  straat: string;
+  huisnummer: string;
+  postcode: string;
+  stad: string;
+};
+
 type Props = {
   value: string;
   onChange: (adres: string, lat?: number, lng?: number) => void;
+  onParts?: (parts: AdresParts) => void;
   placeholder?: string;
   label?: string;
   accent?: string;
@@ -52,6 +60,7 @@ type Props = {
 export default function AdresAutoComplete({
   value,
   onChange,
+  onParts,
   placeholder = "Straat en huisnummer...",
   label,
   accent = "var(--teal)",
@@ -115,6 +124,14 @@ export default function AdresAutoComplete({
     setSuggesties([]);
     setOpen(false);
     onChange(adres, parseFloat(s.lat), parseFloat(s.lon));
+    if (onParts) {
+      onParts({
+        straat: s.address.road ?? "",
+        huisnummer: s.address.house_number ?? "",
+        postcode: s.address.postcode ?? "",
+        stad: s.address.city ?? s.address.town ?? s.address.village ?? s.address.municipality ?? "",
+      });
+    }
   };
 
   const wissen = () => {

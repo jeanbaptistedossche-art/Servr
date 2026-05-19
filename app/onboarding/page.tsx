@@ -10,6 +10,7 @@ import { useUserStore } from "@/lib/store";
 import type { UserRole } from "@/lib/store";
 import { registerVakman, genId } from "@/lib/db";
 import AdresAutoComplete from "@/components/AdresAutoComplete";
+import type { AdresParts } from "@/components/AdresAutoComplete";
 
 type Step = "welcome" | "login" | "rol" | "location" | "signup" | "profiel";
 
@@ -45,6 +46,10 @@ export default function OnboardingPage() {
   const [locAdres, setLocAdres]   = useState("");
   const [locLat, setLocLat]       = useState<number | undefined>();
   const [locLng, setLocLng]       = useState<number | undefined>();
+  const [locStraat, setLocStraat]       = useState("");
+  const [locHuisnummer, setLocHuisnummer] = useState("");
+  const [locPostcode, setLocPostcode]   = useState("");
+  const [locStad, setLocStad]           = useState("");
   const [selectedCat, setSelectedCat] = useState("");
 
   // Login-with-name flow
@@ -69,7 +74,12 @@ export default function OnboardingPage() {
 
   // ── Finish registration ───────────────────────────────────────────────────
   const finish = async () => {
-    const finalAdres = adres.trim() || locAdres.trim() || "Amsterdam";
+    const samengesteld = [
+      [locStraat, locHuisnummer].filter(Boolean).join(" "),
+      locPostcode,
+      locStad,
+    ].filter(Boolean).join(", ");
+    const finalAdres = adres.trim() || samengesteld || locAdres.trim() || "Amsterdam";
     const finalLat   = adresLat ?? locLat ?? 52.3676;
     const finalLng   = adresLng ?? locLng ?? 4.9041;
 
@@ -388,20 +398,12 @@ export default function OnboardingPage() {
         </p>
       </div>
 
-      <div className="flex-1 flex flex-col gap-6 pt-6">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style={{ background: accentColor + "18" }}>
-            <MapPin size={32} style={{ color: accentColor }} />
-          </div>
-          <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
-            {rol === "vakman"
-              ? "Klanten zien jouw afstand, niet je exacte adres."
-              : "Alleen gedeeld met de vakman die jij kiest."}
-          </p>
-        </div>
+      <div className="flex-1 flex flex-col gap-4 pt-6">
+        <p className="text-xs font-semibold" style={{ color: "var(--muted)" }}>
+          Begin te typen — suggesties verschijnen automatisch
+        </p>
 
-        {/* Adres autocomplete */}
+        {/* Zoekbalk met autocomplete */}
         <AdresAutoComplete
           value={locAdres}
           onChange={(a, lat, lng) => {
@@ -409,26 +411,87 @@ export default function OnboardingPage() {
             setLocLat(lat);
             setLocLng(lng);
           }}
-          placeholder={rol === "vakman" ? "Jouw werkadres..." : "Jouw thuisadres..."}
-          label={rol === "vakman" ? "Werkgebied" : "Jouw adres"}
+          onParts={(parts: AdresParts) => {
+            setLocStraat(parts.straat);
+            setLocHuisnummer(parts.huisnummer);
+            setLocPostcode(parts.postcode);
+            setLocStad(parts.stad);
+          }}
+          placeholder="Zoek je adres..."
           accent={accentColor}
         />
 
-        {locAdres && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
+        {/* Losse velden — gevuld door autocomplete of handmatig */}
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>Straat</label>
+            <input
+              value={locStraat}
+              onChange={e => setLocStraat(e.target.value)}
+              placeholder="Kerkstraat"
+              className="w-full px-4 py-3 rounded-2xl border outline-none text-sm"
+              style={{ borderColor: locStraat ? accentColor : "var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
+            />
+          </div>
+          <div style={{ width: 90 }}>
+            <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>Nr.</label>
+            <input
+              value={locHuisnummer}
+              onChange={e => setLocHuisnummer(e.target.value)}
+              placeholder="12"
+              className="w-full px-4 py-3 rounded-2xl border outline-none text-sm"
+              style={{ borderColor: locHuisnummer ? accentColor : "var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <div style={{ width: 120 }}>
+            <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>Postcode</label>
+            <input
+              value={locPostcode}
+              onChange={e => setLocPostcode(e.target.value)}
+              placeholder="9000"
+              className="w-full px-4 py-3 rounded-2xl border outline-none text-sm"
+              style={{ borderColor: locPostcode ? accentColor : "var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>Stad</label>
+            <input
+              value={locStad}
+              onChange={e => setLocStad(e.target.value)}
+              placeholder="Gent"
+              className="w-full px-4 py-3 rounded-2xl border outline-none text-sm"
+              style={{ borderColor: locStad ? accentColor : "var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
+            />
+          </div>
+        </div>
+
+        {locStraat && locStad && (
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium"
             style={{ background: accentColor + "15", color: accentColor }}>
             <MapPin size={12} />
-            {locAdres} — gevonden!
+            {[locStraat, locHuisnummer].filter(Boolean).join(" ")}, {locPostcode} {locStad}
           </div>
         )}
       </div>
 
-      <div className="flex flex-col gap-3 mt-6">
+      <div className="flex flex-col gap-3 mt-4">
         <button
-          onClick={() => setStep("signup")}
+          onClick={() => {
+            // Samengesteld adres opslaan
+            const volledigAdres = [
+              [locStraat, locHuisnummer].filter(Boolean).join(" "),
+              locPostcode,
+              locStad,
+            ].filter(Boolean).join(", ");
+            if (volledigAdres) setLocAdres(volledigAdres);
+            setStep("signup");
+          }}
           className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-base"
           style={{ background: accentColor }}>
-          {locAdres ? "Doorgaan →" : "📍 Adres overslaan"}
+          {(locStraat && locStad) ? "Doorgaan →" : "📍 Adres overslaan"}
         </button>
       </div>
     </div>
