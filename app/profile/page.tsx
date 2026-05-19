@@ -21,10 +21,10 @@ const HISTORY = [
 
 
 export default function ProfilePage() {
-  const { role, setRole, logout, isAdmin, name: userName, address: userAddress } = useUserStore();
+  const { role, activeView, setActiveView, logout, isAdmin, name: userName, address: userAddress } = useUserStore();
   const { betaalmethoden, voegBetaalMethodeToe, verwijderBetaalMethode } = useInstellingenStore();
   const router = useRouter();
-  const isVakman = role === "vakman";
+  const isVakman = activeView === "vakman";
 
   const handleLogout = () => {
     logout();
@@ -75,11 +75,11 @@ export default function ProfilePage() {
         {/* Rol switcher */}
         <div className="flex gap-2 mb-5">
           {(["klant", "vakman"] as const).map(r => (
-            <button key={r} onClick={() => setRole(r)}
+            <button key={r} onClick={() => setActiveView(r)}
               className="touch-scale flex-1 py-2.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
               style={{
-                background: role === r ? "white" : "rgba(255,255,255,0.15)",
-                color: role === r ? (r === "vakman" ? "var(--coral)" : "var(--teal)") : "rgba(255,255,255,0.9)",
+                background: activeView === r ? "white" : "rgba(255,255,255,0.15)",
+                color: activeView === r ? (r === "vakman" ? "var(--coral)" : "var(--teal)") : "rgba(255,255,255,0.9)",
               }}>
               {r === "klant" ? "👤" : "🔧"} {r === "klant" ? "Klant" : "Vakman"}
             </button>
@@ -305,7 +305,7 @@ export default function ProfilePage() {
         )}
 
         {/* Wissel modus banner */}
-        <button onClick={() => setRole(isVakman ? "klant" : "vakman")}
+        <button onClick={() => setActiveView(isVakman ? "klant" : "vakman")}
           className="touch-scale flex items-center gap-4 p-4 rounded-2xl"
           style={{ background: isVakman
             ? "linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%)"

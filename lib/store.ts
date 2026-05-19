@@ -1,10 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type UserRole = "klant" | "vakman" | null;
+export type UserRole = "klant" | "vakman" | "beide" | null;
 
 export type UserState = {
   role: UserRole;
+  /** Welke modus is momenteel actief (klant of vakman view) */
+  activeView: "klant" | "vakman";
   name: string;
   address: string;
   lat: number;
@@ -14,14 +16,21 @@ export type UserState = {
   // actions
   login: (opts: { role: UserRole; name: string; address?: string; isAdmin?: boolean }) => void;
   setRole: (r: UserRole) => void;
+  setActiveView: (v: "klant" | "vakman") => void;
   setProfile: (p: Partial<Pick<UserState, "name" | "address" | "lat" | "lng">>) => void;
   logout: () => void;
 };
+
+function defaultView(role: UserRole): "klant" | "vakman" {
+  if (role === "vakman" || role === "beide") return "vakman";
+  return "klant";
+}
 
 export const useUserStore = create<UserState>()(
   persist(
     (set) => ({
       role: null,
+      activeView: "klant",
       name: "",
       address: "Amsterdam",
       lat: 52.3676,
@@ -33,19 +42,26 @@ export const useUserStore = create<UserState>()(
         set({
           isLoggedIn: true,
           role,
+          activeView: defaultView(role),
           name: name || "Gebruiker",
           address: address || "Amsterdam",
           isAdmin: isAdmin ?? false,
         }),
 
-      setRole: (role) => set({ role }),
+      setRole: (role) => set((s) => ({
+        role,
+        // Alleen syncen als het geen "beide" is (dan mag activeView onafhankelijk zijn)
+        activeView: role === "beide" ? s.activeView : defaultView(role),
+      })),
+
+      setActiveView: (activeView) => set({ activeView }),
 
       setProfile: (p) => set(p),
 
       logout: () =>
-        set({ role: null, isLoggedIn: false, isAdmin: false, name: "", address: "" }),
+        set({ role: null, activeView: "klant", isLoggedIn: false, isAdmin: false, name: "", address: "" }),
     }),
-    { name: "servr-user-v1" }
+    { name: "servr-user-v2" }  // v2 om stale localStorage te resetten
   )
 );
 

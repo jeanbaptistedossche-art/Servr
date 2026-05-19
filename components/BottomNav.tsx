@@ -20,7 +20,7 @@ type NavItem = {
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { role, setRole, isLoggedIn } = useUserStore();
+  const { role, activeView, setActiveView, isLoggedIn } = useUserStore();
   const { taal } = useInstellingenStore();
   const t = useT(taal);
   const [mounted, setMounted] = useState(false);
@@ -29,7 +29,7 @@ export default function BottomNav() {
   const hide = HIDDEN_ON.some(p => pathname.startsWith(p));
   if (!mounted || hide || !isLoggedIn) return null;
 
-  const isVakman = role === "vakman";
+  const isVakman = activeView === "vakman";
 
   const navItems: NavItem[] = isVakman
     ? [
@@ -55,7 +55,7 @@ export default function BottomNav() {
         style={{ bottom: "calc(var(--bottom-nav-height) + 8px)" }}
       >
         <button
-          onClick={() => setRole(isVakman ? "klant" : "vakman")}
+          onClick={() => setActiveView(isVakman ? "klant" : "vakman")}
           className="touch-scale flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold shadow-lg"
           style={{
             background: isVakman
@@ -67,7 +67,7 @@ export default function BottomNav() {
         >
           <ArrowLeftRight size={11} />
           {isVakman ? "Vakmansmodus" : "Klantmodus"}
-          <span className="opacity-60">→ wissel</span>
+          {role === "beide" && <span className="opacity-60">→ wissel</span>}
         </button>
       </div>
 

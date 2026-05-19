@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   MapPin, ChevronRight, Phone, Apple, CheckCircle,
-  ArrowLeft, User, Wrench,
+  ArrowLeft, User, Wrench, ArrowLeftRight,
 } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 import type { UserRole } from "@/lib/store";
@@ -220,22 +220,19 @@ export default function OnboardingPage() {
 
           {/* Role toggle */}
           <div className="flex gap-2">
-            {(["klant", "vakman"] as const).map(r => (
+            {([
+              { r: "klant",  icon: <User size={14} />,           label: "Klant",  color: "var(--teal)"  },
+              { r: "vakman", icon: <Wrench size={14} />,         label: "Vakman", color: "var(--coral)" },
+              { r: "beide",  icon: <ArrowLeftRight size={14} />, label: "Beide",  color: "#7c3aed"      },
+            ] as const).map(({ r, icon, label, color }) => (
               <button key={r} onClick={() => setLoginRol(r)}
-                className="touch-scale flex-1 py-3 rounded-xl font-semibold text-sm border-2 flex items-center justify-center gap-2"
+                className="touch-scale flex-1 py-3 rounded-xl font-semibold text-sm border-2 flex items-center justify-center gap-1.5"
                 style={{
-                  borderColor: loginRol === r
-                    ? (r === "vakman" ? "var(--coral)" : "var(--teal)")
-                    : "var(--border)",
-                  background: loginRol === r
-                    ? (r === "vakman" ? "var(--coral)" : "var(--teal)") + "12"
-                    : "var(--surface)",
-                  color: loginRol === r
-                    ? (r === "vakman" ? "var(--coral)" : "var(--teal)")
-                    : "var(--muted)",
+                  borderColor: loginRol === r ? color : "var(--border)",
+                  background:  loginRol === r ? color + "12" : "var(--surface)",
+                  color:       loginRol === r ? color : "var(--muted)",
                 }}>
-                {r === "klant" ? <User size={14} /> : <Wrench size={14} />}
-                {r === "klant" ? "Klant" : "Vakman"}
+                {icon} {label}
               </button>
             ))}
           </div>
@@ -325,15 +322,47 @@ export default function OnboardingPage() {
             ))}
           </div>
         </button>
+
+        {/* Beide */}
+        <button onClick={() => setRol("beide")}
+          className="touch-scale relative p-5 rounded-3xl border-2 text-left transition-all"
+          style={{
+            borderColor: rol === "beide" ? "#7c3aed" : "var(--border)",
+            background: rol === "beide" ? "#7c3aed0f" : "var(--surface)",
+          }}>
+          {rol === "beide" && (
+            <CheckCircle size={20} className="absolute top-4 right-4" style={{ color: "#7c3aed" }} />
+          )}
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+            style={{ background: "#7c3aed18" }}>
+            <ArrowLeftRight size={26} color="#7c3aed" />
+          </div>
+          <h3 className="font-black text-lg mb-1">Ik ben vakman én klant</h3>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
+            Schakel vrij tussen beide mmodi. Zoek vakmensen én ontvang opdrachten.
+          </p>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {["Beide modus", "Wissel met 1 tik", "Alle functies"].map(t => (
+              <span key={t} className="text-[11px] px-2.5 py-1 rounded-full font-medium"
+                style={{ background: "#7c3aed15", color: "#7c3aed" }}>
+                ✓ {t}
+              </span>
+            ))}
+          </div>
+        </button>
       </div>
 
       <button onClick={() => rol && setStep("location")}
         className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-base mt-4"
         style={{
-          background: rol ? (rol === "klant" ? "var(--teal)" : "var(--coral)") : "var(--muted)",
+          background: rol
+            ? rol === "klant" ? "var(--teal)"
+              : rol === "vakman" ? "var(--coral)"
+              : "#7c3aed"
+            : "var(--muted)",
           transition: "background 0.2s",
         }}>
-        Doorgaan als {rol === "klant" ? "klant" : rol === "vakman" ? "vakman" : "..."}
+        Doorgaan als {rol === "klant" ? "klant" : rol === "vakman" ? "vakman" : rol === "beide" ? "vakman + klant" : "..."}
       </button>
     </div>
   );
