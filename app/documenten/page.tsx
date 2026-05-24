@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft, Plus, FileText, Receipt, ChevronRight,
-  Clock, CheckCircle2, XCircle, AlertCircle, Send, X,
+  Clock, CheckCircle2, XCircle, AlertCircle, Send, X, ExternalLink, Loader2,
 } from "lucide-react";
+import { useStripeConnectStore } from "@/lib/stripeConnectStore";
+import { useUserStore } from "@/lib/store";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -452,7 +454,41 @@ function DocumentenContent() {
   );
 }
 
+function StripeGateDocumenten() {
+  const [loading, setLoading] = useState(false);
+  return (
+    <div className="flex flex-col min-h-full items-center justify-center px-6 text-center animate-fade-in">
+      <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5"
+        style={{ background: "#635BFF" + "15" }}>
+        <span className="text-4xl">💳</span>
+      </div>
+      <h1 className="font-black text-xl mb-2">Stripe vereist</h1>
+      <p className="text-sm mb-6 leading-relaxed" style={{ color: "var(--muted)" }}>
+        Je moet eerst je Stripe-account koppelen voordat je offertes en facturen kan aanmaken en versturen.
+      </p>
+      <Link href="/bedrijf?tab=financieel"
+        className="touch-scale flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-white mb-4"
+        style={{ background: "#635BFF" }}>
+        <ExternalLink size={16} /> Stripe koppelen in Bedrijfsprofiel
+      </Link>
+      <Link href="/dashboard"
+        className="touch-scale text-sm font-semibold"
+        style={{ color: "var(--muted)" }}>
+        ← Terug naar dashboard
+      </Link>
+    </div>
+  );
+}
+
 export default function DocumentenPage() {
+  const { onboarded } = useStripeConnectStore();
+  const { activeView } = useUserStore();
+
+  // Alleen vakmensen zijn geblokkeerd zonder Stripe
+  if (activeView === "vakman" && !onboarded) {
+    return <StripeGateDocumenten />;
+  }
+
   return (
     <Suspense>
       <DocumentenContent />

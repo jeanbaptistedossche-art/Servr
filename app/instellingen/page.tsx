@@ -431,10 +431,10 @@ export default function InstellingenPage() {
 
   const OVER_ITEMS = [
     { label: t("versie"),              value: "1.0.0 (build 42)" },
-    { label: t("gebruikersvoorwaarden"), href: "#" },
-    { label: t("privacybeleid"),        href: "#" },
-    { label: t("cookieInstellingen"),   href: "#" },
-    { label: t("licenties"),            href: "#" },
+    { label: t("gebruikersvoorwaarden"), href: "/voorwaarden" },
+    { label: t("privacybeleid"),        href: "/privacybeleid" },
+    { label: t("cookieInstellingen"),   href: "/cookies" },
+    { label: t("licenties"),            href: "/licenties" },
   ];
 
   return (
@@ -601,15 +601,19 @@ export default function InstellingenPage() {
               bg="var(--surface-2)" label={t("overServr")} dark />
             <div className="card overflow-hidden">
               {OVER_ITEMS.map(item => (
-                <div key={item.label}
-                  className="flex items-center justify-between px-4 py-3.5 border-b last:border-0"
-                  style={{ borderColor: "var(--border)" }}>
-                  <p className="text-sm font-semibold">{item.label}</p>
-                  {item.value
-                    ? <span className="text-xs" style={{ color: "var(--muted)" }}>{item.value}</span>
-                    : <ChevronRight size={15} style={{ color: "var(--muted)" }} />
-                  }
-                </div>
+                item.href
+                  ? <Link key={item.label} href={item.href}
+                      className="touch-scale flex items-center justify-between px-4 py-3.5 border-b last:border-0"
+                      style={{ borderColor: "var(--border)" }}>
+                      <p className="text-sm font-semibold">{item.label}</p>
+                      <ChevronRight size={15} style={{ color: "var(--muted)" }} />
+                    </Link>
+                  : <div key={item.label}
+                      className="flex items-center justify-between px-4 py-3.5 border-b last:border-0"
+                      style={{ borderColor: "var(--border)" }}>
+                      <p className="text-sm font-semibold">{item.label}</p>
+                      <span className="text-xs" style={{ color: "var(--muted)" }}>{item.value}</span>
+                    </div>
               ))}
             </div>
           </section>

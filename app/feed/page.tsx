@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, Share2, Zap, MapPin, Clock } from "lucide-react";
+import { Heart, MessageCircle, Share2, Zap, MapPin, Clock, ArrowLeft } from "lucide-react";
 import { HOT_JOBS, BEFORE_AFTER, PROVIDERS } from "@/lib/mockData";
 
 function BeforeAfterCard({ item }: { item: typeof BEFORE_AFTER[0] }) {
@@ -128,7 +128,14 @@ export default function FeedPage() {
     <div className="flex flex-col min-h-full pb-6 animate-fade-in">
       {/* Header */}
       <div className="px-5 pt-14 pb-4" style={{ background: "var(--surface)" }}>
-        <h1 className="font-black text-2xl mb-4">Feed</h1>
+        <div className="flex items-center gap-3 mb-4">
+          <Link href="/"
+            className="touch-scale w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "var(--surface-2)" }}>
+            <ArrowLeft size={18} />
+          </Link>
+          <h1 className="font-black text-2xl">Feed</h1>
+        </div>
         <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "var(--surface-2)" }}>
           <button onClick={() => setTab("jobs")}
             className="touch-scale flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all"

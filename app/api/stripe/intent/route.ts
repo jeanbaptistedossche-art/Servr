@@ -13,22 +13,17 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { amount, offerteNummer, stripeAccountId } = await req.json();
+    const { amount, offerteNummer, stripeAccountId, isPanic } = await req.json();
 
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(secretKey, { apiVersion: "2026-04-22.dahlia" });
 
     // ── Servr fee model ──────────────────────────────────────────────────────
-    // amount           = vakman's prijs (wat hij vraagt)
-    // CLIENT_FEE       = 5%  → klant betaalt 5% meer (verborgen service fee)
-    // VAKMAN_FEE       = 8%  → vakman betaalt 8% commissie aan Servr
-    //
-    // Klant betaalt:   amount * 1.05
-    // Vakman ontvangt: amount * 1.05 - (amount*0.05 + amount*0.08) = amount * 0.92
-    // Servr verdient:  amount * 0.05 + amount * 0.08 = amount * 0.13
+    // Normaal:  klant +5%, vakman -8%  → Servr +13%
+    // Panic:    klant +7%, vakman -6%  → Servr +13%  (vakman betaalt minder bij spoed)
     // ────────────────────────────────────────────────────────────────────────
-    const CLIENT_FEE_PCT = 0.05;   // 5% bovenop voor klant
-    const VAKMAN_FEE_PCT = 0.08;   // 8% commissie van vakman
+    const CLIENT_FEE_PCT = isPanic ? 0.07 : 0.05;   // 7% spoed / 5% normaal
+    const VAKMAN_FEE_PCT = isPanic ? 0.06 : 0.08;   // 6% spoed / 8% normaal
 
     const chargeAmount    = Math.round(amount * (1 + CLIENT_FEE_PCT) * 100);
     const applicationFee  = Math.round(amount * (CLIENT_FEE_PCT + VAKMAN_FEE_PCT) * 100);
@@ -41,6 +36,9 @@ export async function POST(req: NextRequest) {
         offerte: offerteNummer ?? "",
         vakman_account: stripeAccountId ?? "",
         vakman_prijs: String(amount),
+        is_panic: isPanic ? "1" : "0",
+        client_fee_pct: String(CLIENT_FEE_PCT),
+        vakman_fee_pct: String(VAKMAN_FEE_PCT),
       },
       description: `Servr betaling — ${offerteNummer ?? ""}`,
       // Stripe Connect: vakman krijgt 92%, Servr houdt 13% (5% van klant + 8% van vakman)

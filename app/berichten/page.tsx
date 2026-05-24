@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Edit, Check, CheckCheck, X, ChevronRight, Archive, Circle, ArchiveRestore } from "lucide-react";
+import { Search, Edit, Check, CheckCheck, X, ChevronRight, Archive, Circle, ArchiveRestore, ArrowLeft } from "lucide-react";
 import { PROVIDERS } from "@/lib/mockData";
 
 type Gesprek = {
@@ -198,13 +198,20 @@ export default function BerichtenPage() {
       <div className="px-5 pt-14 pb-4 sticky top-0 z-10"
         style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="font-black text-2xl">Berichten</h1>
-            {totaalOngelezen > 0 && (
-              <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-                {totaalOngelezen} ongelezen
-              </p>
-            )}
+          <div className="flex items-center gap-3">
+            <Link href="/profile"
+              className="touch-scale w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: "var(--surface-2)" }}>
+              <ArrowLeft size={18} />
+            </Link>
+            <div>
+              <h1 className="font-black text-2xl">Berichten</h1>
+              {totaalOngelezen > 0 && (
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                  {totaalOngelezen} ongelezen
+                </p>
+              )}
+            </div>
           </div>
           <button
             onClick={e => { e.stopPropagation(); setShowNieuw(true); }}

@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Plus, ChevronRight, Clock, CheckCircle, Euro, CreditCard } from "lucide-react";
+import { Plus, ChevronRight, Clock, CheckCircle, Euro, CreditCard, ArrowLeft } from "lucide-react";
 import { MOCK_OPDRACHTEN } from "@/lib/store";
 import { useOfferteStore } from "@/lib/offerteStore";
 
@@ -97,7 +97,13 @@ function Content() {
       {/* Header */}
       <div className="px-5 pt-12 pb-5"
         style={{ background: "linear-gradient(160deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
-        <h1 className="text-white font-black text-2xl mb-1">Mijn Opdrachten</h1>
+        <div className="flex items-center gap-3 mb-3">
+          <Link href="/profile"
+            className="touch-scale w-9 h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+            <ArrowLeft size={18} color="white" />
+          </Link>
+          <h1 className="text-white font-black text-2xl">Mijn Opdrachten</h1>
+        </div>
         <p className="text-white/70 text-sm">Beheer al jouw klussen</p>
 
         {/* Stats */}

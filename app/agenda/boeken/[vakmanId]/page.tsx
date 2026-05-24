@@ -2,9 +2,10 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import { ArrowLeft, Clock, Euro, ChevronLeft, ChevronRight, CheckCircle, Shield, Camera, X, Image } from "lucide-react";
+import { ArrowLeft, Clock, Euro, ChevronLeft, ChevronRight, CheckCircle, Shield, Camera, X, ArrowLeftRight } from "lucide-react";
 import { MOCK_DIENSTEN, MOCK_AGENDA, type Dienst } from "@/lib/bedrijfStore";
 import { useAgendaStore, getSlotsForDate } from "@/lib/agendaStore";
+import { useUserStore } from "@/lib/store";
 
 const DAGEN = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
 const MAANDEN = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
@@ -44,9 +45,38 @@ function fmt(n: number) {
 type BookingStap = "dienst" | "datum" | "tijdslot" | "contact" | "bevestigd";
 
 export default function BoekenPage({ params }: { params: { vakmanId: string } }) {
+  const { activeView, setActiveView } = useUserStore();
   const activeDiensten = MOCK_DIENSTEN.filter(d => d.actief);
 
   const { schema: storeSchema } = useAgendaStore();
+
+  // ── Blokkade: vakman kan zichzelf niet boeken ────────────────────────────────
+  if (activeView === "vakman") {
+    return (
+      <div className="flex flex-col min-h-full items-center justify-center px-6 text-center animate-fade-in">
+        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6"
+          style={{ background: "var(--coral)" + "15" }}>
+          <span className="text-4xl">🚫</span>
+        </div>
+        <h1 className="font-black text-xl mb-2">Je bent in vakmanmodus</h1>
+        <p className="text-sm mb-6 leading-relaxed" style={{ color: "var(--muted)" }}>
+          Schakel over naar <strong>klantmodus</strong> om een afspraak te boeken.
+        </p>
+        <button
+          onClick={() => setActiveView("klant")}
+          className="touch-scale flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-white mb-4"
+          style={{ background: "linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
+          <ArrowLeftRight size={16} /> Overschakelen naar klantmodus
+        </button>
+        <Link href="/agenda"
+          className="touch-scale text-sm font-semibold"
+          style={{ color: "var(--muted)" }}>
+          ← Terug naar agenda
+        </Link>
+      </div>
+    );
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   const [stap, setStap] = useState<BookingStap>("dienst");
   const [gekozenDienst, setGekozenDienst] = useState<Dienst | null>(null);
