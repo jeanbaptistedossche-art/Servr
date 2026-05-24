@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Bell, MapPin, Star, ChevronRight, Zap, Shield,
   Search, ArrowRight, Phone, Map as MapIcon,
@@ -48,6 +49,9 @@ export default function HomePage() {
   const openstaand = offertes.filter(o => o.status === "openstaand").length;
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  const router = useRouter();
+  const [homeQuery, setHomeQuery] = useState("");
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -110,21 +114,27 @@ export default function HomePage() {
           </h1>
         </div>
 
-        {/* Search pill — Airbnb style */}
-        <Link href="/search">
+        {/* Search pill — typbaar */}
+        <form onSubmit={e => { e.preventDefault(); router.push(`/search${homeQuery ? `?q=${encodeURIComponent(homeQuery)}` : ""}`); }}>
           <div className="flex items-center gap-3 rounded-2xl px-4 py-3.5"
             style={{ background: "#fff", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}>
             <Search size={17} style={{ color: "#9CA3AF", flexShrink: 0 }} />
-            <div className="flex-1">
-              <p className="text-sm font-medium" style={{ color: "#111827" }}>Welke dienst zoek je?</p>
-              <p className="text-xs mt-0.5" style={{ color: "#9CA3AF" }}>Loodgieter · Elektricien · Schilder…</p>
-            </div>
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+            <input
+              type="text"
+              value={homeQuery}
+              onChange={e => setHomeQuery(e.target.value)}
+              placeholder="Loodgieter, schilder, schoonmaak…"
+              className="flex-1 bg-transparent outline-none text-sm font-medium"
+              style={{ color: homeQuery ? "#111827" : "#9CA3AF" }}
+              autoComplete="off"
+            />
+            <button type="submit"
+              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 touch-scale"
               style={{ background: "linear-gradient(135deg, #4F46E5, #6366F1)" }}>
               <ArrowRight size={14} color="white" />
-            </div>
+            </button>
           </div>
-        </Link>
+        </form>
 
         {/* Quick stats strip */}
         <div className="flex items-center gap-3 mt-4">
