@@ -126,7 +126,7 @@ function VakmanPanicView() {
             style={{ background: "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)" }}>
             <CheckCircle size={38} color="white" />
           </div>
-          <h1 className="font-black text-2xl mb-1">Spoedklus geaccepteerd! 🔥</h1>
+          <h1 className="font-black text-2xl mb-1">Spoedklus geaccepteerd</h1>
           <p className="text-sm" style={{ color: "var(--muted)" }}>
             De klant wordt op de hoogte gebracht. Ga zo snel mogelijk!
           </p>
@@ -214,12 +214,12 @@ function VakmanPanicView() {
         {/* Stats rij */}
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: "Meldingen", value: nieuweJobs.length.toString(), icon: "🚨" },
-            { label: "Buurt", value: "< 3 km", icon: "📍" },
-            { label: "Gem. budget", value: "€95", icon: "💰" },
+            { label: "Meldingen", value: nieuweJobs.length.toString() },
+            { label: "Buurt", value: "< 3 km" },
+            { label: "Gem. budget", value: "€95" },
           ].map(s => (
             <div key={s.label} className="rounded-xl p-2.5 bg-white/15 text-center">
-              <p className="text-white font-black text-base">{s.icon} {s.value}</p>
+              <p className="text-white font-black text-base">{s.value}</p>
               <p className="text-white/60 text-[10px] mt-0.5">{s.label}</p>
             </div>
           ))}
@@ -239,7 +239,7 @@ function VakmanPanicView() {
       <div className="px-5 pt-4 pb-24 flex flex-col gap-3">
         {nieuweJobs.length === 0 && (
           <div className="flex flex-col items-center py-16 gap-3 text-center">
-            <span className="text-5xl">🎉</span>
+            <CheckCircle size={40} style={{ color: "var(--teal)" }} />
             <p className="font-bold text-base">Alle meldingen zijn al opgepakt</p>
             <p className="text-sm" style={{ color: "var(--muted)" }}>
               Controleer later opnieuw voor nieuwe spoedopdrachten.
@@ -272,7 +272,7 @@ function VakmanPanicView() {
                     <div>
                       <p className="font-bold text-sm">{job.klant}</p>
                       <p className="text-xs" style={{ color: "var(--muted)" }}>
-                        {job.categorieIcon} {job.categorie} · {job.geplaatst}
+                        {job.categorie} · {job.geplaatst}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -378,7 +378,10 @@ function KlantPanicView() {
     return (
       <div className="flex flex-col min-h-dvh px-5 pt-14 pb-10 items-center justify-center animate-slide-up">
         <div className="text-center mb-8">
-          <div className="text-5xl mb-4">🎉</div>
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+            style={{ background: "linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
+            <CheckCircle size={32} color="white" />
+          </div>
           <h1 className="text-2xl font-black mb-2">Vakman gevonden!</h1>
           <p className="text-sm" style={{ color: "var(--muted)" }}>Beste prijs & snelste beschikbaarheid</p>
         </div>
@@ -413,7 +416,7 @@ function KlantPanicView() {
           <Link href={`/chat/${winner.provider.id}`}
             className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-center text-base"
             style={{ background: "var(--teal)" }}>
-            💬 Chat met {winner.provider.name.split(" ")[0]}
+            Chat met {winner.provider.name.split(" ")[0]}
           </Link>
           <Link href="/"
             className="touch-scale w-full py-3 text-center text-sm font-medium"
@@ -549,21 +552,23 @@ function KlantPanicView() {
 
       {/* Alle categorieën — scrollbare grid */}
       <div className="overflow-y-auto mb-4" style={{ maxHeight: "38vh" }}>
-        <div className="grid grid-cols-3 gap-2.5">
-          {CATEGORIES.map(cat => (
-            <button key={cat.id} onClick={() => setSelected(cat.label)}
-              className="touch-scale flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl border-2 transition-all"
-              style={{
-                borderColor: selected === cat.label ? "var(--coral)" : "var(--border)",
-                background:  selected === cat.label ? "rgba(216,90,48,0.08)" : "var(--surface)",
-              }}>
-              <span className="text-2xl">{cat.icon}</span>
-              <span className="text-[11px] font-semibold text-center leading-tight px-1"
-                style={{ color: selected === cat.label ? "var(--coral)" : "var(--foreground)" }}>
-                {cat.label}
-              </span>
-            </button>
-          ))}
+        <div className="grid grid-cols-3 gap-2">
+          {CATEGORIES.map(cat => {
+            const isSelected = selected === cat.label;
+            return (
+              <button key={cat.id} onClick={() => setSelected(cat.label)}
+                className="touch-scale flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all"
+                style={{
+                  borderColor: isSelected ? "var(--coral)" : "var(--border)",
+                  background:  isSelected ? "rgba(216,90,48,0.08)" : "var(--surface)",
+                }}>
+                <span className="text-[11px] font-semibold text-center leading-tight px-1"
+                  style={{ color: isSelected ? "var(--coral)" : "var(--foreground)" }}>
+                  {cat.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -577,7 +582,6 @@ function KlantPanicView() {
             borderColor: selected === "Andere" ? "var(--coral)" : "var(--border)",
             background: "var(--surface)",
           }}>
-          <span className="text-xl">✏️</span>
           <input
             type="text"
             placeholder="Bijv. Zwembad kuisen, Asbestsanering..."

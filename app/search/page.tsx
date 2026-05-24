@@ -1,28 +1,67 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Search, Star, MapPin, X, CalendarDays, Phone, Plus } from "lucide-react";
+import {
+  Search, Star, MapPin, X, CalendarDays, Phone, Plus, ChevronRight, Zap,
+  List, Map as MapIcon, Navigation,
+  Wrench, Paintbrush, Hammer, Sparkles, Leaf, Package, Lock,
+  Thermometer, Building2, Waves, Monitor, Sun, Flame, Wind,
+  Layers, Bell, LayoutGrid, Car, Droplets, Grid3X3,
+  Settings2, LucideIcon,
+} from "lucide-react";
 import { PROVIDERS, CATEGORIES } from "@/lib/mockData";
+import NavButtons from "@/components/NavButtons";
+
+// Lazy-load kaart (vermijdt SSR problemen met maplibre)
+const ProviderMap = dynamic(() => import("@/components/ProviderMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center rounded-xl" style={{ height: "100%", background: "#f1f5f9" }}>
+      <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--teal)" }} />
+    </div>
+  ),
+});
+
+// ── Category icon mapping ─────────────────────────────────────────────────
+const CAT_ICONS: Record<string, LucideIcon> = {
+  loodgieter: Wrench, elektricien: Flame, schilder: Paintbrush,
+  timmerman: Hammer, schoonmaak: Sparkles, tuinman: Leaf,
+  verhuizen: Package, sloten: Lock, hvac: Thermometer,
+  dak: Building2, zwembad: Waves, glas: Grid3X3,
+  "tuin-aanleg": Leaf, it: Monitor, bestrating: Layers,
+  klusser: Settings2, zonnepanelen: Sun, gevel: Building2,
+  verwarming: Flame, garage: Car, isolatie: Layers,
+  riolering: Droplets, intercom: Bell, tegels: LayoutGrid,
+  parket: Layers, airco: Wind, pergola: Leaf,
+  oprit: Hammer, rolluiken: Layers, andere: Settings2,
+};
+
+function CatIcon({ id, size = 16 }: { id: string; size?: number }) {
+  const Icon = CAT_ICONS[id] ?? Settings2;
+  return <Icon size={size} strokeWidth={1.8} />;
+}
 
 function SearchContent() {
   const searchParams = useSearchParams();
-  const [query, setQuery]               = useState("");
+  const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [onlyAvailable, setOnlyAvailable]   = useState(false);
+  const [onlyAvailable, setOnlyAvailable] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Autofocus + URL param
   useEffect(() => {
     inputRef.current?.focus();
     const cat = searchParams.get("cat");
     if (cat) setActiveCategory(cat);
     const q = searchParams.get("q");
     if (q) setQuery(q);
+    const mode = searchParams.get("view");
+    if (mode === "map") setViewMode("map");
   }, [searchParams]);
 
-  // Providers die matchen
   const filtered = PROVIDERS.filter(p => {
     const q = query.toLowerCase();
     const matchQuery = q === ""
@@ -36,7 +75,6 @@ function SearchContent() {
     return matchQuery && matchCat && matchAvail;
   });
 
-  // Categorieën die matchen op zoekterm (ook als er geen provider is)
   const matchingCats = query.length >= 2
     ? CATEGORIES.filter(c =>
         c.label.toLowerCase().includes(query.toLowerCase())
@@ -47,234 +85,302 @@ function SearchContent() {
   const activeCat = CATEGORIES.find(c => c.id === activeCategory);
 
   return (
-    <div className="flex flex-col min-h-full pb-6 animate-fade-in">
+    <div className="flex flex-col min-h-full animate-fade-in" style={{ background: "#f8fafc" }}>
 
-      {/* ── Header ── */}
-      <div className="px-5 pt-14 pb-4 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
-        <h1 className="font-black text-2xl mb-4">Zoeken</h1>
+      {/* ── Sticky header ── */}
+      <div className="px-4 pt-14 pb-3 sticky top-0 z-20"
+        style={{ background: "rgba(255,255,255,0.97)", borderBottom: "1px solid #F3F4F6", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="font-bold text-xl" style={{ color: "#111827" }}>Zoeken</h1>
 
-        {/* Zoekbalk */}
-        <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border"
-          style={{ borderColor: query ? "var(--teal)" : "var(--border)", background: "var(--surface)" }}>
-          <Search size={18} style={{ color: "var(--muted)" }} />
+          {/* List / Map toggle */}
+          <div className="flex items-center rounded-xl overflow-hidden border" style={{ borderColor: "#E5E7EB" }}>
+            <button
+              onClick={() => setViewMode("list")}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors"
+              style={{
+                background: viewMode === "list" ? "#4F46E5" : "#fff",
+                color: viewMode === "list" ? "white" : "#6B7280",
+              }}
+            >
+              <List size={13} /> Lijst
+            </button>
+            <button
+              onClick={() => setViewMode("map")}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors"
+              style={{
+                background: viewMode === "map" ? "#4F46E5" : "#fff",
+                color: viewMode === "map" ? "white" : "#6B7280",
+              }}
+            >
+              <MapIcon size={13} /> Kaart
+            </button>
+          </div>
+        </div>
+
+        {/* Search bar */}
+        <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-2xl border"
+          style={{ borderColor: query ? "#4F46E5" : "#E5E7EB", background: "#F9FAFB", boxShadow: query ? "0 0 0 3px #EEF2FF" : "none" }}>
+          <Search size={15} style={{ color: "#9CA3AF" }} />
           <input
             ref={inputRef}
             type="text"
-            placeholder="Zoek op naam, dienst of categorie..."
+            placeholder="Naam, dienst of categorie..."
             value={query}
             onChange={e => setQuery(e.target.value)}
             className="flex-1 bg-transparent outline-none text-sm"
-            style={{ color: "var(--foreground)" }}
+            style={{ color: "#111827" }}
             autoComplete="off"
           />
           {query && (
             <button onClick={() => setQuery("")} className="touch-scale">
-              <X size={16} style={{ color: "var(--muted)" }} />
+              <X size={14} style={{ color: "#9CA3AF" }} />
             </button>
           )}
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1 -mx-1 px-1">
+        {/* Filter chips */}
+        <div className="flex items-center gap-2 mt-2.5 overflow-x-auto pb-0.5 -mx-1 px-1">
           <button
             onClick={() => setOnlyAvailable(v => !v)}
-            className="touch-scale flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold border"
+            className="touch-scale flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border"
             style={{
-              borderColor: onlyAvailable ? "var(--teal)" : "var(--border)",
-              background:  onlyAvailable ? "var(--teal)" : "var(--surface)",
-              color:       onlyAvailable ? "white" : "var(--foreground)",
+              borderColor: onlyAvailable ? "#4F46E5" : "#E5E7EB",
+              background: onlyAvailable ? "#4F46E5" : "#fff",
+              color: onlyAvailable ? "white" : "#4B5563",
             }}>
-            <span className={`w-2 h-2 rounded-full ${onlyAvailable ? "bg-white" : "bg-green-500"}`} />
+            <span className={`w-1.5 h-1.5 rounded-full ${onlyAvailable ? "bg-white" : "bg-emerald-500"}`} />
             Beschikbaar
           </button>
-
           {CATEGORIES.map(cat => (
             <button key={cat.id}
               onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
-              className="touch-scale flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold border"
+              className="touch-scale flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border"
               style={{
-                borderColor: activeCategory === cat.id ? cat.color : "var(--border)",
-                background:  activeCategory === cat.id ? cat.color + "18" : "var(--surface)",
-                color:       activeCategory === cat.id ? cat.color : "var(--foreground)",
+                borderColor: activeCategory === cat.id ? cat.color : "#E5E7EB",
+                background: activeCategory === cat.id ? cat.color + "15" : "#fff",
+                color: activeCategory === cat.id ? cat.color : "#4B5563",
               }}>
-              {cat.icon} {cat.label}
+              <span style={{ color: activeCategory === cat.id ? cat.color : "#9CA3AF" }}>
+                <CatIcon id={cat.id} size={12} />
+              </span>
+              {cat.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Active category banner */}
-      {activeCat && (
-        <div className="mx-5 mt-4 px-4 py-3 rounded-2xl flex items-center gap-3"
-          style={{ background: activeCat.color + "12" }}>
-          <span className="text-2xl">{activeCat.icon}</span>
-          <div className="flex-1">
-            <p className="font-black text-base">{activeCat.label}</p>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>{filtered.length} vakmensen gevonden</p>
+      {/* ── MAP VIEW ── */}
+      {viewMode === "map" && (
+        <div className="flex-1 relative">
+          {/* Full-height interactive map */}
+          <div style={{ height: "calc(100dvh - 220px)", position: "relative" }}>
+            <ProviderMap
+              providers={filtered}
+              height="100%"
+              interactive
+              showNavButtons
+              zoom={13}
+            />
           </div>
-          <button onClick={() => setActiveCategory(null)}
-            className="touch-scale w-7 h-7 rounded-full flex items-center justify-center"
-            style={{ background: "var(--surface-2)" }}>
-            <X size={13} style={{ color: "var(--muted)" }} />
-          </button>
+
+          {/* Bottom strip with count */}
+          <div className="sticky bottom-0 px-4 py-3"
+            style={{ background: "rgba(255,255,255,0.97)", borderTop: "1px solid #f1f5f9", backdropFilter: "blur(10px)" }}>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium" style={{ color: "#64748b" }}>
+                <span className="font-bold" style={{ color: "#0f172a" }}>{filtered.length}</span> vakmensen op de kaart
+              </p>
+              <Link href="/opdracht/nieuw"
+                className="touch-scale flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white"
+                style={{ background: "var(--teal)" }}>
+                <Plus size={13} /> Opdracht
+              </Link>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="px-5 pt-4 flex flex-col gap-4">
+      {/* ── LIST VIEW ── */}
+      {viewMode === "list" && (
+        <div className="px-4 pt-3 flex flex-col gap-2.5 pb-6">
 
-        {/* Aantal resultaten */}
-        {!activeCat && (
-          <p className="text-sm" style={{ color: "var(--muted)" }}>
-            {filtered.length} vakman{filtered.length !== 1 ? "nen" : ""} gevonden
-            {query && <span> voor &ldquo;<strong>{query}</strong>&rdquo;</span>}
-          </p>
-        )}
-
-        {/* Providers */}
-        {filtered.map(p => (
-          <div key={p.id} className="card overflow-hidden">
-            <Link href={`/provider/${p.id}`} className="touch-scale flex gap-4 p-4">
-              <div className="relative flex-shrink-0">
-                <img src={p.avatar} className="w-16 h-16 rounded-2xl object-cover" alt={p.name} />
-                <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${p.available ? "bg-green-500" : "bg-gray-400"}`} />
+          {/* Active category banner */}
+          {activeCat && (
+            <div className="px-4 py-3 rounded-xl flex items-center gap-3"
+              style={{ background: activeCat.color + "10", border: `1px solid ${activeCat.color}25` }}>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: activeCat.color + "20", color: activeCat.color }}>
+                <CatIcon id={activeCat.id} size={16} />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-bold text-base leading-tight">{p.name}</p>
-                  <span className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: "var(--teal)", color: "white" }}>
-                    S{p.servrScore}
-                  </span>
-                </div>
-                <p className="text-sm mt-0.5" style={{ color: "var(--muted)" }}>{p.categoryIcon} {p.category}</p>
-                <div className="flex items-center gap-3 mt-2">
-                  <div className="flex items-center gap-1">
-                    <Star size={12} className="fill-yellow-400 text-yellow-400" />
-                    <span className="text-xs font-bold">{p.rating}</span>
-                    <span className="text-xs" style={{ color: "var(--muted)" }}>({p.reviewCount})</span>
-                  </div>
-                  <div className="flex items-center gap-1" style={{ color: "var(--muted)" }}>
-                    <MapPin size={12} />
-                    <span className="text-xs">{p.distance}</span>
-                  </div>
-                  <span className="text-xs font-semibold ml-auto" style={{ color: "var(--teal)" }}>
-                    €{p.priceMin}–{p.priceMax}/u
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {p.badges.slice(0, 2).map(b => (
-                    <span key={b} className="text-[10px] px-2 py-0.5 rounded-full"
-                      style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
-                      {b}
-                    </span>
-                  ))}
-                </div>
+              <div className="flex-1">
+                <p className="font-bold text-sm" style={{ color: "#0f172a" }}>{activeCat.label}</p>
+                <p className="text-xs" style={{ color: "#64748b" }}>{filtered.length} vakmensen gevonden</p>
               </div>
-            </Link>
+              <button onClick={() => setActiveCategory(null)}
+                className="touch-scale w-6 h-6 rounded-full flex items-center justify-center"
+                style={{ background: "#f1f5f9" }}>
+                <X size={12} style={{ color: "#94a3b8" }} />
+              </button>
+            </div>
+          )}
 
-            {/* Acties */}
-            {p.available && (
-              <div className="px-4 pb-4 flex gap-2">
-                <Link href={`/agenda/boeken/${p.id}`}
-                  className="touch-scale flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-bold text-xs text-white"
-                  style={{ background: "var(--teal)" }}>
-                  <CalendarDays size={13} /> Boek direct
-                </Link>
-                <Link href={`/chat/${p.id}`}
-                  className="touch-scale px-3 py-2.5 rounded-xl font-semibold text-xs border"
-                  style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
-                  💬 Chat
-                </Link>
-                <a href={`tel:${p.phone}`}
-                  className="touch-scale px-3 py-2.5 rounded-xl font-semibold border flex items-center justify-center"
-                  style={{ borderColor: "var(--border)", color: "var(--teal)" }}>
-                  <Phone size={14} />
-                </a>
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* Categorieën die matchen maar geen providers hebben */}
-        {matchingCats.length > 0 && (
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide mb-3"
-              style={{ color: "var(--muted)" }}>
-              Categorieën voor &ldquo;{query}&rdquo;
+          {/* Count */}
+          {!activeCat && (
+            <p className="text-xs font-medium" style={{ color: "#94a3b8" }}>
+              {filtered.length} vakman{filtered.length !== 1 ? "nen" : ""} gevonden
+              {query && <span> voor &ldquo;<strong style={{ color: "#475569" }}>{query}</strong>&rdquo;</span>}
             </p>
-            <div className="flex flex-col gap-2">
-              {matchingCats.map(cat => (
-                <Link key={cat.id} href={`/opdracht/nieuw?categorie=${cat.id}`}
-                  className="touch-scale flex items-center gap-4 p-4 rounded-2xl border"
-                  style={{ borderColor: cat.color + "40", background: cat.color + "08" }}>
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
-                    style={{ background: cat.color + "18" }}>
-                    {cat.icon}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-sm">{cat.label}</p>
-                    <p className="text-xs" style={{ color: "var(--muted)" }}>
-                      Geen vakmensen live — plaats een opdracht
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 px-3 py-1.5 rounded-full font-bold text-xs text-white flex-shrink-0"
-                    style={{ background: cat.color }}>
-                    <Plus size={12} /> Opdracht
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Lege staat */}
-        {filtered.length === 0 && matchingCats.length === 0 && (
-          <div className="flex flex-col items-center py-12 gap-4 text-center">
-            <span className="text-5xl">🔍</span>
-            <div>
-              <p className="font-bold text-base">Geen vakmensen gevonden</p>
-              <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
-                {query
-                  ? `We vinden geen vakman voor "${query}" in jouw buurt.`
-                  : "Probeer een andere zoekterm of filter."}
-              </p>
-            </div>
-            {query && (
-              <Link href={`/opdracht/nieuw?dienst=${encodeURIComponent(query)}`}
-                className="touch-scale flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-white"
-                style={{ background: "var(--teal)" }}>
-                <Plus size={16} />
-                Opdracht plaatsen voor &ldquo;{query}&rdquo;
+          {/* Provider cards */}
+          {filtered.map(p => (
+            <div key={p.id} className="rounded-xl overflow-hidden"
+              style={{ background: "#fff", border: "1px solid #f1f5f9", boxShadow: "0 1px 8px rgba(0,0,0,0.05)" }}>
+              <Link href={`/provider/${p.id}`} className="touch-scale flex gap-3 p-3.5">
+                <div className="relative flex-shrink-0">
+                  <img src={p.avatar} className="w-14 h-14 rounded-xl object-cover" alt={p.name} />
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${p.available ? "bg-green-500" : "bg-gray-300"}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-bold text-sm leading-tight" style={{ color: "#0f172a" }}>{p.name}</p>
+                    <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md"
+                      style={{ background: "var(--teal)", color: "white" }}>
+                      S{p.servrScore}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{p.category}</p>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <div className="flex items-center gap-1">
+                      <Star size={10} className="fill-amber-400 text-amber-400" />
+                      <span className="text-xs font-semibold" style={{ color: "#0f172a" }}>{p.rating}</span>
+                      <span className="text-xs" style={{ color: "#94a3b8" }}>({p.reviewCount})</span>
+                    </div>
+                    <div className="flex items-center gap-1" style={{ color: "#94a3b8" }}>
+                      <MapPin size={10} />
+                      <span className="text-xs">{p.distance}</span>
+                    </div>
+                    <span className="text-xs font-semibold ml-auto" style={{ color: "var(--teal)" }}>
+                      €{p.priceMin}–{p.priceMax}/u
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {p.badges.slice(0, 2).map(b => (
+                      <span key={b} className="text-[10px] px-2 py-0.5 rounded-md font-medium"
+                        style={{ background: "#f8fafc", color: "#64748b", border: "1px solid #f1f5f9" }}>
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </Link>
-            )}
-            <Link href="/panic"
-              className="touch-scale flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-white"
-              style={{ background: "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)" }}>
-              ⚡ Panic Button — direct hulp
-            </Link>
-          </div>
-        )}
 
-        {/* Altijd onderaan: opdracht plaatsen CTA */}
-        {(filtered.length > 0 || matchingCats.length > 0) && (
-          <Link href="/opdracht/nieuw"
-            className="touch-scale flex items-center gap-3 p-4 rounded-2xl border-2 border-dashed"
-            style={{ borderColor: "var(--border)" }}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "var(--surface-2)" }}>
-              <Plus size={20} style={{ color: "var(--teal)" }} />
+              {/* Action buttons */}
+              {p.available && (
+                <div className="px-3.5 pb-3.5 flex flex-col gap-2" style={{ borderTop: "1px solid #f8fafc", paddingTop: 10 }}>
+                  {/* Book + Chat + Call */}
+                  <div className="flex gap-2">
+                    <Link href={`/agenda/boeken/${p.id}`}
+                      className="touch-scale flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-semibold text-xs text-white"
+                      style={{ background: "var(--teal)" }}>
+                      <CalendarDays size={12} /> Boek direct
+                    </Link>
+                    <Link href={`/chat/${p.id}`}
+                      className="touch-scale px-3 py-2 rounded-lg font-medium text-xs border flex items-center gap-1"
+                      style={{ borderColor: "#e2e8f0", color: "#64748b" }}>
+                      Chat
+                    </Link>
+                    <a href={`tel:${p.phone}`}
+                      className="touch-scale px-3 py-2 rounded-lg border flex items-center justify-center"
+                      style={{ borderColor: "#e2e8f0", color: "var(--teal)" }}>
+                      <Phone size={13} />
+                    </a>
+                  </div>
+                  {/* Navigation */}
+                  <NavButtons provider={p} size="sm" />
+                </div>
+              )}
             </div>
+          ))}
+
+          {/* Categories matching query but no providers */}
+          {matchingCats.length > 0 && (
             <div>
-              <p className="font-bold text-sm">Stel een vrije opdracht in</p>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>
-                Beschrijf zelf wat je nodig hebt
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2"
+                style={{ color: "#94a3b8", letterSpacing: "0.05em" }}>
+                Categorieën voor &ldquo;{query}&rdquo;
               </p>
+              <div className="flex flex-col gap-2">
+                {matchingCats.map(cat => (
+                  <Link key={cat.id} href={`/opdracht/nieuw?categorie=${cat.id}`}
+                    className="touch-scale flex items-center gap-3 p-3.5 rounded-xl border"
+                    style={{ borderColor: cat.color + "35", background: "#fff" }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: cat.color + "15", color: cat.color }}>
+                      <CatIcon id={cat.id} size={16} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm" style={{ color: "#0f172a" }}>{cat.label}</p>
+                      <p className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>
+                        Geen vakmensen live — plaats een opdracht
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold text-xs text-white flex-shrink-0"
+                      style={{ background: cat.color }}>
+                      <Plus size={11} /> Opdracht
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
-          </Link>
-        )}
+          )}
 
-      </div>
+          {/* Empty state */}
+          {filtered.length === 0 && matchingCats.length === 0 && (
+            <div className="flex flex-col items-center py-10 gap-4 text-center">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ background: "#f1f5f9" }}>
+                <Search size={24} style={{ color: "#94a3b8" }} />
+              </div>
+              <div>
+                <p className="font-bold text-sm" style={{ color: "#0f172a" }}>Geen vakmensen gevonden</p>
+                <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>
+                  {query ? `Geen vakman voor "${query}" in jouw buurt.` : "Probeer een andere zoekterm of filter."}
+                </p>
+              </div>
+              {query && (
+                <Link href={`/opdracht/nieuw?dienst=${encodeURIComponent(query)}`}
+                  className="touch-scale flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white"
+                  style={{ background: "var(--teal)" }}>
+                  <Plus size={14} /> Opdracht plaatsen voor &ldquo;{query}&rdquo;
+                </Link>
+              )}
+              <Link href="/panic"
+                className="touch-scale flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white"
+                style={{ background: "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)" }}>
+                <Zap size={14} /> Panic — direct hulp
+              </Link>
+            </div>
+          )}
+
+          {(filtered.length > 0 || matchingCats.length > 0) && (
+            <Link href="/opdracht/nieuw"
+              className="touch-scale flex items-center gap-3 p-3.5 rounded-xl border border-dashed"
+              style={{ borderColor: "#e2e8f0" }}>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: "#f8fafc" }}>
+                <Plus size={16} style={{ color: "var(--teal)" }} />
+              </div>
+              <div>
+                <p className="font-semibold text-sm" style={{ color: "#0f172a" }}>Vrije opdracht plaatsen</p>
+                <p className="text-xs" style={{ color: "#94a3b8" }}>Beschrijf zelf wat je nodig hebt</p>
+              </div>
+              <ChevronRight size={14} style={{ color: "#94a3b8", marginLeft: "auto" }} />
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -283,7 +389,7 @@ export default function SearchPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-dvh">
-        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
+        <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
           style={{ borderColor: "var(--teal)" }} />
       </div>
     }>

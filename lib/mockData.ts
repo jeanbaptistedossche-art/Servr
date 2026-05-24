@@ -17,6 +17,9 @@ export type Provider = {
   photos: string[];
   services: { name: string; price: number; duration: string }[];
   reviews: { author: string; rating: number; text: string; date: string }[];
+  lat: number;
+  lng: number;
+  address: string;
 };
 
 export const CATEGORIES = [
@@ -61,6 +64,8 @@ export const PROVIDERS: Provider[] = [
     category: "Loodgieter",
     categoryIcon: "🔧",
     distance: "0.4 km",
+    lat: 52.3744, lng: 4.8813,
+    address: "Westerstraat 45, Jordaan, Amsterdam",
     rating: 4.9,
     reviewCount: 127,
     priceMin: 65,
@@ -93,6 +98,8 @@ export const PROVIDERS: Provider[] = [
     category: "Schoonmaak",
     categoryIcon: "🧹",
     distance: "0.8 km",
+    lat: 52.3736, lng: 4.8954,
+    address: "Utrechtsestraat 12, Centrum, Amsterdam",
     rating: 4.8,
     reviewCount: 89,
     priceMin: 25,
@@ -123,6 +130,8 @@ export const PROVIDERS: Provider[] = [
     category: "Elektricien",
     categoryIcon: "⚡",
     distance: "1.2 km",
+    lat: 52.3530, lng: 4.8955,
+    address: "Albert Cuypstraat 88, De Pijp, Amsterdam",
     rating: 4.7,
     reviewCount: 203,
     priceMin: 70,
@@ -152,6 +161,8 @@ export const PROVIDERS: Provider[] = [
     category: "Schilder",
     categoryIcon: "🖌️",
     distance: "1.5 km",
+    lat: 52.3653, lng: 4.8726,
+    address: "Bilderdijkstraat 34, Oud-West, Amsterdam",
     rating: 4.9,
     reviewCount: 64,
     priceMin: 30,
@@ -175,11 +186,11 @@ export const PROVIDERS: Provider[] = [
 ];
 
 export const HOT_JOBS = [
-  { id: "j1", user: "Anita K.", location: "Jordaan", category: "🔧 Loodgieter", description: "Lekkende kraan keuken — SPOED", time: "2 min geleden", bids: 3, budget: "€60-90" },
-  { id: "j2", user: "Daan R.", location: "De Pijp", category: "⚡ Elektricien", description: "Geen stroom in slaapkamer", time: "5 min geleden", bids: 1, budget: "€80-120" },
-  { id: "j3", user: "Lena B.", location: "Oud-West", category: "🧹 Schoonmaak", description: "Dieptereiniging na verhuizing", time: "8 min geleden", bids: 5, budget: "€120-180" },
-  { id: "j4", user: "Omar F.", location: "Bos en Lommer", category: "🖌️ Schilder", description: "Woonkamer + hal schilderen", time: "12 min geleden", bids: 2, budget: "€400-600" },
-  { id: "j5", user: "Eva S.", location: "Centrum", category: "🔑 Slotenmaker", description: "Sleutel afgebroken in slot", time: "15 min geleden", bids: 4, budget: "€50-80" },
+  { id: "j1", user: "Anita K.", location: "Jordaan", category: "loodgieter", categoryLabel: "Loodgieter", description: "Lekkende kraan keuken — SPOED", time: "2 min geleden", bids: 3, budget: "€60-90" },
+  { id: "j2", user: "Daan R.", location: "De Pijp", category: "elektricien", categoryLabel: "Elektricien", description: "Geen stroom in slaapkamer", time: "5 min geleden", bids: 1, budget: "€80-120" },
+  { id: "j3", user: "Lena B.", location: "Oud-West", category: "schoonmaak", categoryLabel: "Schoonmaak", description: "Dieptereiniging na verhuizing", time: "8 min geleden", bids: 5, budget: "€120-180" },
+  { id: "j4", user: "Omar F.", location: "Bos en Lommer", category: "schilder", categoryLabel: "Schilder", description: "Woonkamer + hal schilderen", time: "12 min geleden", bids: 2, budget: "€400-600" },
+  { id: "j5", user: "Eva S.", location: "Centrum", category: "sloten", categoryLabel: "Slotenmaker", description: "Sleutel afgebroken in slot", time: "15 min geleden", bids: 4, budget: "€50-80" },
 ];
 
 export const BEFORE_AFTER = [
@@ -208,11 +219,11 @@ export const BEFORE_AFTER = [
 ];
 
 export const TICKER_ITEMS = [
-  "🔧 Marco lost lekkage op in Jordaan",
-  "⚡ Yusuf installeert laadpaal in Zuid",
-  "🧹 Sofia klaart oplevering in Noord",
-  "🖌️ Kim schildert 3-kamer app in Oost",
-  "🔑 Slotenmaker geroepen in Centrum",
-  "📦 Verhuisbedrijf actief in West",
-  "🌿 Tuinman bezig in Watergraafsmeer",
+  "Marco lost lekkage op in Jordaan",
+  "Yusuf installeert laadpaal in Zuid",
+  "Sofia klaart oplevering in Noord",
+  "Kim schildert 3-kamer app in Oost",
+  "Slotenmaker geroepen in Centrum",
+  "Verhuisbedrijf actief in West",
+  "Tuinman bezig in Watergraafsmeer",
 ];

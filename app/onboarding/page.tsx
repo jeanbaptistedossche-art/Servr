@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   MapPin, ChevronRight, Phone, Apple, CheckCircle,
   ArrowLeft, User, Wrench, ArrowLeftRight,
+  Zap, Shield, Star, Paintbrush, Hammer, Lock, Sparkles,
 } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 import type { UserRole } from "@/lib/store";
@@ -136,75 +137,71 @@ export default function OnboardingPage() {
      WELCOME
   ═══════════════════════════════════════════════════════════════════ */
   if (step === "welcome") return (
-    <div className="relative flex flex-col min-h-dvh animate-fade-in overflow-hidden"
-      style={{ background: "linear-gradient(170deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
+    <div className="flex flex-col min-h-dvh animate-fade-in" style={{ background: "#F9FAFB" }}>
 
-      {/* Subtle top-right accent */}
-      <div className="absolute top-0 right-0 w-48 h-48 rounded-bl-full pointer-events-none"
-        style={{ background: "rgba(255,255,255,0.04)" }} />
-
-      <div className="flex-1 flex flex-col items-center justify-center gap-8 text-center px-6 pt-16 pb-4">
-
-        {/* Logo */}
-        <div className="w-24 h-24 rounded-[28px] flex flex-col items-center justify-center shadow-2xl"
-          style={{
-            background: "rgba(255,255,255,0.18)",
-            backdropFilter: "blur(16px)",
-            border: "1.5px solid rgba(255,255,255,0.28)",
-          }}>
-          <span className="font-black text-white" style={{ fontSize: 50, lineHeight: 1 }}>S</span>
-          <div className="h-[3px] rounded-full mt-2" style={{ width: 28, background: "var(--coral)" }} />
-        </div>
-
-        {/* Brand */}
-        <div>
-          <h1 className="text-5xl font-black text-white tracking-tight">Servr</h1>
-          <p className="text-white/70 text-base mt-2">De slimste manier om een vakman te vinden</p>
-
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-6 mt-5">
-            {[["2.4K+","vakmensen"],["4.8★","rating"],["Gratis","aanmelden"]].map(([val, lbl]) => (
-              <div key={lbl} className="flex flex-col items-center gap-0.5">
-                <span className="text-white font-black text-sm">{val}</span>
-                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.45)" }}>{lbl}</span>
-              </div>
-            ))}
+      {/* Indigo gradient hero */}
+      <div className="px-6 pt-16 pb-10 flex flex-col"
+        style={{ background: "linear-gradient(160deg, #4F46E5 0%, #6366F1 60%, #818CF8 100%)" }}>
+        <div className="flex items-center gap-2.5 mb-10">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(255,255,255,0.2)" }}>
+            <span className="font-black text-white" style={{ fontSize: 18 }}>S</span>
           </div>
+          <span className="font-black text-white text-2xl tracking-tight">Servr</span>
         </div>
 
-        {/* Features */}
-        <div className="flex flex-col gap-2 w-full max-w-xs">
-          {[
-            ["⚡","Vakman binnen 90 seconden","Via de Panic Button"],
-            ["📍","Locatie-gebaseerde matching","Alleen vakmensen dichtbij jou"],
-            ["💰","Directe offertes & betaling","Transparant en veilig"],
-            ["⭐","Geverifieerde vakmensen","Reviews van echte klanten"],
-          ].map(([icon, title, sub]) => (
-            <div key={title as string} className="flex items-center gap-3 px-4 py-3 rounded-2xl text-left"
-              style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.11)" }}>
-              <span className="text-xl flex-shrink-0">{icon}</span>
-              <div>
-                <p className="text-sm font-semibold" style={{ color: "rgba(255,255,255,0.95)" }}>{title}</p>
-                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>{sub}</p>
-              </div>
+        <h1 className="font-black text-white leading-tight mb-3" style={{ fontSize: 32, letterSpacing: "-0.02em" }}>
+          Vind de beste<br />vakman direct
+        </h1>
+        <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>
+          2.400+ gecertificeerde vakmensen, direct beschikbaar in jouw buurt.
+        </p>
+
+        <div className="flex items-center gap-5 mt-6">
+          {[["2.4K+","vakmensen"],["4.8 / 5","score"],["90 sec","responstijd"]].map(([v, l]) => (
+            <div key={l}>
+              <p className="font-black text-white text-base leading-none">{v}</p>
+              <p className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.55)" }}>{l}</p>
             </div>
           ))}
         </div>
       </div>
 
+      {/* Feature cards */}
+      <div className="flex-1 px-5 py-6 flex flex-col gap-3">
+        {[
+          { Icon: Zap,    title: "Vakman binnen 90 seconden",     body: "Spoeddienst — altijd iemand beschikbaar",  color: "#EF4444" },
+          { Icon: MapPin, title: "Alleen vakmensen dichtbij jou", body: "Locatie-gebaseerde matching op km",        color: "#4F46E5" },
+          { Icon: Shield, title: "Veilig betalen via Servr",      body: "Geld pas vrij als het werk klaar is",     color: "#6366F1" },
+          { Icon: Star,   title: "Geverifieerde vakmensen",       body: "Echte reviews · Gecertificeerde profielen", color: "#F59E0B" },
+        ].map(f => (
+          <div key={f.title} className="flex items-center gap-3 p-4 rounded-2xl"
+            style={{ background: "#fff", border: "1px solid #F3F4F6", boxShadow: "0 1px 8px rgba(0,0,0,0.05)" }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background: f.color + "15", color: f.color }}>
+              <f.Icon size={18} strokeWidth={1.8} />
+            </div>
+            <div>
+              <p className="font-semibold text-sm" style={{ color: "#111827" }}>{f.title}</p>
+              <p className="text-xs mt-0.5" style={{ color: "#9CA3AF" }}>{f.body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* CTAs */}
-      <div className="flex flex-col gap-3 px-6 pb-12 pt-2">
+      <div className="flex flex-col gap-3 px-5 pb-12">
         <button onClick={() => setStep("rol")}
-          className="touch-scale w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2"
-          style={{ background: "white", color: "var(--teal)", boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>
+          className="touch-scale w-full py-4 rounded-2xl font-black text-base text-white flex items-center justify-center gap-2"
+          style={{ background: "linear-gradient(135deg, #4F46E5, #6366F1)", boxShadow: "0 4px 20px rgba(79,70,229,0.35)" }}>
           Aan de slag <ChevronRight size={18} />
         </button>
         <button onClick={() => setStep("login")}
           className="touch-scale w-full py-3.5 rounded-2xl font-semibold text-sm"
-          style={{ background: "rgba(255,255,255,0.13)", color: "white", border: "1px solid rgba(255,255,255,0.18)" }}>
-          Al een account? Inloggen →
+          style={{ color: "#6B7280" }}>
+          Al een account? Inloggen
         </button>
-        <p className="text-center text-xs mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>
+        <p className="text-center text-xs" style={{ color: "#D1D5DB" }}>
           Door verder te gaan ga je akkoord met onze voorwaarden
         </p>
       </div>
@@ -248,7 +245,7 @@ export default function OnboardingPage() {
                       background: acc.role === "vakman" ? "var(--coral)" + "18" : "var(--teal)" + "18",
                       color: acc.role === "vakman" ? "var(--coral)" : "var(--teal)",
                     }}>
-                    {acc.role === "vakman" ? "🔧 Vakman" : "👤 Klant"}
+                    {acc.role === "vakman" ? "Vakman" : "Klant"}
                   </span>
                 </div>
                 <ChevronRight size={18} style={{ color: "var(--muted)", flexShrink: 0 }} />
@@ -341,8 +338,9 @@ export default function OnboardingPage() {
           {rol === "klant" && (
             <CheckCircle size={20} className="absolute top-4 right-4" style={{ color: "var(--teal)" }} />
           )}
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-3"
-            style={{ background: "var(--teal)" + "18" }}>👤</div>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+            style={{ background: "var(--teal)" + "18", color: "var(--teal)" }}>
+            <User size={26} strokeWidth={1.8} /></div>
           <h3 className="font-black text-lg mb-1">Ik zoek een vakman</h3>
           <p className="text-sm" style={{ color: "var(--muted)" }}>
             Maak opdrachten aan, ontvang offertes en betaal veilig.
@@ -367,8 +365,9 @@ export default function OnboardingPage() {
           {rol === "vakman" && (
             <CheckCircle size={20} className="absolute top-4 right-4" style={{ color: "var(--coral)" }} />
           )}
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl mb-3"
-            style={{ background: "var(--coral)" + "18" }}>🔧</div>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+            style={{ background: "var(--coral)" + "18", color: "var(--coral)" }}>
+            <Wrench size={26} strokeWidth={1.8} /></div>
           <h3 className="font-black text-lg mb-1">Ik ben vakman</h3>
           <p className="text-sm" style={{ color: "var(--muted)" }}>
             Ontvang opdrachten in jouw buurt, stuur offertes en verdien extra inkomen.
@@ -541,7 +540,7 @@ export default function OnboardingPage() {
           }}
           className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-base"
           style={{ background: accentColor }}>
-          {(locStraat && locStad) ? "Doorgaan →" : "📍 Adres overslaan"}
+          {(locStraat && locStad) ? "Doorgaan" : "Adres overslaan"}
         </button>
       </div>
     </div>
@@ -599,7 +598,7 @@ export default function OnboardingPage() {
           className="touch-scale w-full py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-3 border"
           style={{ borderColor: "var(--border)", background: "var(--surface)", opacity: oauthLoading === "apple" ? 0.5 : 1 }}>
           {oauthLoading === "google" ? (
-            <span className="animate-spin">⏳</span>
+            <span className="w-4 h-4 rounded-full border-2 border-gray-400 border-t-transparent animate-spin inline-block" />
           ) : (
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -618,7 +617,7 @@ export default function OnboardingPage() {
           className="touch-scale w-full py-4 rounded-2xl font-semibold text-sm flex items-center justify-center gap-3"
           style={{ background: "#000", color: "#fff", opacity: oauthLoading === "google" ? 0.5 : 1 }}>
           {oauthLoading === "apple"
-            ? <span className="animate-spin text-white">⏳</span>
+            ? <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin inline-block" />
             : <Apple size={20} />
           }
           Doorgaan met Apple
@@ -628,7 +627,7 @@ export default function OnboardingPage() {
         {oauthError && (
           <div className="px-4 py-3 rounded-2xl text-xs text-center"
             style={{ background: "#fef3c7", color: "#92400e" }}>
-            ⚠️ {oauthError}
+            {oauthError}
           </div>
         )}
 
@@ -755,17 +754,32 @@ export default function OnboardingPage() {
               Categorie
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {[["🔧","Loodgieter"],["⚡","Elektricien"],["🖌️","Schilder"],["🧹","Schoonmaak"],["🪚","Timmerman"],["🔑","Slotenmaker"]].map(([icon, cat]) => (
-                <button key={cat} onClick={() => setSelectedCat(cat)}
-                  className="touch-scale py-3 rounded-xl text-xs font-semibold flex flex-col items-center gap-1 border-2"
-                  style={{
-                    borderColor: selectedCat === cat ? "var(--coral)" : "var(--border)",
-                    background: selectedCat === cat ? "var(--coral)" + "12" : "var(--surface)",
-                    color: selectedCat === cat ? "var(--coral)" : "var(--foreground)",
-                  }}>
-                  <span className="text-xl">{icon}</span>{cat}
-                </button>
-              ))}
+              {[
+                { id: "loodgieter", label: "Loodgieter" },
+                { id: "elektricien", label: "Elektricien" },
+                { id: "schilder", label: "Schilder" },
+                { id: "schoonmaak", label: "Schoonmaak" },
+                { id: "timmerman", label: "Timmerman" },
+                { id: "sloten", label: "Slotenmaker" },
+              ].map(({ id, label }) => {
+                const catIcons: Record<string, typeof Wrench> = {
+                  loodgieter: Wrench, elektricien: Zap, schilder: Paintbrush,
+                  schoonmaak: Sparkles, timmerman: Hammer, sloten: Lock,
+                };
+                const Icon = catIcons[id] ?? Wrench;
+                return (
+                  <button key={id} onClick={() => setSelectedCat(label)}
+                    className="touch-scale py-3 rounded-xl text-xs font-semibold flex flex-col items-center gap-1.5 border-2"
+                    style={{
+                      borderColor: selectedCat === label ? "var(--coral)" : "var(--border)",
+                      background: selectedCat === label ? "var(--coral)" + "12" : "var(--surface)",
+                      color: selectedCat === label ? "var(--coral)" : "var(--foreground)",
+                    }}>
+                    <Icon size={18} strokeWidth={1.8} />
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -776,7 +790,7 @@ export default function OnboardingPage() {
         disabled={!naam.trim()}
         className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-base mt-4"
         style={{ background: naam.trim() ? accentColor : "var(--muted)" }}>
-        {rol === "vakman" ? "🔧 Start als vakman" : "✓ Account aanmaken"}
+        {rol === "vakman" ? "Start als vakman" : "Account aanmaken"}
       </button>
     </div>
   );
