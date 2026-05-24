@@ -96,15 +96,54 @@ const SPOED_JOBS: SpoedJob[] = [
 
 // ─── Vakman panic view ────────────────────────────────────────────────────────
 
+// Countdown startwaarden (seconden) per job — oudere jobs hebben minder tijd over
+const COUNTDOWN_START: Record<string, number> = {
+  s1: 420, // 7 min
+  s2: 300, // 5 min
+  s3: 180, // 3 min
+  s4: 60,  // 1 min
+};
+
+// Nieuwe job die na 15s live binnenkomt
+const NIEUWE_JOB: SpoedJob = {
+  id: "s5",
+  klant: "Bram Claes",
+  klantAvatar: "https://i.pravatar.cc/150?img=52",
+  categorie: "Timmerman",
+  categorieIcon: "🔨",
+  omschrijving: "Deur hangt scheef, kan niet meer sluiten. Inbreker was gisteravond actief in buurt.",
+  buurt: "Oost, Amsterdam",
+  afstand: "1.1 km",
+  geplaatst: "Zonet",
+  budget: "€90–€130",
+  spoedBonus: "+€18",
+  status: "nieuw",
+};
+
 function VakmanPanicView() {
   const [jobs, setJobs] = useState<SpoedJob[]>(SPOED_JOBS);
   const [actief, setActief] = useState<string | null>(null);
   const [geaccepteerd, setGeaccepteerd] = useState<string | null>(null);
-  const [ticker, setTicker] = useState(0);
+  const [countdowns, setCountdowns] = useState<Record<string, number>>(COUNTDOWN_START);
+  const [nieuweJobZichtbaar, setNieuweJobZichtbaar] = useState(false);
 
-  // Live ticker — nieuwe melding elke 30s simuleren
+  // Tick: countdown per seconde + nieuwe job na 15s
   useEffect(() => {
-    const t = setInterval(() => setTicker(v => v + 1), 1000);
+    let elapsed = 0;
+    const t = setInterval(() => {
+      elapsed += 1;
+      // Nieuwe job na 15 seconden
+      if (elapsed === 15) {
+        setNieuweJobZichtbaar(true);
+        setJobs(v => [NIEUWE_JOB, ...v]);
+        setCountdowns(c => ({ ...c, s5: 600 }));
+      }
+      setCountdowns(prev => {
+        const next: Record<string, number> = {};
+        Object.entries(prev).forEach(([k, v]) => { next[k] = Math.max(0, v - 1); });
+        return next;
+      });
+    }, 1000);
     return () => clearInterval(t);
   }, []);
 
@@ -112,6 +151,12 @@ function VakmanPanicView() {
     setJobs(v => v.map(j => j.id === id ? { ...j, status: "geaccepteerd" } : j));
     setGeaccepteerd(id);
     setActief(null);
+  };
+
+  const fmtTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m > 0 ? `${m}m ${String(sec).padStart(2, "0")}s` : `${sec}s`;
   };
 
   const accepteerdeJob = jobs.find(j => j.id === geaccepteerd);
@@ -252,74 +297,104 @@ function VakmanPanicView() {
           </div>
         )}
 
-        {nieuweJobs.map(job => (
-          <div key={job.id}>
-            {/* Compact kaart */}
-            <button
-              onClick={() => setActief(actief === job.id ? null : job.id)}
-              className="touch-scale w-full card p-4 text-left">
-              <div className="flex items-start gap-3">
-                <div className="relative flex-shrink-0">
-                  <img src={job.klantAvatar} className="w-12 h-12 rounded-2xl object-cover" alt="" />
-                  {/* Puls op avatar */}
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center"
-                    style={{ background: "var(--coral)" }}>
-                    <span className="text-white text-[8px] font-black">!</span>
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <div>
-                      <p className="font-bold text-sm">{job.klant}</p>
-                      <p className="text-xs" style={{ color: "var(--muted)" }}>
-                        {job.categorie} · {job.geplaatst}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-black text-sm" style={{ color: "var(--coral)" }}>{job.budget}</p>
-                      <p className="text-[10px] font-bold" style={{ color: "#22c55e" }}>{job.spoedBonus}</p>
-                    </div>
-                  </div>
-                  <p className="text-xs leading-relaxed line-clamp-2" style={{ color: "var(--muted)" }}>
-                    {job.omschrijving}
-                  </p>
-                  <div className="flex items-center gap-3 mt-2">
-                    <div className="flex items-center gap-1">
-                      <MapPin size={10} style={{ color: "var(--coral)" }} />
-                      <span className="text-xs font-semibold">{job.buurt}</span>
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                      style={{ background: "var(--coral)" + "12", color: "var(--coral)" }}>
-                      {job.afstand}
+        {nieuweJobs.map(job => {
+          const secs = countdowns[job.id] ?? 300;
+          const isUrgent = secs <= 60;
+          const isNew = job.id === "s5" && nieuweJobZichtbaar;
+
+          return (
+            <div key={job.id} className={isNew ? "animate-slide-up" : ""}>
+              {/* Compact kaart */}
+              <button
+                onClick={() => setActief(actief === job.id ? null : job.id)}
+                className="touch-scale w-full card p-4 text-left"
+                style={{ borderLeft: isNew ? "3px solid var(--coral)" : "none" }}>
+                <div className="flex items-start gap-3">
+                  <div className="relative flex-shrink-0">
+                    <img src={job.klantAvatar} className="w-12 h-12 rounded-2xl object-cover" alt="" />
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center"
+                      style={{ background: "var(--coral)" }}>
+                      <span className="text-white text-[8px] font-black">!</span>
                     </span>
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm">{job.klant}</p>
+                          {isNew && (
+                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full text-white"
+                              style={{ background: "var(--coral)" }}>NIEUW</span>
+                          )}
+                        </div>
+                        <p className="text-xs" style={{ color: "var(--muted)" }}>
+                          {job.categorie} · {job.geplaatst}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-black text-sm" style={{ color: "var(--coral)" }}>{job.budget}</p>
+                        <p className="text-[10px] font-bold" style={{ color: "#22c55e" }}>{job.spoedBonus}</p>
+                      </div>
+                    </div>
+                    <p className="text-xs leading-relaxed line-clamp-2" style={{ color: "var(--muted)" }}>
+                      {job.omschrijving}
+                    </p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center gap-1">
+                        <MapPin size={10} style={{ color: "var(--coral)" }} />
+                        <span className="text-xs font-semibold">{job.buurt}</span>
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                        style={{ background: "var(--coral)" + "12", color: "var(--coral)" }}>
+                        {job.afstand}
+                      </span>
+                      {/* Countdown */}
+                      <span className="flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full ml-auto"
+                        style={{
+                          background: isUrgent ? "#FEF2F2" : "#FFF7ED",
+                          color: isUrgent ? "#EF4444" : "#D97706",
+                        }}>
+                        <Clock size={9} />
+                        {fmtTime(secs)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </button>
+              </button>
 
-            {/* Uitklapbaar detail + acties */}
-            {actief === job.id && (
-              <div className="card mx-0 -mt-3 pt-6 px-4 pb-4 rounded-b-2xl animate-slide-up"
-                style={{ background: "var(--surface-2)" }}>
-                <p className="text-sm leading-relaxed mb-4">&ldquo;{job.omschrijving}&rdquo;</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setActief(null)}
-                    className="touch-scale flex-1 py-3 rounded-xl font-semibold text-sm border"
-                    style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
-                    Sluiten
-                  </button>
-                  <button
-                    onClick={() => handleAccepteer(job.id)}
-                    className="touch-scale flex-[2] py-3 rounded-xl font-black text-white flex items-center justify-center gap-2"
-                    style={{ background: "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)" }}>
-                    <Zap size={16} /> Accepteer spoedklus
-                  </button>
+              {/* Uitklapbaar detail + acties */}
+              {actief === job.id && (
+                <div className="card mx-0 -mt-3 pt-6 px-4 pb-4 rounded-b-2xl animate-slide-up"
+                  style={{ background: "var(--surface-2)" }}>
+                  <p className="text-sm leading-relaxed mb-4">&ldquo;{job.omschrijving}&rdquo;</p>
+                  {isUrgent && (
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl mb-3"
+                      style={{ background: "#FEF2F2" }}>
+                      <AlertTriangle size={14} style={{ color: "#EF4444" }} />
+                      <p className="text-xs font-bold" style={{ color: "#EF4444" }}>
+                        Nog {fmtTime(secs)} — verloopt snel!
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setActief(null)}
+                      className="touch-scale flex-1 py-3 rounded-xl font-semibold text-sm border"
+                      style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+                      Sluiten
+                    </button>
+                    <button
+                      onClick={() => handleAccepteer(job.id)}
+                      className="touch-scale flex-[2] py-3 rounded-xl font-black text-white flex items-center justify-center gap-2"
+                      style={{ background: "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)" }}>
+                      <Zap size={16} /> Accepteer spoedklus
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

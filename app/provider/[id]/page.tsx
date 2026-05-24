@@ -2,14 +2,42 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Star, MapPin, MessageCircle, Heart, Share2, ChevronRight, Clock, CheckCircle } from "lucide-react";
+import { ArrowLeft, Star, MapPin, MessageCircle, Heart, Share2, ChevronRight, Clock, CheckCircle, CalendarDays, X, Send } from "lucide-react";
 import { PROVIDERS } from "@/lib/mockData";
+import { useReviewStore } from "@/lib/reviewStore";
 
 export default function ProviderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const provider = PROVIDERS.find(p => p.id === id) ?? PROVIDERS[0];
   const [liked, setLiked] = useState(false);
   const [tab, setTab] = useState<"diensten" | "reviews" | "fotos">("diensten");
+
+  // Reviews
+  const { reviews: userReviews, voegReview, getReviewsVoorVakman } = useReviewStore();
+  const extraReviews = getReviewsVoorVakman(provider.id);
+  const allReviews = [
+    ...provider.reviews,
+    ...extraReviews.map(r => ({ author: r.auteur, rating: r.rating, text: r.tekst, date: r.datum })),
+  ];
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewTekst, setReviewTekst] = useState("");
+  const [reviewVerstuurd, setReviewVerstuurd] = useState(false);
+
+  const verstuurReview = () => {
+    if (!reviewTekst.trim()) return;
+    voegReview({
+      vakmanId: provider.id,
+      boekingId: `anon_${Date.now()}`,
+      auteur: "Jij",
+      rating: reviewRating,
+      tekst: reviewTekst.trim(),
+    });
+    setReviewVerstuurd(true);
+    setShowReviewForm(false);
+    setReviewTekst("");
+    setTab("reviews");
+  };
 
   return (
     <div className="flex flex-col min-h-full pb-8 animate-fade-in">
@@ -107,10 +135,11 @@ export default function ProviderPage({ params }: { params: Promise<{ id: string 
             <MessageCircle size={17} />
             Stuur bericht
           </Link>
-          <button className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm text-white"
+          <Link href={`/agenda/boeken/${provider.id}`}
+            className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2"
             style={{ background: "var(--teal)" }}>
-            📅 Boek nu
-          </button>
+            <CalendarDays size={15} /> Boek nu
+          </Link>
         </div>
 
         {/* Tabs */}
@@ -155,13 +184,89 @@ export default function ProviderPage({ params }: { params: Promise<{ id: string 
 
           {tab === "reviews" && (
             <div className="flex flex-col gap-3">
-              {provider.reviews.map((r, i) => (
+              {/* Gemiddelde score strip */}
+              <div className="card p-4 flex items-center gap-4">
+                <div className="text-center">
+                  <p className="font-black text-4xl" style={{ color: "var(--teal)" }}>{provider.rating}</p>
+                  <div className="flex items-center gap-0.5 justify-center mt-1">
+                    {Array.from({ length: 5 }).map((_, j) => (
+                      <Star key={j} size={11} className={j < Math.round(provider.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
+                    ))}
+                  </div>
+                  <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>{allReviews.length} reviews</p>
+                </div>
+                <div className="flex-1 flex flex-col gap-1.5">
+                  {[5, 4, 3, 2, 1].map(n => {
+                    const cnt = allReviews.filter(r => r.rating === n).length;
+                    const pct = allReviews.length ? (cnt / allReviews.length) * 100 : 0;
+                    return (
+                      <div key={n} className="flex items-center gap-2">
+                        <span className="text-[11px] font-semibold w-3" style={{ color: "var(--muted)" }}>{n}</span>
+                        <div className="flex-1 h-1.5 rounded-full" style={{ background: "var(--surface-2)" }}>
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--teal)" }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Review schrijven knop */}
+              {reviewVerstuurd ? (
+                <div className="card p-3 flex items-center gap-2">
+                  <CheckCircle size={16} style={{ color: "#10B981" }} />
+                  <p className="text-sm font-semibold" style={{ color: "#10B981" }}>Review verstuurd — bedankt!</p>
+                </div>
+              ) : (
+                <button onClick={() => setShowReviewForm(v => !v)}
+                  className="touch-scale card p-3.5 flex items-center gap-2 w-full text-left"
+                  style={{ borderColor: showReviewForm ? "var(--teal)" : "transparent" }}>
+                  <Star size={16} style={{ color: "var(--teal)" }} />
+                  <span className="font-semibold text-sm" style={{ color: "var(--teal)" }}>Schrijf een review</span>
+                </button>
+              )}
+
+              {/* Review form */}
+              {showReviewForm && (
+                <div className="card p-4 flex flex-col gap-3 animate-slide-up">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-sm">Jouw beoordeling</p>
+                    <button onClick={() => setShowReviewForm(false)}>
+                      <X size={16} style={{ color: "var(--muted)" }} />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button key={n} onClick={() => setReviewRating(n)} className="touch-scale">
+                        <Star size={28} className={n <= reviewRating ? "fill-amber-400 text-amber-400" : "text-gray-200 fill-gray-100"} />
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={reviewTekst}
+                    onChange={e => setReviewTekst(e.target.value)}
+                    placeholder={`Hoe was je ervaring met ${provider.name.split(" ")[0]}?`}
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-2xl border outline-none text-sm resize-none"
+                    style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
+                  />
+                  <button onClick={verstuurReview}
+                    disabled={!reviewTekst.trim()}
+                    className="touch-scale py-3 rounded-2xl font-bold text-white text-sm flex items-center justify-center gap-2"
+                    style={{ background: reviewTekst.trim() ? "var(--teal)" : "var(--muted)" }}>
+                    <Send size={14} /> Verstuur review
+                  </button>
+                </div>
+              )}
+
+              {/* Reviews lijst */}
+              {allReviews.map((r, i) => (
                 <div key={i} className="card p-4">
                   <div className="flex items-center justify-between mb-2">
                     <p className="font-semibold text-sm">{r.author}</p>
-                    <div className="flex">
+                    <div className="flex gap-0.5">
                       {Array.from({ length: 5 }).map((_, j) => (
-                        <Star key={j} size={12} className={j < r.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
+                        <Star key={j} size={12} className={j < r.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200 fill-gray-100"} />
                       ))}
                     </div>
                   </div>
