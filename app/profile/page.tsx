@@ -3,14 +3,65 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Star, Settings, Bell, ChevronRight, Camera, CreditCard, Building2, Smartphone, CheckCircle, Plus, ArrowLeftRight, Wrench, CalendarDays, FileText, LayoutDashboard, LogOut, ShieldCheck, Trash2 } from "lucide-react";
+import { Star, Settings, Bell, ChevronRight, Camera, CreditCard, Building2, Smartphone, CheckCircle, Plus, ArrowLeftRight, Wrench, CalendarDays, FileText, LayoutDashboard, LogOut, ShieldCheck, Trash2, X } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 import { useInstellingenStore } from "@/lib/instellingenStore";
 
-const BADGES_KLANT = [
-  { icon: "🏆", label: "Topklant", desc: "10+ boekingen" },
-  { icon: "⚡", label: "Snelle betaler", desc: "Altijd op tijd betaald" },
-  { icon: "⭐", label: "Top reviewer", desc: "15 reviews geschreven" },
+type Badge = {
+  icon: string;
+  label: string;
+  desc: string;
+  earned: boolean;
+  certificaatTitel: string;
+  certificaatOmschrijving: string;
+  certificaatDatum?: string;
+  kleur: string;
+  zeldzaam?: boolean;
+};
+
+const BADGES_KLANT: Badge[] = [
+  {
+    icon: "💫", label: "First Blood", earned: true,
+    desc: "Eerste boeking geplaatst",
+    certificaatTitel: "Eerste Stap Gezet",
+    certificaatOmschrijving: "Jij durfde als eerste de stap te zetten en een vakman te boeken via Servr. Dat verdient erkenning!",
+    certificaatDatum: "3 jan 2026", kleur: "#6366f1",
+  },
+  {
+    icon: "⚡", label: "Betaalflits", earned: true,
+    desc: "Altijd binnen 24u betaald",
+    certificaatTitel: "De Snelste Betaler",
+    certificaatOmschrijving: "Jij betaalt altijd binnen 24 uur. Vakmensen houden van jou. Je bent officieel de droomklant van elk platform.",
+    certificaatDatum: "12 feb 2026", kleur: "#f59e0b",
+  },
+  {
+    icon: "❤️", label: "Vaste klant", earned: true,
+    desc: "10+ klussen geboekt",
+    certificaatTitel: "Trouwe Supporter",
+    certificaatOmschrijving: "Je hebt al meer dan 10 klussen geboekt via Servr. De vakmensen kennen je al bij naam. Absolute topklant!",
+    certificaatDatum: "1 mei 2026", kleur: "#ec4899",
+  },
+  {
+    icon: "🦁", label: "Moedige klant", earned: false,
+    desc: "Eerste spoedjob ingediend",
+    certificaatTitel: "Paniekknop Expert",
+    certificaatOmschrijving: "Jij wacht niet af als er iets misgaat. Je drukt op de paniekknop en krijgt binnen minuten hulp. Dat is klasse.",
+    kleur: "#ef4444", zeldzaam: true,
+  },
+  {
+    icon: "🌍", label: "Wereldreiziger", earned: false,
+    desc: "Vakmensen in 5 steden geboekt",
+    certificaatTitel: "De Reizende Klant",
+    certificaatOmschrijving: "Van Amsterdam tot Antwerpen — jij hebt in maar liefst 5 verschillende steden vakmensen geboekt via Servr.",
+    kleur: "#10b981", zeldzaam: true,
+  },
+  {
+    icon: "👑", label: "Platinum klant", earned: false,
+    desc: "25+ klussen geboekt",
+    certificaatTitel: "Platinum Status",
+    certificaatOmschrijving: "De absolute top. Meer dan 25 klussen geboekt. Jij bent de reden dat vakmensen elke dag opstaan.",
+    kleur: "#8b5cf6", zeldzaam: true,
+  },
 ];
 
 const HISTORY = [
@@ -19,6 +70,105 @@ const HISTORY = [
   { provider: "Kim Nguyen", category: "Schilder", date: "22 apr 2026", price: 350, rating: 4, avatar: "https://i.pravatar.cc/150?img=56" },
 ];
 
+
+function CertificaatModal({ badge, onSluit }: { badge: Badge; onSluit: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-5"
+      style={{ background: "rgba(0,0,0,0.6)" }}
+      onClick={onSluit}>
+      <div className="w-full max-w-sm rounded-3xl overflow-hidden animate-slide-up max-h-[85vh] overflow-y-auto"
+        style={{ background: "var(--background)" }}
+        onClick={e => e.stopPropagation()}>
+
+        {/* Header gradient */}
+        <div className="p-8 flex flex-col items-center gap-3 relative"
+          style={{ background: `linear-gradient(135deg, ${badge.kleur}22 0%, ${badge.kleur}08 100%)` }}>
+          <button onClick={onSluit}
+            className="absolute top-4 right-4 touch-scale w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ background: "var(--surface-2)" }}>
+            <X size={14} />
+          </button>
+
+          {/* Badge icon */}
+          <div className="w-20 h-20 rounded-3xl flex items-center justify-center text-5xl shadow-lg"
+            style={{ background: badge.earned ? `${badge.kleur}18` : "var(--surface-2)", border: `2px solid ${badge.earned ? badge.kleur + "40" : "var(--border)"}` }}>
+            {badge.earned ? badge.icon : "🔒"}
+          </div>
+
+          {badge.zeldzaam && badge.earned && (
+            <span className="text-[10px] font-black px-3 py-1 rounded-full"
+              style={{ background: badge.kleur, color: "white" }}>
+              ✨ ZELDZAAM
+            </span>
+          )}
+
+          <div className="text-center">
+            <h2 className="font-black text-xl">{badge.earned ? badge.certificaatTitel : badge.label}</h2>
+            <p className="text-sm mt-1" style={{ color: badge.earned ? badge.kleur : "var(--muted)", fontWeight: 600 }}>
+              {badge.earned ? badge.label : badge.desc}
+            </p>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 flex flex-col gap-4">
+          {badge.earned ? (
+            <>
+              {/* Certificaat */}
+              <div className="rounded-2xl p-4 flex flex-col gap-2"
+                style={{ background: `${badge.kleur}08`, border: `1px solid ${badge.kleur}25` }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">📜</span>
+                  <p className="font-black text-xs uppercase tracking-wider" style={{ color: badge.kleur }}>
+                    Officieel certificaat
+                  </p>
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--foreground)" }}>
+                  {badge.certificaatOmschrijving}
+                </p>
+                {badge.certificaatDatum && (
+                  <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                    Behaald op {badge.certificaatDatum}
+                  </p>
+                )}
+              </div>
+
+              {/* Stars */}
+              <div className="flex justify-center gap-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <span key={i} className="text-2xl" style={{ animationDelay: `${i * 100}ms` }}>⭐</span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="rounded-2xl p-4" style={{ background: "var(--surface-2)" }}>
+                <p className="font-bold text-sm mb-1">Hoe te ontgrendelen</p>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{badge.desc}</p>
+              </div>
+              <div className="rounded-2xl p-4 flex items-center gap-3"
+                style={{ background: `${badge.kleur}08`, border: `1px solid ${badge.kleur}20` }}>
+                <span className="text-2xl">🏆</span>
+                <div>
+                  <p className="font-bold text-sm">Beloning</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                    Ontvang een officieel certificaat + speciale status
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+
+          <button onClick={onSluit}
+            className="touch-scale w-full py-3.5 rounded-2xl font-bold text-white text-sm"
+            style={{ background: badge.earned ? badge.kleur : "var(--muted)" }}>
+            {badge.earned ? "Geweldig! 🎉" : "Begrepen"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const { role, activeView, setActiveView, logout, isAdmin, name: userName, address: userAddress } = useUserStore();
@@ -32,6 +182,7 @@ export default function ProfilePage() {
   };
 
   const [showAddPayment, setShowAddPayment] = useState(false);
+  const [activeBadge, setActiveBadge] = useState<Badge | null>(null);
   const [nieuwMethode, setNieuwMethode] = useState<"ideal" | "kaart" | "paypal">("ideal");
   const [nieuwBank, setNieuwBank] = useState("ING");
 
@@ -146,20 +297,27 @@ export default function ProfilePage() {
         {/* Badges */}
         {!isVakman && (
           <section>
-            <h2 className="font-black text-base mb-3">Jouw badges</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-black text-base">Jouw badges</h2>
+              <span className="text-xs" style={{ color: "var(--muted)" }}>
+                {BADGES_KLANT.filter(b => b.earned).length}/{BADGES_KLANT.length} behaald
+              </span>
+            </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-5 px-5">
               {BADGES_KLANT.map(b => (
-                <div key={b.label} className="touch-scale flex-shrink-0 card p-4 flex flex-col items-center gap-2 w-28 text-center">
-                  <span className="text-3xl">{b.icon}</span>
+                <button key={b.label}
+                  onClick={() => setActiveBadge(b)}
+                  className="touch-scale flex-shrink-0 card p-4 flex flex-col items-center gap-2 w-28 text-center relative"
+                  style={{ opacity: b.earned ? 1 : 0.55 }}>
+                  <span className="text-3xl">{b.earned ? b.icon : "🔒"}</span>
                   <p className="font-bold text-xs">{b.label}</p>
                   <p className="text-[10px]" style={{ color: "var(--muted)" }}>{b.desc}</p>
-                </div>
+                  {b.zeldzaam && b.earned && (
+                    <span className="absolute -top-1 -right-1 text-[10px] px-1.5 py-0.5 rounded-full font-black"
+                      style={{ background: b.kleur, color: "white" }}>✨</span>
+                  )}
+                </button>
               ))}
-              <div className="touch-scale flex-shrink-0 card p-4 flex flex-col items-center gap-2 w-28 text-center">
-                <span className="text-3xl opacity-30">🔒</span>
-                <p className="text-xs font-bold" style={{ color: "var(--muted)" }}>Volgende</p>
-                <p className="text-[10px]" style={{ color: "var(--muted)" }}>Nog 2 boekingen</p>
-              </div>
             </div>
           </section>
         )}
@@ -259,7 +417,7 @@ export default function ProfilePage() {
             : [
                 { icon: "📱", label: "AI Prijsscanner", href: "/scan", sub: "Foto → direct prijsschatting" },
                 { icon: "💬", label: "Berichten", href: "/chat/p1", sub: "2 ongelezen berichten" },
-                { icon: "❤️", label: "Favorieten", href: "/search", sub: "4 opgeslagen vakmensen" },
+                { icon: "❤️", label: "Favorieten", href: "/favorieten", sub: "4 opgeslagen vakmensen" },
                 { icon: "📋", label: "Mijn opdrachten", href: "/mijn-opdrachten", sub: "3 actief" },
                 { icon: "🏠", label: "Mijn adressen", href: "#", sub: "2 adressen opgeslagen" },
               ]
@@ -345,6 +503,11 @@ export default function ProfilePage() {
           Uitloggen
         </button>
       </div>
+
+      {/* Badge certificaat modal */}
+      {activeBadge && (
+        <CertificaatModal badge={activeBadge} onSluit={() => setActiveBadge(null)} />
+      )}
     </div>
   );
 }

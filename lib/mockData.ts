@@ -2,6 +2,7 @@ export type Provider = {
   id: string;
   name: string;
   avatar: string;
+  phone: string;
   category: string;
   categoryIcon: string;
   distance: string;
@@ -19,16 +20,36 @@ export type Provider = {
 };
 
 export const CATEGORIES = [
-  { id: "loodgieter", label: "Loodgieter", icon: "🔧", color: "#2563eb" },
-  { id: "elektricien", label: "Elektricien", icon: "⚡", color: "#d97706" },
-  { id: "schilder", label: "Schilder", icon: "🖌️", color: "#7c3aed" },
-  { id: "timmerman", label: "Timmerman", icon: "🪚", color: "#b45309" },
-  { id: "schoonmaak", label: "Schoonmaak", icon: "🧹", color: "#0891b2" },
-  { id: "tuinman", label: "Tuinman", icon: "🌿", color: "#16a34a" },
-  { id: "verhuizen", label: "Verhuizen", icon: "📦", color: "#dc2626" },
-  { id: "sloten", label: "Slotenmaker", icon: "🔑", color: "#4f46e5" },
-  { id: "hvac", label: "HVAC", icon: "❄️", color: "#0284c7" },
-  { id: "dak", label: "Dakdekker", icon: "🏠", color: "#92400e" },
+  { id: "loodgieter",   label: "Loodgieter",        icon: "🔧", color: "#2563eb" },
+  { id: "elektricien",  label: "Elektricien",        icon: "⚡", color: "#d97706" },
+  { id: "schilder",     label: "Schilder",            icon: "🖌️", color: "#7c3aed" },
+  { id: "timmerman",    label: "Timmerman",           icon: "🪚", color: "#b45309" },
+  { id: "schoonmaak",   label: "Schoonmaak",          icon: "🧹", color: "#0891b2" },
+  { id: "tuinman",      label: "Tuinman",             icon: "🌿", color: "#16a34a" },
+  { id: "verhuizen",    label: "Verhuizen",           icon: "📦", color: "#dc2626" },
+  { id: "sloten",       label: "Slotenmaker",         icon: "🔑", color: "#4f46e5" },
+  { id: "hvac",         label: "HVAC / Ketel",        icon: "❄️", color: "#0284c7" },
+  { id: "dak",          label: "Dakdekker",           icon: "🏠", color: "#92400e" },
+  { id: "zwembad",      label: "Zwembad",             icon: "🏊", color: "#0ea5e9" },
+  { id: "glas",         label: "Glazenwasser",        icon: "🪟", color: "#64748b" },
+  { id: "tuin-aanleg",  label: "Tuin aanleg",         icon: "🌱", color: "#15803d" },
+  { id: "it",           label: "IT & Computer",       icon: "💻", color: "#6366f1" },
+  { id: "bestrating",   label: "Bestrating",          icon: "🧱", color: "#a16207" },
+  { id: "klusser",      label: "Klusser",             icon: "🔨", color: "#f59e0b" },
+  { id: "zonnepanelen", label: "Zonnepanelen",        icon: "☀️", color: "#eab308" },
+  { id: "gevel",        label: "Gevel & Buiten",      icon: "🏗️", color: "#78716c" },
+  { id: "verwarming",   label: "Verwarming",          icon: "🔥", color: "#f97316" },
+  { id: "garage",       label: "Garagedeur",          icon: "🚗", color: "#6b7280" },
+  { id: "isolatie",     label: "Isolatie",            icon: "🧊", color: "#0e7490" },
+  { id: "riolering",    label: "Riolering",           icon: "🕳️", color: "#57534e" },
+  { id: "intercom",     label: "Intercom / Alarm",    icon: "🔔", color: "#8b5cf6" },
+  { id: "tegels",       label: "Tegelwerk",           icon: "🔲", color: "#0f766e" },
+  { id: "parket",       label: "Parket / Vloer",      icon: "🪵", color: "#92400e" },
+  { id: "airco",        label: "Airco",               icon: "🌬️", color: "#38bdf8" },
+  { id: "pergola",      label: "Pergola / Terras",    icon: "⛱️", color: "#65a30d" },
+  { id: "oprit",        label: "Oprit / Betonwerk",   icon: "🏛️", color: "#a8a29e" },
+  { id: "rolluiken",    label: "Rolluiken",           icon: "🪞", color: "#6b7280" },
+  { id: "andere",       label: "Andere",              icon: "🛠️", color: "#6b7280" },
 ];
 
 export const PROVIDERS: Provider[] = [
@@ -36,6 +57,7 @@ export const PROVIDERS: Provider[] = [
     id: "p1",
     name: "Marco van den Berg",
     avatar: "https://i.pravatar.cc/150?img=11",
+    phone: "+32470123456",
     category: "Loodgieter",
     categoryIcon: "🔧",
     distance: "0.4 km",
@@ -67,6 +89,7 @@ export const PROVIDERS: Provider[] = [
     id: "p2",
     name: "Sofia Martins",
     avatar: "https://i.pravatar.cc/150?img=47",
+    phone: "+32470234567",
     category: "Schoonmaak",
     categoryIcon: "🧹",
     distance: "0.8 km",
@@ -96,6 +119,7 @@ export const PROVIDERS: Provider[] = [
     id: "p3",
     name: "Yusuf Aydın",
     avatar: "https://i.pravatar.cc/150?img=33",
+    phone: "+32470345678",
     category: "Elektricien",
     categoryIcon: "⚡",
     distance: "1.2 km",
@@ -124,6 +148,7 @@ export const PROVIDERS: Provider[] = [
     id: "p4",
     name: "Kim Nguyen",
     avatar: "https://i.pravatar.cc/150?img=56",
+    phone: "+32470456789",
     category: "Schilder",
     categoryIcon: "🖌️",
     distance: "1.5 km",

@@ -2,19 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Star, MapPin, Zap, ChevronRight } from "lucide-react";
-import { PROVIDERS } from "@/lib/mockData";
+import { ArrowLeft, Star, MapPin, Zap, ChevronRight, Clock, AlertTriangle, CheckCircle, Phone } from "lucide-react";
+import { PROVIDERS, CATEGORIES } from "@/lib/mockData";
+import { useUserStore } from "@/lib/store";
+
+// ─── Klant types ──────────────────────────────────────────────────────────────
 
 type Phase = "select" | "auction" | "done";
-
-const CATEGORIES_PANIC = [
-  { icon: "🔧", label: "Loodgieter" },
-  { icon: "⚡", label: "Elektricien" },
-  { icon: "🔑", label: "Slotenmaker" },
-  { icon: "🧹", label: "Schoonmaak" },
-  { icon: "🪚", label: "Timmerman" },
-  { icon: "❄️", label: "HVAC" },
-];
 
 const BIDS = [
   { provider: PROVIDERS[0], price: 85, eta: "8 min" },
@@ -22,9 +16,321 @@ const BIDS = [
   { provider: PROVIDERS[3], price: 75, eta: "18 min" },
 ];
 
-export default function PanicPage() {
+// ─── Vakman types ─────────────────────────────────────────────────────────────
+
+type SpoedStatus = "nieuw" | "geaccepteerd" | "vervallen";
+
+type SpoedJob = {
+  id: string;
+  klant: string;
+  klantAvatar: string;
+  categorie: string;
+  categorieIcon: string;
+  omschrijving: string;
+  buurt: string;
+  afstand: string;
+  geplaatst: string;       // "X min geleden"
+  budget: string;
+  spoedBonus: string;      // extra toeslag
+  status: SpoedStatus;
+};
+
+const SPOED_JOBS: SpoedJob[] = [
+  {
+    id: "s1",
+    klant: "Lisa de Vries",
+    klantAvatar: "https://i.pravatar.cc/150?img=32",
+    categorie: "Loodgieter",
+    categorieIcon: "🔧",
+    omschrijving: "Water stroomt onder gootsteen vandaan, vloer staat blank. DRINGEND!",
+    buurt: "Jordaan, Amsterdam",
+    afstand: "0.8 km",
+    geplaatst: "1 min geleden",
+    budget: "€85–€120",
+    spoedBonus: "+€15",
+    status: "nieuw",
+  },
+  {
+    id: "s2",
+    klant: "Ahmad Mansour",
+    klantAvatar: "https://i.pravatar.cc/150?img=33",
+    categorie: "Elektricien",
+    categorieIcon: "⚡",
+    omschrijving: "Kortsluiting in meterkast, helft huis zonder stroom. Kinderen thuis.",
+    buurt: "De Pijp, Amsterdam",
+    afstand: "1.4 km",
+    geplaatst: "3 min geleden",
+    budget: "€100–€150",
+    spoedBonus: "+€20",
+    status: "nieuw",
+  },
+  {
+    id: "s3",
+    klant: "Noor Al Farsi",
+    klantAvatar: "https://i.pravatar.cc/150?img=25",
+    categorie: "Slotenmaker",
+    categorieIcon: "🔑",
+    omschrijving: "Sleutel afgebroken in slot voordeur, kan huis niet in.",
+    buurt: "Oud-West, Amsterdam",
+    afstand: "2.1 km",
+    geplaatst: "5 min geleden",
+    budget: "€60–€90",
+    spoedBonus: "+€10",
+    status: "nieuw",
+  },
+  {
+    id: "s4",
+    klant: "Petra Jansen",
+    klantAvatar: "https://i.pravatar.cc/150?img=47",
+    categorie: "HVAC",
+    categorieIcon: "❄️",
+    omschrijving: "CV-ketel slaat af, geen verwarming. Ouder echtpaar, koud.",
+    buurt: "Bos en Lommer, Amsterdam",
+    afstand: "3.0 km",
+    geplaatst: "8 min geleden",
+    budget: "€75–€110",
+    spoedBonus: "+€12",
+    status: "nieuw",
+  },
+];
+
+// ─── Vakman panic view ────────────────────────────────────────────────────────
+
+function VakmanPanicView() {
+  const [jobs, setJobs] = useState<SpoedJob[]>(SPOED_JOBS);
+  const [actief, setActief] = useState<string | null>(null);
+  const [geaccepteerd, setGeaccepteerd] = useState<string | null>(null);
+  const [ticker, setTicker] = useState(0);
+
+  // Live ticker — nieuwe melding elke 30s simuleren
+  useEffect(() => {
+    const t = setInterval(() => setTicker(v => v + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const handleAccepteer = (id: string) => {
+    setJobs(v => v.map(j => j.id === id ? { ...j, status: "geaccepteerd" } : j));
+    setGeaccepteerd(id);
+    setActief(null);
+  };
+
+  const accepteerdeJob = jobs.find(j => j.id === geaccepteerd);
+  const nieuweJobs     = jobs.filter(j => j.status === "nieuw");
+
+  if (geaccepteerd && accepteerdeJob) {
+    return (
+      <div className="flex flex-col min-h-dvh px-5 pt-14 pb-10 animate-fade-in">
+        {/* Succes header */}
+        <div className="flex flex-col items-center text-center mb-6">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4"
+            style={{ background: "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)" }}>
+            <CheckCircle size={38} color="white" />
+          </div>
+          <h1 className="font-black text-2xl mb-1">Spoedklus geaccepteerd! 🔥</h1>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
+            De klant wordt op de hoogte gebracht. Ga zo snel mogelijk!
+          </p>
+        </div>
+
+        {/* Klant kaart */}
+        <div className="card p-5 mb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <img src={accepteerdeJob.klantAvatar} className="w-14 h-14 rounded-2xl object-cover" alt="" />
+            <div className="flex-1">
+              <p className="font-black text-base">{accepteerdeJob.klant}</p>
+              <p className="text-sm" style={{ color: "var(--muted)" }}>
+                {accepteerdeJob.categorieIcon} {accepteerdeJob.categorie}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="font-black text-lg" style={{ color: "var(--coral)" }}>{accepteerdeJob.budget}</p>
+              <p className="text-xs font-bold" style={{ color: "#22c55e" }}>{accepteerdeJob.spoedBonus} bonus</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl p-3 mb-3" style={{ background: "var(--surface-2)" }}>
+            <p className="text-sm leading-relaxed">&ldquo;{accepteerdeJob.omschrijving}&rdquo;</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <MapPin size={13} style={{ color: "var(--coral)" }} />
+            <p className="text-sm font-semibold">{accepteerdeJob.buurt}</p>
+            <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+              style={{ background: "var(--coral)" + "15", color: "var(--coral)" }}>
+              {accepteerdeJob.afstand}
+            </span>
+          </div>
+        </div>
+
+        {/* Spoedtoeslag uitleg */}
+        <div className="rounded-2xl p-4 mb-4 flex items-start gap-3"
+          style={{ background: "#fef3c7", border: "1px solid #fde68a" }}>
+          <Zap size={18} style={{ color: "#d97706" }} className="flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold text-sm" style={{ color: "#92400e" }}>Spoedtoeslag actief</p>
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "#78350f" }}>
+              Jij betaalt slechts <strong>6% Servr commissie</strong> (normaal 8%) omdat dit een spoedklus is. De klant betaalt 7% service fee.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <Link href="/dashboard"
+            className="touch-scale flex-1 py-3.5 rounded-2xl font-semibold text-sm border flex items-center justify-center"
+            style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+            Dashboard
+          </Link>
+          <a href={`tel:${accepteerdeJob.klant === "Lisa de Vries" ? "+32470123456" : "+32470234567"}`}
+            className="touch-scale flex-[2] py-3.5 rounded-2xl font-black text-white flex items-center justify-center gap-2"
+            style={{ background: "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)" }}>
+            <Phone size={18} /> Bel klant
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col min-h-dvh animate-fade-in">
+      {/* Header */}
+      <div className="px-5 pt-14 pb-5"
+        style={{ background: "linear-gradient(160deg, var(--coral) 0%, #b84820 100%)" }}>
+        <div className="flex items-center gap-3 mb-4">
+          <Link href="/dashboard"
+            className="touch-scale w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
+            <ArrowLeft size={18} color="white" />
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-white font-black text-xl">Spoedopdrachten</h1>
+            <p className="text-white/70 text-xs">Live meldingen in jouw buurt</p>
+          </div>
+          {/* Live indicator */}
+          <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-dot" />
+            <span className="text-white text-xs font-bold">LIVE</span>
+          </div>
+        </div>
+
+        {/* Stats rij */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: "Meldingen", value: nieuweJobs.length.toString(), icon: "🚨" },
+            { label: "Buurt", value: "< 3 km", icon: "📍" },
+            { label: "Gem. budget", value: "€95", icon: "💰" },
+          ].map(s => (
+            <div key={s.label} className="rounded-xl p-2.5 bg-white/15 text-center">
+              <p className="text-white font-black text-base">{s.icon} {s.value}</p>
+              <p className="text-white/60 text-[10px] mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Uitleg banner */}
+      <div className="mx-5 mt-4 rounded-2xl p-3 flex items-start gap-2.5"
+        style={{ background: "var(--coral)" + "10", border: "1px solid " + "var(--coral)" + "25" }}>
+        <Zap size={15} style={{ color: "var(--coral)", flexShrink: 0, marginTop: 1 }} />
+        <p className="text-xs leading-relaxed" style={{ color: "var(--coral)" }}>
+          <strong>Spoedklus voordeel:</strong> Jij betaalt maar <strong>6% commissie</strong> (normaal 8%). Reageer snel voor de beste kans.
+        </p>
+      </div>
+
+      {/* Jobs lijst */}
+      <div className="px-5 pt-4 pb-24 flex flex-col gap-3">
+        {nieuweJobs.length === 0 && (
+          <div className="flex flex-col items-center py-16 gap-3 text-center">
+            <span className="text-5xl">🎉</span>
+            <p className="font-bold text-base">Alle meldingen zijn al opgepakt</p>
+            <p className="text-sm" style={{ color: "var(--muted)" }}>
+              Controleer later opnieuw voor nieuwe spoedopdrachten.
+            </p>
+            <Link href="/dashboard"
+              className="touch-scale mt-2 px-6 py-3 rounded-2xl font-bold text-white text-sm"
+              style={{ background: "var(--coral)" }}>
+              Terug naar dashboard
+            </Link>
+          </div>
+        )}
+
+        {nieuweJobs.map(job => (
+          <div key={job.id}>
+            {/* Compact kaart */}
+            <button
+              onClick={() => setActief(actief === job.id ? null : job.id)}
+              className="touch-scale w-full card p-4 text-left">
+              <div className="flex items-start gap-3">
+                <div className="relative flex-shrink-0">
+                  <img src={job.klantAvatar} className="w-12 h-12 rounded-2xl object-cover" alt="" />
+                  {/* Puls op avatar */}
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center"
+                    style={{ background: "var(--coral)" }}>
+                    <span className="text-white text-[8px] font-black">!</span>
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div>
+                      <p className="font-bold text-sm">{job.klant}</p>
+                      <p className="text-xs" style={{ color: "var(--muted)" }}>
+                        {job.categorieIcon} {job.categorie} · {job.geplaatst}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-black text-sm" style={{ color: "var(--coral)" }}>{job.budget}</p>
+                      <p className="text-[10px] font-bold" style={{ color: "#22c55e" }}>{job.spoedBonus}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs leading-relaxed line-clamp-2" style={{ color: "var(--muted)" }}>
+                    {job.omschrijving}
+                  </p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-1">
+                      <MapPin size={10} style={{ color: "var(--coral)" }} />
+                      <span className="text-xs font-semibold">{job.buurt}</span>
+                    </div>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                      style={{ background: "var(--coral)" + "12", color: "var(--coral)" }}>
+                      {job.afstand}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Uitklapbaar detail + acties */}
+            {actief === job.id && (
+              <div className="card mx-0 -mt-3 pt-6 px-4 pb-4 rounded-b-2xl animate-slide-up"
+                style={{ background: "var(--surface-2)" }}>
+                <p className="text-sm leading-relaxed mb-4">&ldquo;{job.omschrijving}&rdquo;</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setActief(null)}
+                    className="touch-scale flex-1 py-3 rounded-xl font-semibold text-sm border"
+                    style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+                    Sluiten
+                  </button>
+                  <button
+                    onClick={() => handleAccepteer(job.id)}
+                    className="touch-scale flex-[2] py-3 rounded-xl font-black text-white flex items-center justify-center gap-2"
+                    style={{ background: "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)" }}>
+                    <Zap size={16} /> Accepteer spoedklus
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Klant panic view ─────────────────────────────────────────────────────────
+
+function KlantPanicView() {
   const [phase, setPhase] = useState<Phase>("select");
   const [selected, setSelected] = useState<string | null>(null);
+  const [andereText, setAndereText] = useState("");
   const [timeLeft, setTimeLeft] = useState(90);
   const [bidsVisible, setBidsVisible] = useState<number[]>([]);
   const [winner, setWinner] = useState<typeof BIDS[0] | null>(null);
@@ -32,7 +338,6 @@ export default function PanicPage() {
   useEffect(() => {
     if (phase !== "auction") return;
 
-    // Biedingen gefaseerd tonen
     const t1 = setTimeout(() => setBidsVisible([0]), 3000);
     const t2 = setTimeout(() => setBidsVisible([0, 1]), 6000);
     const t3 = setTimeout(() => setBidsVisible([0, 1, 2]), 10000);
@@ -42,7 +347,7 @@ export default function PanicPage() {
         if (t <= 1) {
           clearInterval(timer);
           setPhase("done");
-          setWinner(BIDS[2]); // laagste bieder wint
+          setWinner(BIDS[2]);
           return 0;
         }
         return t - 1;
@@ -58,7 +363,9 @@ export default function PanicPage() {
   }, [phase]);
 
   const startAuction = () => {
-    if (!selected) return;
+    const effectief = selected === "Andere" ? andereText.trim() : selected;
+    if (!effectief) return;
+    if (selected === "Andere") setSelected(andereText.trim());
     setPhase("auction");
     setTimeLeft(90);
     setBidsVisible([]);
@@ -73,9 +380,7 @@ export default function PanicPage() {
         <div className="text-center mb-8">
           <div className="text-5xl mb-4">🎉</div>
           <h1 className="text-2xl font-black mb-2">Vakman gevonden!</h1>
-          <p className="text-sm" style={{ color: "var(--muted)" }}>
-            Beste prijs & snelste beschikbaarheid
-          </p>
+          <p className="text-sm" style={{ color: "var(--muted)" }}>Beste prijs & snelste beschikbaarheid</p>
         </div>
 
         <div className="card p-5 w-full mb-6">
@@ -91,18 +396,16 @@ export default function PanicPage() {
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
-              <p className="font-black text-lg" style={{ color: "var(--teal)" }}>€{winner.price}</p>
-              <p className="text-[11px]" style={{ color: "var(--muted)" }}>Per uur</p>
-            </div>
-            <div className="p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
-              <p className="font-black text-lg">{winner.eta}</p>
-              <p className="text-[11px]" style={{ color: "var(--muted)" }}>ETA</p>
-            </div>
-            <div className="p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
-              <p className="font-black text-lg">{winner.provider.servrScore}</p>
-              <p className="text-[11px]" style={{ color: "var(--muted)" }}>Score</p>
-            </div>
+            {[
+              { label: "Per uur", value: `€${winner.price}`, color: "var(--teal)" },
+              { label: "ETA",     value: winner.eta,          color: "var(--foreground)" },
+              { label: "Score",   value: winner.provider.servrScore.toString(), color: "var(--foreground)" },
+            ].map(s => (
+              <div key={s.label} className="p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
+                <p className="font-black text-lg" style={{ color: s.color }}>{s.value}</p>
+                <p className="text-[11px]" style={{ color: "var(--muted)" }}>{s.label}</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -126,7 +429,8 @@ export default function PanicPage() {
     return (
       <div className="flex flex-col min-h-dvh px-5 pt-14 pb-10 animate-fade-in">
         <div className="flex items-center gap-3 mb-8">
-          <button onClick={() => setPhase("select")} className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
+          <button onClick={() => setPhase("select")}
+            className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
             <ArrowLeft size={18} />
           </button>
           <h1 className="font-black text-xl">Live Veiling</h1>
@@ -136,7 +440,7 @@ export default function PanicPage() {
           </span>
         </div>
 
-        {/* Timer cirkel */}
+        {/* Timer */}
         <div className="flex justify-center mb-8">
           <div className="relative w-32 h-32">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -151,7 +455,8 @@ export default function PanicPage() {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="font-black text-3xl" style={{ color: timeLeft <= 20 ? "var(--coral)" : "var(--foreground)" }}>
+              <span className="font-black text-3xl"
+                style={{ color: timeLeft <= 20 ? "var(--coral)" : "var(--foreground)" }}>
                 {timeLeft}
               </span>
               <span className="text-xs" style={{ color: "var(--muted)" }}>seconden</span>
@@ -163,12 +468,11 @@ export default function PanicPage() {
           3 vakmensen bieden op jouw opdracht in <strong>{selected}</strong>
         </p>
 
-        {/* Biedingen */}
         <div className="flex flex-col gap-3">
           {bidsVisible.length === 0 && (
             <div className="flex flex-col items-center gap-3 py-8">
-              <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full"
-                style={{ animation: "spin 0.8s linear infinite", borderColor: "var(--teal)", borderTopColor: "transparent" }} />
+              <div className="w-8 h-8 border-2 rounded-full animate-spin"
+                style={{ borderColor: "var(--teal)", borderTopColor: "transparent" }} />
               <p className="text-sm" style={{ color: "var(--muted)" }}>Vakmensen worden gealarmeerd...</p>
             </div>
           )}
@@ -209,7 +513,6 @@ export default function PanicPage() {
     );
   }
 
-  // Selecteer categorie
   return (
     <div className="flex flex-col min-h-dvh px-5 pt-14 pb-10 animate-fade-in">
       <div className="flex items-center gap-3 mb-8">
@@ -219,7 +522,6 @@ export default function PanicPage() {
         <h1 className="font-black text-xl">Panic Button</h1>
       </div>
 
-      {/* Rode knop */}
       <div className="flex justify-center my-6">
         <div className="relative">
           <div className="absolute inset-0 rounded-full animate-pulse-ring scale-125"
@@ -241,37 +543,75 @@ export default function PanicPage() {
         </p>
       </div>
 
-      <h3 className="font-bold text-sm mb-3" style={{ color: "var(--muted)" }}>Kies een categorie</h3>
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        {CATEGORIES_PANIC.map(cat => (
-          <button
-            key={cat.label}
-            onClick={() => setSelected(cat.label)}
-            className="touch-scale flex flex-col items-center justify-center gap-2 py-4 rounded-2xl border-2 transition-all"
-            style={{
-              borderColor: selected === cat.label ? "var(--coral)" : "var(--border)",
-              background: selected === cat.label ? "rgba(216,90,48,0.08)" : "var(--surface)",
-            }}>
-            <span className="text-2xl">{cat.icon}</span>
-            <span className="text-xs font-semibold" style={{ color: selected === cat.label ? "var(--coral)" : "var(--foreground)" }}>
-              {cat.label}
-            </span>
-          </button>
-        ))}
+      <h3 className="font-bold text-sm mb-3" style={{ color: "var(--muted)" }}>
+        Kies een categorie — <span style={{ color: "var(--foreground)" }}>{CATEGORIES.length} soorten beschikbaar</span>
+      </h3>
+
+      {/* Alle categorieën — scrollbare grid */}
+      <div className="overflow-y-auto mb-4" style={{ maxHeight: "38vh" }}>
+        <div className="grid grid-cols-3 gap-2.5">
+          {CATEGORIES.map(cat => (
+            <button key={cat.id} onClick={() => setSelected(cat.label)}
+              className="touch-scale flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-2xl border-2 transition-all"
+              style={{
+                borderColor: selected === cat.label ? "var(--coral)" : "var(--border)",
+                background:  selected === cat.label ? "rgba(216,90,48,0.08)" : "var(--surface)",
+              }}>
+              <span className="text-2xl">{cat.icon}</span>
+              <span className="text-[11px] font-semibold text-center leading-tight px-1"
+                style={{ color: selected === cat.label ? "var(--coral)" : "var(--foreground)" }}>
+                {cat.label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Vrij invullen */}
+      <div className="mb-5">
+        <p className="text-xs font-bold mb-2" style={{ color: "var(--muted)" }}>
+          Staat jouw dienst er niet tussen?
+        </p>
+        <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border-2"
+          style={{
+            borderColor: selected === "Andere" ? "var(--coral)" : "var(--border)",
+            background: "var(--surface)",
+          }}>
+          <span className="text-xl">✏️</span>
+          <input
+            type="text"
+            placeholder="Bijv. Zwembad kuisen, Asbestsanering..."
+            value={andereText}
+            onChange={e => { setAndereText(e.target.value); if (e.target.value) setSelected("Andere"); else if (selected === "Andere") setSelected(null); }}
+            className="flex-1 bg-transparent outline-none text-sm"
+            style={{ color: "var(--foreground)" }}
+          />
+        </div>
       </div>
 
       <button
         onClick={startAuction}
-        disabled={!selected}
+        disabled={!selected || (selected === "Andere" && !andereText.trim())}
         className="touch-scale w-full py-4 rounded-2xl font-black text-white text-base flex items-center justify-center gap-2"
         style={{
-          background: selected ? "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)" : "var(--muted)",
+          background: (selected && (selected !== "Andere" || andereText.trim()))
+            ? "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)"
+            : "var(--muted)",
           transition: "background 0.2s",
         }}>
-        <Zap size={20} />
-        Start 90-sec veiling
-        <ChevronRight size={18} />
+        <Zap size={20} /> Start 90-sec veiling <ChevronRight size={18} />
       </button>
     </div>
   );
+}
+
+// ─── Router: klant vs vakman ──────────────────────────────────────────────────
+
+export default function PanicPage() {
+  const { activeView } = useUserStore();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  return activeView === "vakman" ? <VakmanPanicView /> : <KlantPanicView />;
 }

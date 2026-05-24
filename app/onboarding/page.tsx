@@ -136,52 +136,78 @@ export default function OnboardingPage() {
      WELCOME
   ═══════════════════════════════════════════════════════════════════ */
   if (step === "welcome") return (
-    <div className="flex flex-col min-h-dvh px-6 pt-16 pb-12 animate-fade-in"
-      style={{ background: "linear-gradient(160deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
+    <div className="relative flex flex-col min-h-dvh animate-fade-in overflow-hidden"
+      style={{ background: "linear-gradient(170deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-8 text-center">
+      {/* Subtle top-right accent */}
+      <div className="absolute top-0 right-0 w-48 h-48 rounded-bl-full pointer-events-none"
+        style={{ background: "rgba(255,255,255,0.04)" }} />
+
+      <div className="flex-1 flex flex-col items-center justify-center gap-8 text-center px-6 pt-16 pb-4">
+
         {/* Logo */}
-        <div className="w-24 h-24 rounded-3xl flex items-center justify-center"
-          style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}>
-          <span className="text-white font-black" style={{ fontSize: 56 }}>S</span>
+        <div className="w-24 h-24 rounded-[28px] flex flex-col items-center justify-center shadow-2xl"
+          style={{
+            background: "rgba(255,255,255,0.18)",
+            backdropFilter: "blur(16px)",
+            border: "1.5px solid rgba(255,255,255,0.28)",
+          }}>
+          <span className="font-black text-white" style={{ fontSize: 50, lineHeight: 1 }}>S</span>
+          <div className="h-[3px] rounded-full mt-2" style={{ width: 28, background: "var(--coral)" }} />
         </div>
 
+        {/* Brand */}
         <div>
           <h1 className="text-5xl font-black text-white tracking-tight">Servr</h1>
-          <p className="text-white/75 text-lg mt-2">De Uber voor lokale dienstverleners</p>
+          <p className="text-white/70 text-base mt-2">De slimste manier om een vakman te vinden</p>
+
+          {/* Stats */}
+          <div className="flex items-center justify-center gap-6 mt-5">
+            {[["2.4K+","vakmensen"],["4.8★","rating"],["Gratis","aanmelden"]].map(([val, lbl]) => (
+              <div key={lbl} className="flex flex-col items-center gap-0.5">
+                <span className="text-white font-black text-sm">{val}</span>
+                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.45)" }}>{lbl}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-3 text-left w-full max-w-xs">
+        {/* Features */}
+        <div className="flex flex-col gap-2 w-full max-w-xs">
           {[
-            ["⚡", "Vakman binnen 90 seconden"],
-            ["📍", "Locatie-gebaseerde matching"],
-            ["💰", "Directe offertes & betaling"],
-            ["⭐", "Geverifieerde vakmensen"],
-          ].map(([icon, text]) => (
-            <div key={text as string} className="flex items-center gap-3">
-              <span className="text-xl">{icon}</span>
-              <span className="text-white/90 text-sm font-medium">{text}</span>
+            ["⚡","Vakman binnen 90 seconden","Via de Panic Button"],
+            ["📍","Locatie-gebaseerde matching","Alleen vakmensen dichtbij jou"],
+            ["💰","Directe offertes & betaling","Transparant en veilig"],
+            ["⭐","Geverifieerde vakmensen","Reviews van echte klanten"],
+          ].map(([icon, title, sub]) => (
+            <div key={title as string} className="flex items-center gap-3 px-4 py-3 rounded-2xl text-left"
+              style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.11)" }}>
+              <span className="text-xl flex-shrink-0">{icon}</span>
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "rgba(255,255,255,0.95)" }}>{title}</p>
+                <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.45)" }}>{sub}</p>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      {/* CTAs */}
+      <div className="flex flex-col gap-3 px-6 pb-12 pt-2">
         <button onClick={() => setStep("rol")}
           className="touch-scale w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2"
-          style={{ background: "white", color: "var(--teal)" }}>
+          style={{ background: "white", color: "var(--teal)", boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>
           Aan de slag <ChevronRight size={18} />
         </button>
         <button onClick={() => setStep("login")}
           className="touch-scale w-full py-3.5 rounded-2xl font-semibold text-sm"
-          style={{ background: "rgba(255,255,255,0.15)", color: "white" }}>
-          Heb al een account? Inloggen →
+          style={{ background: "rgba(255,255,255,0.13)", color: "white", border: "1px solid rgba(255,255,255,0.18)" }}>
+          Al een account? Inloggen →
         </button>
+        <p className="text-center text-xs mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>
+          Door verder te gaan ga je akkoord met onze voorwaarden
+        </p>
       </div>
-
-      <p className="text-white/40 text-xs text-center mt-4">
-        Door verder te gaan ga je akkoord met onze voorwaarden
-      </p>
     </div>
   );
 
