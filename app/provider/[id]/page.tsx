@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Star, MapPin, MessageCircle, Heart, Share2, ChevronRight, Clock, CheckCircle, CalendarDays, X, Send } from "lucide-react";
 import { PROVIDERS } from "@/lib/mockData";
@@ -8,6 +9,7 @@ import { useReviewStore } from "@/lib/reviewStore";
 
 export default function ProviderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const provider = PROVIDERS.find(p => p.id === id) ?? PROVIDERS[0];
   const [liked, setLiked] = useState(false);
   const [tab, setTab] = useState<"diensten" | "reviews" | "fotos">("diensten");
@@ -42,15 +44,15 @@ export default function ProviderPage({ params }: { params: Promise<{ id: string 
   return (
     <div className="flex flex-col min-h-full pb-8 animate-fade-in">
       {/* Hero foto */}
-      <div className="relative h-64 overflow-hidden" style={{ background: "var(--surface-2)" }}>
+      <div className="relative overflow-hidden" style={{ height: 280, background: "var(--surface-2)" }}>
         <img src={provider.photos[0]} alt={provider.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 40%, rgba(0,0,0,0.6) 100%)" }} />
 
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12">
-          <Link href="/" className="touch-scale w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+          <button onClick={() => router.back()} className="touch-scale w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
             <ArrowLeft size={18} color="white" />
-          </Link>
+          </button>
           <div className="flex items-center gap-2">
             <button onClick={() => setLiked(l => !l)}
               className="touch-scale w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
@@ -73,48 +75,52 @@ export default function ProviderPage({ params }: { params: Promise<{ id: string 
       </div>
 
       {/* Profiel info */}
-      <div className="px-5 -mt-6 relative z-10">
-        <div className="card p-4">
-          <div className="flex items-start gap-3">
-            <div className="relative">
+      <div className="px-5 -mt-8 relative z-10">
+        {/* Hoofd profiel card */}
+        <div style={{ background: "#fff", borderRadius: 28, padding: 20, boxShadow: "0 12px 40px rgba(0,0,0,0.12)" }}>
+          <div className="flex items-start gap-4">
+            <div className="relative flex-shrink-0">
               <img src={provider.avatar} alt={provider.name}
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-white" />
+                className="object-cover" style={{ width: 72, height: 72, borderRadius: 20, border: "3px solid white", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }} />
               {/* Servr Score */}
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black border-2 border-white"
-                style={{ background: "var(--teal)", color: "white" }}>
+              <div className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black"
+                title={`Servr Score ${provider.servrScore}/100`}
+                style={{ background: "var(--teal)", color: "white", border: "2.5px solid white", boxShadow: "0 2px 8px rgba(79,70,229,0.4)" }}>
                 {provider.servrScore}
               </div>
             </div>
-            <div className="flex-1">
-              <h1 className="font-black text-lg leading-tight">{provider.name}</h1>
-              <p className="text-sm" style={{ color: "var(--muted)" }}>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-black leading-tight" style={{ fontSize: 20, color: "#0f172a" }}>{provider.name}</h1>
+              <p className="text-sm mt-0.5" style={{ color: "#64748b" }}>
                 {provider.categoryIcon} {provider.category}
               </p>
-              <div className="flex items-center gap-3 mt-1.5">
+              <div className="flex items-center gap-3 mt-2">
                 <div className="flex items-center gap-1">
-                  <Star size={13} className="fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-bold">{provider.rating}</span>
-                  <span className="text-xs" style={{ color: "var(--muted)" }}>({provider.reviewCount})</span>
-                </div>
-                <div className="flex items-center gap-1" style={{ color: "var(--muted)" }}>
-                  <MapPin size={12} />
-                  <span className="text-xs">{provider.distance}</span>
+                  {[1,2,3,4,5].map(s => (
+                    <Star key={s} size={12} className={s <= Math.round(provider.rating) ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"} />
+                  ))}
+                  <span className="text-xs font-bold ml-1" style={{ color: "#0f172a" }}>{provider.rating}</span>
+                  <span className="text-xs" style={{ color: "#94a3b8" }}>({provider.reviewCount})</span>
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <p className="font-black text-base" style={{ color: "var(--teal)" }}>
+            <div className="text-right flex-shrink-0">
+              <p className="font-black" style={{ fontSize: 22, color: "var(--teal)", lineHeight: 1 }}>
                 €{provider.priceMin}
               </p>
-              <p className="text-[10px]" style={{ color: "var(--muted)" }}>per uur</p>
+              <p className="text-[11px] font-medium mt-0.5" style={{ color: "#94a3b8" }}>/uur</p>
+              <div className="flex items-center gap-1 mt-1 justify-end" style={{ color: "#94a3b8" }}>
+                <MapPin size={11} />
+                <span className="text-[11px]">{provider.distance}</span>
+              </div>
             </div>
           </div>
 
           {/* Badges */}
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-wrap gap-2 mt-4">
             {provider.badges.map(badge => (
-              <span key={badge} className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                style={{ background: "var(--teal)" + "18", color: "var(--teal)" }}>
+              <span key={badge} className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full"
+                style={{ background: "#EEF2FF", color: "var(--teal)" }}>
                 <CheckCircle size={11} />
                 {badge}
               </span>
@@ -122,7 +128,7 @@ export default function ProviderPage({ params }: { params: Promise<{ id: string 
           </div>
 
           {/* Bio */}
-          <p className="text-sm mt-3 leading-relaxed" style={{ color: "var(--muted)" }}>
+          <p className="text-sm mt-3.5 leading-relaxed" style={{ color: "#64748b" }}>
             {provider.bio}
           </p>
         </div>
@@ -130,20 +136,20 @@ export default function ProviderPage({ params }: { params: Promise<{ id: string 
         {/* Acties */}
         <div className="flex gap-3 mt-4">
           <Link href={`/chat/${provider.id}`}
-            className="touch-scale flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm border"
-            style={{ borderColor: "var(--teal)", color: "var(--teal)", background: "transparent" }}>
+            className="touch-scale flex-1 flex items-center justify-center gap-2 font-bold text-sm"
+            style={{ height: 54, borderRadius: 18, border: "2px solid var(--teal)", color: "var(--teal)", background: "#F8F8FF" }}>
             <MessageCircle size={17} />
             Stuur bericht
           </Link>
           <Link href={`/agenda/boeken/${provider.id}`}
-            className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2"
-            style={{ background: "var(--teal)" }}>
+            className="touch-scale flex-1 flex items-center justify-center gap-2 font-bold text-sm text-white"
+            style={{ height: 54, borderRadius: 18, background: "linear-gradient(135deg, var(--teal), var(--teal-light))", boxShadow: "0 6px 20px rgba(79,70,229,0.4)" }}>
             <CalendarDays size={15} /> Boek nu
           </Link>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mt-5 p-1 rounded-2xl" style={{ background: "var(--surface-2)" }}>
+        <div className="flex gap-1 mt-5 p-1.5 rounded-2xl" style={{ background: "#F1F5F9" }}>
           {(["diensten", "reviews", "fotos"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className="touch-scale flex-1 py-2.5 rounded-xl font-semibold text-sm capitalize transition-all"

@@ -7,7 +7,7 @@ export default function NotFound() {
       <div>
         <h1 className="text-2xl font-black mb-2">Pagina niet gevonden</h1>
         <p className="text-sm" style={{ color: "var(--muted)" }}>
-          Deze vakman is even niet beschikbaar.
+          De pagina die je zoekt bestaat niet of is verplaatst.
         </p>
       </div>
       <Link

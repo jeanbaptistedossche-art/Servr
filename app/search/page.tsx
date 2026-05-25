@@ -6,16 +6,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   Search, Star, MapPin, X, CalendarDays, Phone, Plus, ChevronRight, Zap,
-  List, Map as MapIcon, Navigation,
+  List, Map as MapIcon, MessageCircle, SlidersHorizontal, ArrowLeft,
   Wrench, Paintbrush, Hammer, Sparkles, Leaf, Package, Lock,
   Thermometer, Building2, Waves, Monitor, Sun, Flame, Wind,
   Layers, Bell, LayoutGrid, Car, Droplets, Grid3X3,
-  Settings2, LucideIcon,
+  Settings2, LucideIcon, CheckCircle,
 } from "lucide-react";
 import { PROVIDERS, CATEGORIES } from "@/lib/mockData";
-import NavButtons from "@/components/NavButtons";
 
-// Lazy-load kaart (vermijdt SSR problemen met maplibre)
 const ProviderMap = dynamic(() => import("@/components/ProviderMap"), {
   ssr: false,
   loading: () => (
@@ -25,9 +23,8 @@ const ProviderMap = dynamic(() => import("@/components/ProviderMap"), {
   ),
 });
 
-// ── Category icon mapping ─────────────────────────────────────────────────
 const CAT_ICONS: Record<string, LucideIcon> = {
-  loodgieter: Wrench, elektricien: Flame, schilder: Paintbrush,
+  loodgieter: Wrench, elektricien: Zap, schilder: Paintbrush,
   timmerman: Hammer, schoonmaak: Sparkles, tuinman: Leaf,
   verhuizen: Package, sloten: Lock, hvac: Thermometer,
   dak: Building2, zwembad: Waves, glas: Grid3X3,
@@ -50,16 +47,18 @@ function SearchContent() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [showFilters, setShowFilters] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
     const cat = searchParams.get("cat");
     if (cat) setActiveCategory(cat);
     const q = searchParams.get("q");
     if (q) setQuery(q);
     const mode = searchParams.get("view");
     if (mode === "map") setViewMode("map");
+    // Only focus if no preselected category (keyboard pops up when browsing categories is bad UX)
+    if (!cat) inputRef.current?.focus();
   }, [searchParams]);
 
   const filtered = PROVIDERS.filter(p => {
@@ -85,83 +84,111 @@ function SearchContent() {
   const activeCat = CATEGORIES.find(c => c.id === activeCategory);
 
   return (
-    <div className="flex flex-col min-h-full animate-fade-in" style={{ background: "#f8fafc" }}>
+    <div className="flex flex-col min-h-full animate-fade-in" style={{ background: "#F1F4FA" }}>
 
       {/* ── Sticky header ── */}
-      <div className="px-4 pt-14 pb-3 sticky top-0 z-20"
-        style={{ background: "rgba(255,255,255,0.97)", borderBottom: "1px solid #F3F4F6", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}>
-        <div className="flex items-center justify-between mb-3">
-          <h1 className="font-bold text-xl" style={{ color: "#111827" }}>Zoeken</h1>
+      <div className="sticky top-0 z-20 pt-14 pb-3"
+        style={{ background: "rgba(241,244,250,0.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
+
+        {/* Title row */}
+        <div className="flex items-center justify-between px-5 mb-3">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="touch-scale w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.08)" }}>
+              <ArrowLeft size={18} style={{ color: "#475569" }} />
+            </Link>
+            <div>
+              <h1 className="font-black text-xl leading-tight" style={{ color: "#0f172a" }}>
+                {activeCat ? activeCat.label : "Zoeken"}
+              </h1>
+              {activeCat && (
+                <p className="text-xs font-medium" style={{ color: "#94a3b8" }}>
+                  {filtered.length} vakman{filtered.length !== 1 ? "nen" : ""} gevonden
+                </p>
+              )}
+            </div>
+          </div>
 
           {/* List / Map toggle */}
-          <div className="flex items-center rounded-xl overflow-hidden border" style={{ borderColor: "#E5E7EB" }}>
-            <button
-              onClick={() => setViewMode("list")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors"
+          <div className="flex items-center rounded-2xl p-1"
+            style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.08)" }}>
+            <button onClick={() => setViewMode("list")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all"
               style={{
-                background: viewMode === "list" ? "#4F46E5" : "#fff",
-                color: viewMode === "list" ? "white" : "#6B7280",
-              }}
-            >
+                background: viewMode === "list" ? "linear-gradient(135deg, #4F46E5, #818CF8)" : "transparent",
+                color: viewMode === "list" ? "white" : "#94a3b8",
+                boxShadow: viewMode === "list" ? "0 2px 8px rgba(79,70,229,0.35)" : "none",
+              }}>
               <List size={13} /> Lijst
             </button>
-            <button
-              onClick={() => setViewMode("map")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors"
+            <button onClick={() => setViewMode("map")}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all"
               style={{
-                background: viewMode === "map" ? "#4F46E5" : "#fff",
-                color: viewMode === "map" ? "white" : "#6B7280",
-              }}
-            >
+                background: viewMode === "map" ? "linear-gradient(135deg, #4F46E5, #818CF8)" : "transparent",
+                color: viewMode === "map" ? "white" : "#94a3b8",
+                boxShadow: viewMode === "map" ? "0 2px 8px rgba(79,70,229,0.35)" : "none",
+              }}>
               <MapIcon size={13} /> Kaart
             </button>
           </div>
         </div>
 
         {/* Search bar */}
-        <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-2xl border"
-          style={{ borderColor: query ? "#4F46E5" : "#E5E7EB", background: "#F9FAFB", boxShadow: query ? "0 0 0 3px #EEF2FF" : "none" }}>
-          <Search size={15} style={{ color: "#9CA3AF" }} />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Naam, dienst of categorie..."
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            className="flex-1 bg-transparent outline-none text-sm"
-            style={{ color: "#111827" }}
-            autoComplete="off"
-          />
-          {query && (
-            <button onClick={() => setQuery("")} className="touch-scale">
-              <X size={14} style={{ color: "#9CA3AF" }} />
-            </button>
-          )}
+        <div className="px-5 mb-2.5">
+          <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-2xl"
+            style={{
+              background: "#fff",
+              boxShadow: query ? "0 0 0 2px #4F46E5, 0 4px 20px rgba(79,70,229,0.12)" : "0 4px 20px rgba(0,0,0,0.07)",
+              transition: "box-shadow 0.2s",
+            }}>
+            <Search size={16} style={{ color: "#94a3b8", flexShrink: 0 }} />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Naam, dienst of categorie..."
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              className="flex-1 bg-transparent outline-none text-sm font-medium"
+              style={{ color: "#0f172a" }}
+              autoComplete="off"
+            />
+            {query ? (
+              <button onClick={() => setQuery("")} className="touch-scale w-6 h-6 rounded-full flex items-center justify-center"
+                style={{ background: "#f1f5f9" }}>
+                <X size={12} style={{ color: "#64748b" }} />
+              </button>
+            ) : (
+              <button onClick={() => setShowFilters(v => !v)} className="touch-scale w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: showFilters ? "#4F46E5" : "#F1F5F9" }}>
+                <SlidersHorizontal size={14} style={{ color: showFilters ? "white" : "#64748b" }} />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Filter chips */}
-        <div className="flex items-center gap-2 mt-2.5 overflow-x-auto pb-0.5 -mx-1 px-1">
+        {/* Category chips */}
+        <div className="flex items-center gap-2 overflow-x-auto px-5 pb-1" style={{ scrollbarWidth: "none" }}>
           <button
             onClick={() => setOnlyAvailable(v => !v)}
-            className="touch-scale flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border"
+            className="touch-scale flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold"
             style={{
-              borderColor: onlyAvailable ? "#4F46E5" : "#E5E7EB",
-              background: onlyAvailable ? "#4F46E5" : "#fff",
-              color: onlyAvailable ? "white" : "#4B5563",
+              background: onlyAvailable ? "#10B981" : "#fff",
+              color: onlyAvailable ? "white" : "#475569",
+              boxShadow: onlyAvailable ? "0 4px 12px rgba(16,185,129,0.35)" : "0 2px 8px rgba(0,0,0,0.07)",
             }}>
             <span className={`w-1.5 h-1.5 rounded-full ${onlyAvailable ? "bg-white" : "bg-emerald-500"}`} />
-            Beschikbaar
+            Nu beschikbaar
           </button>
-          {CATEGORIES.map(cat => (
+          {CATEGORIES.slice(0, 14).map(cat => (
             <button key={cat.id}
               onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
-              className="touch-scale flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border"
+              className="touch-scale flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold"
               style={{
-                borderColor: activeCategory === cat.id ? cat.color : "#E5E7EB",
-                background: activeCategory === cat.id ? cat.color + "15" : "#fff",
-                color: activeCategory === cat.id ? cat.color : "#4B5563",
+                background: activeCategory === cat.id ? cat.color : "#fff",
+                color: activeCategory === cat.id ? "white" : "#475569",
+                boxShadow: activeCategory === cat.id ? `0 4px 12px ${cat.color}50` : "0 2px 8px rgba(0,0,0,0.07)",
               }}>
-              <span style={{ color: activeCategory === cat.id ? cat.color : "#9CA3AF" }}>
+              <span style={{ color: activeCategory === cat.id ? "white" : cat.color }}>
                 <CatIcon id={cat.id} size={12} />
               </span>
               {cat.label}
@@ -170,31 +197,48 @@ function SearchContent() {
         </div>
       </div>
 
+      {/* Active category hero banner */}
+      {activeCat && viewMode === "list" && (
+        <div className="px-5 pt-4">
+          <div className="relative overflow-hidden rounded-3xl p-5 flex items-center gap-4"
+            style={{
+              background: `linear-gradient(135deg, ${activeCat.color}, ${activeCat.color}cc)`,
+              boxShadow: `0 12px 32px ${activeCat.color}40`,
+            }}>
+            <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full opacity-15" style={{ background: "white" }} />
+            <div className="w-16 h-16 rounded-3xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.25)", backdropFilter: "blur(8px)" }}>
+              <span style={{ color: "white" }}><CatIcon id={activeCat.id} size={28} /></span>
+            </div>
+            <div className="flex-1">
+              <h2 className="font-black text-white leading-tight" style={{ fontSize: 22 }}>{activeCat.label}</h2>
+              <p className="text-white/75 text-sm mt-0.5">{filtered.length} gekwalificeerde vakmensen</p>
+            </div>
+            <button onClick={() => setActiveCategory(null)}
+              className="touch-scale w-9 h-9 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}>
+              <X size={15} color="white" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── MAP VIEW ── */}
       {viewMode === "map" && (
         <div className="flex-1 relative">
-          {/* Full-height interactive map */}
           <div style={{ height: "calc(100dvh - 220px)", position: "relative" }}>
-            <ProviderMap
-              providers={filtered}
-              height="100%"
-              interactive
-              showNavButtons
-              zoom={13}
-            />
+            <ProviderMap providers={filtered} height="100%" interactive showNavButtons zoom={13} />
           </div>
-
-          {/* Bottom strip with count */}
-          <div className="sticky bottom-0 px-4 py-3"
-            style={{ background: "rgba(255,255,255,0.97)", borderTop: "1px solid #f1f5f9", backdropFilter: "blur(10px)" }}>
+          <div className="sticky bottom-0 px-5 py-3"
+            style={{ background: "rgba(241,244,250,0.97)", borderTop: "1px solid #e8edf4", backdropFilter: "blur(10px)" }}>
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium" style={{ color: "#64748b" }}>
-                <span className="font-bold" style={{ color: "#0f172a" }}>{filtered.length}</span> vakmensen op de kaart
+                <span className="font-black" style={{ color: "#0f172a" }}>{filtered.length}</span> vakmensen op de kaart
               </p>
               <Link href="/opdracht/nieuw"
-                className="touch-scale flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white"
-                style={{ background: "var(--teal)" }}>
-                <Plus size={13} /> Opdracht
+                className="touch-scale flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white"
+                style={{ background: "linear-gradient(135deg, #4F46E5, #818CF8)", boxShadow: "0 4px 12px rgba(79,70,229,0.35)" }}>
+                <Plus size={13} /> Opdracht plaatsen
               </Link>
             </div>
           </div>
@@ -203,31 +247,11 @@ function SearchContent() {
 
       {/* ── LIST VIEW ── */}
       {viewMode === "list" && (
-        <div className="px-4 pt-3 flex flex-col gap-2.5 pb-6">
+        <div className="px-5 pt-4 flex flex-col gap-3 pb-8">
 
-          {/* Active category banner */}
-          {activeCat && (
-            <div className="px-4 py-3 rounded-xl flex items-center gap-3"
-              style={{ background: activeCat.color + "10", border: `1px solid ${activeCat.color}25` }}>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center"
-                style={{ background: activeCat.color + "20", color: activeCat.color }}>
-                <CatIcon id={activeCat.id} size={16} />
-              </div>
-              <div className="flex-1">
-                <p className="font-bold text-sm" style={{ color: "#0f172a" }}>{activeCat.label}</p>
-                <p className="text-xs" style={{ color: "#64748b" }}>{filtered.length} vakmensen gevonden</p>
-              </div>
-              <button onClick={() => setActiveCategory(null)}
-                className="touch-scale w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ background: "#f1f5f9" }}>
-                <X size={12} style={{ color: "#94a3b8" }} />
-              </button>
-            </div>
-          )}
-
-          {/* Count */}
+          {/* Count - only when no category */}
           {!activeCat && (
-            <p className="text-xs font-medium" style={{ color: "#94a3b8" }}>
+            <p className="text-xs font-semibold" style={{ color: "#94a3b8" }}>
               {filtered.length} vakman{filtered.length !== 1 ? "nen" : ""} gevonden
               {query && <span> voor &ldquo;<strong style={{ color: "#475569" }}>{query}</strong>&rdquo;</span>}
             </p>
@@ -235,98 +259,140 @@ function SearchContent() {
 
           {/* Provider cards */}
           {filtered.map(p => (
-            <div key={p.id} className="rounded-xl overflow-hidden"
-              style={{ background: "#fff", border: "1px solid #f1f5f9", boxShadow: "0 1px 8px rgba(0,0,0,0.05)" }}>
-              <Link href={`/provider/${p.id}`} className="touch-scale flex gap-3 p-3.5">
-                <div className="relative flex-shrink-0">
-                  <img src={p.avatar} className="w-14 h-14 rounded-xl object-cover" alt={p.name} />
-                  <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${p.available ? "bg-green-500" : "bg-gray-300"}`} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-bold text-sm leading-tight" style={{ color: "#0f172a" }}>{p.name}</p>
-                    <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-md"
-                      style={{ background: "var(--teal)", color: "white" }}>
-                      S{p.servrScore}
-                    </span>
+            <div key={p.id} style={{ background: "#fff", borderRadius: 28, overflow: "hidden", boxShadow: "0 8px 32px rgba(0,0,0,0.09)" }}>
+
+              {/* Photo banner */}
+              <Link href={`/provider/${p.id}`} className="touch-scale block">
+                <div className="relative" style={{ height: 200 }}>
+                  <img src={p.photos[0]} alt={p.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.05) 50%, transparent 100%)" }} />
+
+                  {/* Top: available + S-score */}
+                  <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between">
+                    {p.available ? (
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[11px] font-bold text-white"
+                        style={{ background: "rgba(16,185,129,0.92)", backdropFilter: "blur(8px)" }}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> Nu beschikbaar
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-[11px] font-medium"
+                        style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)", color: "rgba(255,255,255,0.65)" }}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400" /> Bezet
+                      </span>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl"
+                        style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(8px)" }}>
+                        <Star size={11} className="fill-amber-400 text-amber-400" />
+                        <span className="text-white font-bold text-xs">{p.rating}</span>
+                      </span>
+                      <span className="px-2.5 py-1.5 rounded-2xl text-[11px] font-black text-white"
+                        title={`Servr Score ${p.servrScore}/100`}
+                        style={{ background: "rgba(79,70,229,0.9)", backdropFilter: "blur(8px)" }}>
+                        S{p.servrScore}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{p.category}</p>
-                  <div className="flex items-center gap-3 mt-1.5">
+
+                  {/* Bottom: avatar + name + price */}
+                  <div className="absolute bottom-4 left-4 right-4 flex items-end gap-3">
+                    <img src={p.avatar} className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
+                      style={{ border: "2.5px solid rgba(255,255,255,0.9)" }} alt="" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-white leading-tight" style={{ fontSize: 17 }}>{p.name}</p>
+                      <p className="text-white/70 text-xs mt-0.5 flex items-center gap-1">
+                        <MapPin size={10} /> {p.category} · {p.distance}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0 pb-0.5">
+                      <p className="font-black text-white" style={{ fontSize: 19 }}>€{p.priceMin}</p>
+                      <p className="text-white/55 text-[10px]">/uur</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info strip */}
+                <div className="px-4 pt-4 pb-3">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1">
-                      <Star size={10} className="fill-amber-400 text-amber-400" />
-                      <span className="text-xs font-semibold" style={{ color: "#0f172a" }}>{p.rating}</span>
-                      <span className="text-xs" style={{ color: "#94a3b8" }}>({p.reviewCount})</span>
+                      {[1,2,3,4,5].map(s => (
+                        <Star key={s} size={12}
+                          className={s <= Math.round(p.rating) ? "fill-amber-400 text-amber-400" : "text-gray-200 fill-gray-200"} />
+                      ))}
+                      <span className="text-xs font-medium ml-1.5" style={{ color: "#94a3b8" }}>
+                        {p.reviewCount} reviews
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1" style={{ color: "#94a3b8" }}>
-                      <MapPin size={10} />
-                      <span className="text-xs">{p.distance}</span>
-                    </div>
-                    <span className="text-xs font-semibold ml-auto" style={{ color: "var(--teal)" }}>
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-full"
+                      style={{ background: "#ECFDF5", color: "#059669" }}>
                       €{p.priceMin}–{p.priceMax}/u
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {p.badges.slice(0, 2).map(b => (
-                      <span key={b} className="text-[10px] px-2 py-0.5 rounded-md font-medium"
-                        style={{ background: "#f8fafc", color: "#64748b", border: "1px solid #f1f5f9" }}>
-                        {b}
-                      </span>
-                    ))}
-                  </div>
+                  {p.badges.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {p.badges.slice(0, 3).map(b => (
+                        <span key={b} className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full font-semibold"
+                          style={{ background: "#EEF2FF", color: "#4F46E5" }}>
+                          <CheckCircle size={10} /> {b}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </Link>
 
-              {/* Action buttons */}
-              {p.available && (
-                <div className="px-3.5 pb-3.5 flex flex-col gap-2" style={{ borderTop: "1px solid #f8fafc", paddingTop: 10 }}>
-                  {/* Book + Chat + Call */}
-                  <div className="flex gap-2">
-                    <Link href={`/agenda/boeken/${p.id}`}
-                      className="touch-scale flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-semibold text-xs text-white"
-                      style={{ background: "var(--teal)" }}>
-                      <CalendarDays size={12} /> Boek direct
-                    </Link>
-                    <Link href={`/chat/${p.id}`}
-                      className="touch-scale px-3 py-2 rounded-lg font-medium text-xs border flex items-center gap-1"
-                      style={{ borderColor: "#e2e8f0", color: "#64748b" }}>
-                      Chat
-                    </Link>
-                    <a href={`tel:${p.phone}`}
-                      className="touch-scale px-3 py-2 rounded-lg border flex items-center justify-center"
-                      style={{ borderColor: "#e2e8f0", color: "var(--teal)" }}>
-                      <Phone size={13} />
-                    </a>
-                  </div>
-                  {/* Navigation */}
-                  <NavButtons provider={p} size="sm" />
-                </div>
-              )}
+              {/* CTA buttons */}
+              <div className="px-4 pb-4 pt-1 flex gap-2.5">
+                <Link href={`/agenda/boeken/${p.id}`}
+                  className="touch-scale flex-1 flex items-center justify-center gap-2 font-bold text-sm"
+                  style={{
+                    height: 50, borderRadius: 18,
+                    background: p.available
+                      ? "linear-gradient(135deg, #4F46E5, #818CF8)"
+                      : "#e2e8f0",
+                    color: p.available ? "white" : "#94a3b8",
+                    boxShadow: p.available ? "0 4px 16px rgba(79,70,229,0.35)" : "none",
+                  }}>
+                  <CalendarDays size={15} />
+                  {p.available ? "Boek direct" : "Plan later"}
+                </Link>
+                <Link href={`/chat/${p.id}`}
+                  className="touch-scale flex items-center justify-center"
+                  style={{ width: 50, height: 50, borderRadius: 18, background: "#EEF2FF", color: "#4F46E5" }}>
+                  <MessageCircle size={18} />
+                </Link>
+                <a href={`tel:${p.phone}`}
+                  className="touch-scale flex items-center justify-center"
+                  style={{ width: 50, height: 50, borderRadius: 18, background: "#ECFDF5", color: "#16a34a" }}>
+                  <Phone size={18} />
+                </a>
+              </div>
             </div>
           ))}
 
           {/* Categories matching query but no providers */}
           {matchingCats.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide mb-2"
-                style={{ color: "#94a3b8", letterSpacing: "0.05em" }}>
+            <div className="mt-1">
+              <p className="text-xs font-bold uppercase tracking-widest mb-3"
+                style={{ color: "#94a3b8" }}>
                 Categorieën voor &ldquo;{query}&rdquo;
               </p>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2.5">
                 {matchingCats.map(cat => (
                   <Link key={cat.id} href={`/opdracht/nieuw?categorie=${cat.id}`}
-                    className="touch-scale flex items-center gap-3 p-3.5 rounded-xl border"
-                    style={{ borderColor: cat.color + "35", background: "#fff" }}>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    className="touch-scale flex items-center gap-3.5 p-4 rounded-2xl"
+                    style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.07)" }}>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
                       style={{ background: cat.color + "15", color: cat.color }}>
-                      <CatIcon id={cat.id} size={16} />
+                      <CatIcon id={cat.id} size={20} />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-sm" style={{ color: "#0f172a" }}>{cat.label}</p>
+                      <p className="font-bold text-sm" style={{ color: "#0f172a" }}>{cat.label}</p>
                       <p className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>
                         Geen vakmensen live — plaats een opdracht
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold text-xs text-white flex-shrink-0"
+                    <div className="flex items-center gap-1 px-3 py-2 rounded-xl font-bold text-xs text-white flex-shrink-0"
                       style={{ background: cat.color }}>
                       <Plus size={11} /> Opdracht
                     </div>
@@ -338,45 +404,48 @@ function SearchContent() {
 
           {/* Empty state */}
           {filtered.length === 0 && matchingCats.length === 0 && (
-            <div className="flex flex-col items-center py-10 gap-4 text-center">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{ background: "#f1f5f9" }}>
-                <Search size={24} style={{ color: "#94a3b8" }} />
+            <div className="flex flex-col items-center py-14 gap-5 text-center">
+              <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
+                style={{ background: "#fff", boxShadow: "0 8px 32px rgba(0,0,0,0.09)" }}>
+                <Search size={30} style={{ color: "#94a3b8" }} />
               </div>
               <div>
-                <p className="font-bold text-sm" style={{ color: "#0f172a" }}>Geen vakmensen gevonden</p>
-                <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>
-                  {query ? `Geen vakman voor "${query}" in jouw buurt.` : "Probeer een andere zoekterm of filter."}
+                <p className="font-black text-lg" style={{ color: "#0f172a" }}>Geen vakmensen gevonden</p>
+                <p className="text-sm mt-1" style={{ color: "#94a3b8" }}>
+                  {query ? `Geen vakman voor "${query}" in jouw buurt.` : "Probeer een andere filter."}
                 </p>
               </div>
-              {query && (
-                <Link href={`/opdracht/nieuw?dienst=${encodeURIComponent(query)}`}
-                  className="touch-scale flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white"
-                  style={{ background: "var(--teal)" }}>
-                  <Plus size={14} /> Opdracht plaatsen voor &ldquo;{query}&rdquo;
+              <div className="flex flex-col gap-2.5 w-full">
+                {query && (
+                  <Link href={`/opdracht/nieuw?dienst=${encodeURIComponent(query)}`}
+                    className="touch-scale flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-bold text-sm text-white"
+                    style={{ background: "linear-gradient(135deg, #4F46E5, #818CF8)", boxShadow: "0 6px 20px rgba(79,70,229,0.35)" }}>
+                    <Plus size={14} /> Opdracht plaatsen voor &ldquo;{query}&rdquo;
+                  </Link>
+                )}
+                <Link href="/panic"
+                  className="touch-scale flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl font-bold text-sm text-white"
+                  style={{ background: "linear-gradient(135deg, #DC2626, #991B1B)", boxShadow: "0 6px 20px rgba(220,38,38,0.3)" }}>
+                  <Zap size={14} /> Spoeddienst — direct hulp
                 </Link>
-              )}
-              <Link href="/panic"
-                className="touch-scale flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white"
-                style={{ background: "linear-gradient(135deg, var(--coral) 0%, #b84820 100%)" }}>
-                <Zap size={14} /> Panic — direct hulp
-              </Link>
+              </div>
             </div>
           )}
 
+          {/* Place job CTA */}
           {(filtered.length > 0 || matchingCats.length > 0) && (
             <Link href="/opdracht/nieuw"
-              className="touch-scale flex items-center gap-3 p-3.5 rounded-xl border border-dashed"
-              style={{ borderColor: "#e2e8f0" }}>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: "#f8fafc" }}>
-                <Plus size={16} style={{ color: "var(--teal)" }} />
+              className="touch-scale flex items-center gap-3.5 p-4 rounded-2xl"
+              style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.07)", border: "1.5px dashed #e2e8f0" }}>
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "#EEF2FF" }}>
+                <Plus size={18} style={{ color: "#4F46E5" }} />
               </div>
-              <div>
-                <p className="font-semibold text-sm" style={{ color: "#0f172a" }}>Vrije opdracht plaatsen</p>
-                <p className="text-xs" style={{ color: "#94a3b8" }}>Beschrijf zelf wat je nodig hebt</p>
+              <div className="flex-1">
+                <p className="font-bold text-sm" style={{ color: "#0f172a" }}>Vrije opdracht plaatsen</p>
+                <p className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>Beschrijf zelf wat je nodig hebt</p>
               </div>
-              <ChevronRight size={14} style={{ color: "#94a3b8", marginLeft: "auto" }} />
+              <ChevronRight size={15} style={{ color: "#cbd5e1" }} />
             </Link>
           )}
         </div>

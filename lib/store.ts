@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type UserRole = "klant" | "vakman" | "beide" | null;
+export type Land = "NL" | "BE" | "DE" | "FR";
 
 export type UserState = {
   role: UserRole;
@@ -13,11 +14,26 @@ export type UserState = {
   lng: number;
   isLoggedIn: boolean;
   isAdmin: boolean;
+  unreadMeldingen: number;
+  // extra profiel velden
+  avatar: string;        // base64 data-URL of lege string
+  phone: string;
+  email: string;
+  bio: string;           // vakman: over mij / klant: korte intro
+  website: string;       // vakman only
+  specialty: string;     // vakman: hoofdspecialiteit
+  uurtarief: number;     // vakman: starttarief
+  land: Land;            // land van de gebruiker
   // actions
   login: (opts: { role: UserRole; name: string; address?: string; isAdmin?: boolean }) => void;
   setRole: (r: UserRole) => void;
   setActiveView: (v: "klant" | "vakman") => void;
-  setProfile: (p: Partial<Pick<UserState, "name" | "address" | "lat" | "lng">>) => void;
+  setProfile: (p: Partial<Pick<UserState,
+    "name" | "address" | "lat" | "lng" |
+    "avatar" | "phone" | "email" | "bio" | "website" | "specialty" | "uurtarief" | "land"
+  >>) => void;
+  setLand: (l: Land) => void;
+  markMeldingenRead: () => void;
   logout: () => void;
 };
 
@@ -37,6 +53,15 @@ export const useUserStore = create<UserState>()(
       lng: 4.9041,
       isLoggedIn: false,
       isAdmin: false,
+      unreadMeldingen: 2,
+      avatar: "",
+      phone: "",
+      email: "",
+      bio: "",
+      website: "",
+      specialty: "",
+      uurtarief: 0,
+      land: "NL",
 
       login: ({ role, name, address, isAdmin }) =>
         set({
@@ -57,6 +82,10 @@ export const useUserStore = create<UserState>()(
       setActiveView: (activeView) => set({ activeView }),
 
       setProfile: (p) => set(p),
+
+      setLand: (land) => set({ land }),
+
+      markMeldingenRead: () => set({ unreadMeldingen: 0 }),
 
       logout: () =>
         set({ role: null, activeView: "klant", isLoggedIn: false, isAdmin: false, name: "", address: "" }),

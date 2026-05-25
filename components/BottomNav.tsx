@@ -53,26 +53,28 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* Role switcher — minimal pill */}
-      <div
-        className="fixed z-50 left-1/2 -translate-x-1/2"
-        style={{ bottom: "calc(var(--bottom-nav-height) + 6px)" }}
-      >
-        <button
-          onClick={() => setActiveView(isVakman ? "klant" : "vakman")}
-          className="touch-scale flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold"
-          style={{
-            background: isVakman
-              ? "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)"
-              : "linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)",
-            color: "white",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.2)",
-          }}
+      {/* Role switcher — alleen tonen als gebruiker beide rollen heeft, rechtsboven boven bottomnav */}
+      {role === "beide" && (
+        <div
+          className="fixed z-50"
+          style={{ bottom: "calc(var(--bottom-nav-height) + 8px)", right: 16 }}
         >
-          <ArrowLeftRight size={10} />
-          {isVakman ? "Vakmansmodus" : "Klantmodus"}
-        </button>
-      </div>
+          <button
+            onClick={() => setActiveView(isVakman ? "klant" : "vakman")}
+            className="touch-scale flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold"
+            style={{
+              background: isVakman
+                ? "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)"
+                : "linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)",
+              color: "white",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+            }}
+          >
+            <ArrowLeftRight size={10} />
+            {isVakman ? "Vakman" : "Klant"}
+          </button>
+        </div>
+      )}
 
       {/* Bottom nav */}
       <nav

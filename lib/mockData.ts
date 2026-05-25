@@ -185,13 +185,37 @@ export const PROVIDERS: Provider[] = [
   },
 ];
 
+// Tijdstempels worden relatief aan het moment van imports berekend
+const _now = Date.now();
+const _min = 60_000;
+
 export const HOT_JOBS = [
-  { id: "j1", user: "Anita K.", location: "Jordaan", category: "loodgieter", categoryLabel: "Loodgieter", description: "Lekkende kraan keuken — SPOED", time: "2 min geleden", bids: 3, budget: "€60-90" },
-  { id: "j2", user: "Daan R.", location: "De Pijp", category: "elektricien", categoryLabel: "Elektricien", description: "Geen stroom in slaapkamer", time: "5 min geleden", bids: 1, budget: "€80-120" },
-  { id: "j3", user: "Lena B.", location: "Oud-West", category: "schoonmaak", categoryLabel: "Schoonmaak", description: "Dieptereiniging na verhuizing", time: "8 min geleden", bids: 5, budget: "€120-180" },
-  { id: "j4", user: "Omar F.", location: "Bos en Lommer", category: "schilder", categoryLabel: "Schilder", description: "Woonkamer + hal schilderen", time: "12 min geleden", bids: 2, budget: "€400-600" },
-  { id: "j5", user: "Eva S.", location: "Centrum", category: "sloten", categoryLabel: "Slotenmaker", description: "Sleutel afgebroken in slot", time: "15 min geleden", bids: 4, budget: "€50-80" },
+  { id: "j1",  user: "Anita K.",  location: "Jordaan",           category: "loodgieter",  categoryLabel: "Loodgieter",     description: "Lekkende kraan keuken — SPOED",        postedAt: _now -  2*_min, bids: 3, budget: "€60-90" },
+  { id: "j2",  user: "Daan R.",   location: "De Pijp",           category: "elektricien", categoryLabel: "Elektricien",    description: "Geen stroom in slaapkamer",            postedAt: _now -  5*_min, bids: 1, budget: "€80-120" },
+  { id: "j3",  user: "Lena B.",   location: "Oud-West",          category: "schoonmaak",  categoryLabel: "Schoonmaak",     description: "Dieptereiniging na verhuizing",        postedAt: _now -  8*_min, bids: 5, budget: "€120-180" },
+  { id: "j4",  user: "Omar F.",   location: "Bos en Lommer",     category: "schilder",    categoryLabel: "Schilder",       description: "Woonkamer + hal schilderen",           postedAt: _now - 12*_min, bids: 2, budget: "€400-600" },
+  { id: "j5",  user: "Eva S.",    location: "Centrum",           category: "sloten",      categoryLabel: "Slotenmaker",    description: "Sleutel afgebroken in slot",           postedAt: _now - 15*_min, bids: 4, budget: "€50-80" },
+  { id: "j6",  user: "Tim V.",    location: "Noord",             category: "timmerman",   categoryLabel: "Timmerman",      description: "Parketvloer leggen 45m²",             postedAt: _now - 22*_min, bids: 2, budget: "€300-450" },
+  { id: "j7",  user: "Sara J.",   location: "Zuid",              category: "tuinman",     categoryLabel: "Tuinman",        description: "Tuin opknappen + struiken snoeien",    postedAt: _now - 30*_min, bids: 3, budget: "€80-150" },
+  { id: "j8",  user: "Kees M.",   location: "Oost",              category: "hvac",        categoryLabel: "HVAC / CV",      description: "CV ketel maakt lawaai bij opstarten",  postedAt: _now - 38*_min, bids: 1, budget: "€90-140" },
+  { id: "j9",  user: "Nadia B.",  location: "West",              category: "tegels",      categoryLabel: "Tegelzetter",    description: "Badkamertegels leggen 8m²",           postedAt: _now - 47*_min, bids: 2, budget: "€200-350" },
+  { id: "j10", user: "Bart L.",   location: "Watergraafsmeer",   category: "klusser",     categoryLabel: "Klusser",        description: "Diverse kleine klussen in huis",       postedAt: _now - 60*_min, bids: 4, budget: "€40-80" },
+  { id: "j11", user: "Iris P.",   location: "Amstelveen",        category: "dak",         categoryLabel: "Dakdekker",      description: "Daklekkage repareren — urgentie",      postedAt: _now - 75*_min, bids: 1, budget: "€150-280" },
+  { id: "j12", user: "Jan W.",    location: "Diemen",            category: "airco",       categoryLabel: "Airco",          description: "Airco plaatsen slaapkamer",            postedAt: _now -120*_min, bids: 2, budget: "€600-900" },
+  { id: "j13", user: "Mia H.",    location: "Sloterdijk",        category: "parket",      categoryLabel: "Parketlegger",   description: "Oud parket afschuren + lakken",        postedAt: _now -140*_min, bids: 1, budget: "€250-400" },
+  { id: "j14", user: "Ruben D.",  location: "Buitenveldert",     category: "verhuizen",   categoryLabel: "Verhuisbedrijf", description: "Verhuizing 3-kamer appartement",       postedAt: _now -180*_min, bids: 3, budget: "€350-550" },
+  { id: "j15", user: "Fiona K.",  location: "Bijlmer",           category: "zonnepanelen",categoryLabel: "Zonnepanelen",   description: "6 zonnepanelen installeren dak",       postedAt: _now -240*_min, bids: 2, budget: "€1.200-1.800" },
 ];
+
+/** Geeft een leesbare "X min geleden" string terug op basis van een timestamp */
+export function tijdGeleden(ts: number): string {
+  const diff = Math.floor((Date.now() - ts) / 60_000);
+  if (diff < 1)  return "Zojuist";
+  if (diff < 60) return `${diff} min geleden`;
+  const uur = Math.floor(diff / 60);
+  if (uur < 24)  return `${uur} uur geleden`;
+  return `${Math.floor(uur / 24)} dag geleden`;
+}
 
 export const BEFORE_AFTER = [
   {

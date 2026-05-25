@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bell, CheckCheck, MessageCircle, Euro, CalendarCheck, Star, Zap, Package } from "lucide-react";
+import { useUserStore } from "@/lib/store";
 
 type MeldingType = "bericht" | "boeking" | "betaling" | "review" | "systeem" | "panic";
 
@@ -125,8 +126,12 @@ const TYPE_CONFIG: Record<MeldingType, { icon: React.ReactNode; bg: string; colo
 };
 
 export default function MeldingenPage() {
+  const markMeldingenRead = useUserStore(s => s.markMeldingenRead);
   const [meldingen, setMeldingen] = useState(MOCK_MELDINGEN);
   const [filter, setFilter] = useState<"alle" | "ongelezen">("alle");
+
+  // Reset badge zodra de pagina wordt geopend
+  useEffect(() => { markMeldingenRead(); }, [markMeldingenRead]);
 
   const markAllRead = () => setMeldingen(m => m.map(x => ({ ...x, gelezen: true })));
   const markRead = (id: string) => setMeldingen(m => m.map(x => x.id === id ? { ...x, gelezen: true } : x));

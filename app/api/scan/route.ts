@@ -10,42 +10,77 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Geen afbeelding" }, { status: 400 });
   }
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-6",
-    max_tokens: 512,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: mimeType ?? "image/jpeg", data: imageBase64 },
-          },
-          {
-            type: "text",
-            text: `Je bent een Nederlandse vakman-assistent. Analyseer deze foto van een reparatie of klus.
-Geef een schatting in JSON-formaat:
-{
-  "categorie": "naam van de dienst",
-  "beschrijving": "korte beschrijving van het probleem (max 1 zin)",
-  "prijsMin": getal in euro,
-  "prijsMax": getal in euro,
-  "urgentie": "laag" | "middel" | "hoog",
-  "tijdschatting": "bijv. 1-2 uur",
-  "tips": ["tip1", "tip2"]
-}
-Antwoord ALLEEN met geldig JSON, geen extra tekst.`,
-          },
-        ],
-      },
-    ],
-  });
-
-  const text = response.content[0].type === "text" ? response.content[0].text : "";
   try {
-    const json = JSON.parse(text);
+    const response = await client.messages.create({
+      model: "claude-opus-4-5",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: (mimeType ?? "image/jpeg") as "image/jpeg" | "image/png" | "image/gif" | "image/webp",
+                data: imageBase64,
+              },
+            },
+            {
+              type: "text",
+              text: `Je bent een Nederlandse vakman-assistent. Analyseer deze foto en geef een prijsschatting voor de reparatie of klus die je ziet.
+
+Antwoord UITSLUITEND met een JSON-object, geen andere tekst ervoor of erna:
+
+{
+  "categorie": "naam van de dienst (bijv. Loodgieter, Schilder, Elektricien)",
+  "beschrijving": "korte beschrijving van het probleem in 1 zin",
+  "prijsMin": 50,
+  "prijsMax": 150,
+  "urgentie": "laag",
+  "tijdschatting": "1-2 uur",
+  "tips": ["praktische tip 1", "praktische tip 2"]
+}
+
+Regels:
+- urgentie is exact "laag", "middel" of "hoog"
+- prijsMin en prijsMax zijn getallen zonder euro-teken
+- Als je geen reparatie of klus ziet, gebruik dan categorie "Algemeen" en geef een algemene schatting
+- Altijd geldig JSON, nooit extra uitleg`,
+            },
+          ],
+        },
+      ],
+    });
+
+    const text = response.content[0].type === "text" ? response.content[0].text.trim() : "";
+
+    // Probeer JSON te extraheren — ook als er tekst omheen staat
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return NextResponse.json(
+        { error: "AI kon de foto niet analyseren. Probeer een duidelijkere foto." },
+        { status: 500 }
+      );
+    }
+
+    const json = JSON.parse(jsonMatch[0]);
+
+    // Valideer verplichte velden
+    if (!json.categorie || !json.prijsMin || !json.prijsMax) {
+      return NextResponse.json(
+        { error: "Onvolledig resultaat ontvangen. Probeer opnieuw." },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(json);
-  } catch {
-    return NextResponse.json({ error: "Kon resultaat niet verwerken", raw: text }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("Scan error:", err);
+    const message = err instanceof Error ? err.message : "Onbekende fout";
+    return NextResponse.json(
+      { error: `Fout: ${message}` },
+      { status: 500 }
+    );
   }
 }

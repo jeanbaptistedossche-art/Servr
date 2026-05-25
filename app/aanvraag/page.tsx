@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, ArrowRight, Check, Star, MapPin, Clock,
-  ChevronRight, Camera, X, Zap, MessageCircle, Phone,
-  Shield, FileText, Users, TrendingDown, CheckCircle, Euro,
+  ChevronRight, Camera, X, Zap, MessageCircle,
+  Shield, FileText, Users, TrendingDown, CheckCircle,
   Wrench, Paintbrush, Hammer, Sparkles, Leaf, Package, Lock,
   Thermometer, Building2, Waves, Monitor, Sun, Flame, Wind,
   Layers, Bell, LayoutGrid, Car, Droplets, Grid3X3,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { PROVIDERS } from "@/lib/mockData";
 import { useRouter } from "next/navigation";
+import { useBookingStore } from "@/lib/bookingStore";
 
 // ── Categorie-iconen ───────────────────────────────────────────────────────────
 const CAT_ICONS: Record<string, LucideIcon> = {
@@ -37,7 +38,7 @@ const CATEGORIEËN = [
   { id: "tuinman",     label: "Tuinman" },
   { id: "hvac",        label: "HVAC/CV" },
   { id: "klusser",     label: "Klusser" },
-  { id: "schilder",    label: "Stukadoor" },
+  { id: "stukadoor",   label: "Stukadoor" },
   { id: "tegels",      label: "Tegelzetter" },
   { id: "parket",      label: "Parketlegger" },
   { id: "verhuizen",   label: "Verhuizing" },
@@ -78,6 +79,9 @@ export default function AanvraagPage() {
   const [budgetLabel, setBudgetLabel] = useState("");
   const [aantalGevonden, setAantalGevonden] = useState(0);
   const [gekozenOfferte, setGekozenOfferte] = useState<typeof OFFERTES_MOCK[0] | null>(null);
+  const fotoInputRef = useRef<HTMLInputElement>(null);
+  const boekingRef = useRef(false);
+  const { voegBoeking } = useBookingStore();
 
   // ── Zoek-simulatie ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -94,78 +98,103 @@ export default function AanvraagPage() {
   const stapNr: Record<Stap, number> = { categorie: 1, beschrijving: 2, budget: 3, zoeken: 4, vergelijk: 4, bevestigd: 5 };
   const totaalStappen = 4;
 
-  // ── BEVESTIGD ───────────────────────────────────────────────────────────────
+  // Boeking opslaan in store zodra bevestigd — identiek aan /agenda/boeken
+  useEffect(() => {
+    if (stap !== "bevestigd" || !gekozenOfferte || boekingRef.current) return;
+    boekingRef.current = true;
+    const vandaag = new Date();
+    const etaLower = gekozenOfferte.eta.toLowerCase();
+    const dagOffset = etaLower.startsWith("overmorgen") ? 2 : etaLower.startsWith("morgen") ? 1 : 0;
+    const d = new Date(vandaag);
+    d.setDate(d.getDate() + dagOffset);
+    const datum = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const tijdMatch = gekozenOfferte.eta.match(/\d{2}:\d{2}/);
+    const tijd = tijdMatch ? tijdMatch[0] : "09:00";
+    voegBoeking({
+      vakmanId: gekozenOfferte.provider.id,
+      vakmanNaam: gekozenOfferte.provider.name,
+      vakmanAvatar: gekozenOfferte.provider.avatar,
+      dienst: volledigCategorie,
+      datum,
+      tijd,
+      tijdEind: "",
+      omschrijving: beschrijving || "",
+      prijs: gekozenOfferte.prijs,
+      eenheid: "/ uur",
+      status: "bevestigd",
+      reviewGegeven: false,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stap]);
+
+  // ── BEVESTIGD — zelfde layout als /agenda/boeken/[id] ───────────────────────
   if (stap === "bevestigd" && gekozenOfferte) {
+    const etaLower = gekozenOfferte.eta.toLowerCase();
+    const dagOffset = etaLower.startsWith("overmorgen") ? 2 : etaLower.startsWith("morgen") ? 1 : 0;
+    const d = new Date(); d.setDate(d.getDate() + dagOffset);
+    const datumTekst = d.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" });
+    const tijdMatch = gekozenOfferte.eta.match(/\d{2}:\d{2}/);
+    const tijdTekst = tijdMatch ? tijdMatch[0] : "Op afspraak";
+
     return (
       <div className="flex flex-col min-h-full items-center justify-center px-5 pb-10 animate-fade-in"
         style={{ background: "#F9FAFB" }}>
-        <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-5"
+
+        <div className="w-24 h-24 rounded-3xl flex items-center justify-center mb-6"
           style={{ background: "linear-gradient(135deg, #4F46E5, #6366F1)" }}>
-          <CheckCircle size={40} color="white" />
+          <CheckCircle size={48} color="white" />
         </div>
-        <h1 className="font-black text-2xl text-center mb-2">Aanvraag verstuurd!</h1>
-        <p className="text-sm text-center mb-8" style={{ color: "#9CA3AF" }}>
-          {gekozenOfferte.provider.name} heeft je aanvraag ontvangen en neemt snel contact op.
+        <h1 className="font-black text-3xl text-center mb-2">Geboekt!</h1>
+        <p className="text-lg text-center mb-8" style={{ color: "#6B7280" }}>
+          Uw aanvraag is bevestigd bij {gekozenOfferte.provider.name}.
         </p>
 
-        {/* Samenvatting kaart */}
-        <div className="w-full rounded-2xl overflow-hidden mb-4"
-          style={{ background: "#fff", border: "1px solid #F3F4F6", boxShadow: "0 4px 20px rgba(0,0,0,0.06)" }}>
-          <div className="flex items-center gap-3.5 p-4 border-b" style={{ borderColor: "#F3F4F6" }}>
-            <img src={gekozenOfferte.provider.avatar} className="w-14 h-14 rounded-2xl object-cover" alt="" />
-            <div className="flex-1">
-              <p className="font-black text-base">{gekozenOfferte.provider.name}</p>
+        {/* Bevestigingskaart — identiek aan /agenda/boeken */}
+        <div className="w-full rounded-3xl overflow-hidden mb-5"
+          style={{ background: "#fff", border: "1px solid #F3F4F6", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+          <div className="flex items-center gap-4 p-5 border-b" style={{ borderColor: "#F3F4F6" }}>
+            <img src={gekozenOfferte.provider.avatar} className="w-16 h-16 rounded-2xl object-cover" alt="" />
+            <div>
+              <p className="font-black text-lg">{gekozenOfferte.provider.name}</p>
               <div className="flex items-center gap-1 mt-0.5">
-                <Star size={11} className="fill-amber-400 text-amber-400" />
-                <span className="text-xs font-bold">{gekozenOfferte.provider.rating}</span>
-                <span className="text-xs" style={{ color: "#9CA3AF" }}>({gekozenOfferte.provider.reviewCount} reviews)</span>
+                <span className="text-amber-400 text-base">★</span>
+                <span className="font-bold text-base">{gekozenOfferte.provider.rating}</span>
               </div>
             </div>
-            <div className="text-right">
-              <p className="font-black text-lg" style={{ color: "#4F46E5" }}>{gekozenOfferte.prijs_label}</p>
-              <p className="text-xs font-semibold" style={{ color: "#10B981" }}>{gekozenOfferte.eta}</p>
-            </div>
           </div>
-          <div className="p-4 flex flex-col gap-3">
+          <div className="flex flex-col">
             {[
-              { icon: Wrench,   label: "Dienst",      val: volledigCategorie },
-              { icon: FileText, label: "Omschrijving", val: beschrijving || "Geen omschrijving" },
-              { icon: Euro,     label: "Budget",       val: budgetLabel },
-            ].map(r => {
-              const Icon = r.icon;
-              return (
-                <div key={r.label} className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: "#EEF2FF" }}>
-                    <Icon size={14} style={{ color: "#4F46E5" }} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase" style={{ color: "#9CA3AF" }}>{r.label}</p>
-                    <p className="text-sm font-semibold" style={{ color: "#111827" }}>{r.val}</p>
-                  </div>
-                </div>
-              );
-            })}
+              { label: "Dienst",  value: volledigCategorie },
+              { label: "Datum",   value: datumTekst },
+              { label: "Tijd",    value: tijdTekst },
+              { label: "Prijs",   value: gekozenOfferte.prijs_label },
+              { label: "Budget",  value: budgetLabel },
+            ].map((r, i, arr) => (
+              <div key={r.label} className="flex items-center justify-between px-5 py-4"
+                style={{ borderBottom: i < arr.length - 1 ? "1px solid #F3F4F6" : "none" }}>
+                <span className="text-base font-semibold" style={{ color: "#9CA3AF" }}>{r.label}</span>
+                <span className="text-base font-black" style={{ color: "#111827" }}>{r.value}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="flex items-start gap-2.5 w-full p-3.5 rounded-2xl mb-6"
-          style={{ background: "#EEF2FF" }}>
-          <Shield size={15} style={{ color: "#4F46E5", flexShrink: 0, marginTop: 1 }} />
-          <p className="text-xs leading-relaxed" style={{ color: "#4F46E5" }}>
-            Jouw adresgegevens worden <strong>pas gedeeld</strong> nadat je de offerte definitief accepteert.
+        <div className="w-full flex items-center gap-3 p-4 rounded-2xl mb-6" style={{ background: "#EEF2FF" }}>
+          <Shield size={20} style={{ color: "#4F46E5", flexShrink: 0 }} />
+          <p className="text-sm" style={{ color: "#4F46E5" }}>
+            Uw adres wordt pas gedeeld nadat de vakman bevestigt.
           </p>
         </div>
 
         <div className="flex flex-col gap-3 w-full">
           <Link href={`/chat/${gekozenOfferte.provider.id}`}
-            className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-center"
+            className="touch-scale w-full py-5 rounded-2xl font-black text-white text-lg text-center flex items-center justify-center gap-2"
             style={{ background: "linear-gradient(135deg, #4F46E5, #6366F1)" }}>
-            Chat met {gekozenOfferte.provider.name.split(" ")[0]}
+            <MessageCircle size={20} /> Chat met {gekozenOfferte.provider.name.split(" ")[0]}
           </Link>
           <Link href="/"
-            className="touch-scale w-full py-3 text-center text-sm font-semibold"
-            style={{ color: "#9CA3AF" }}>
+            className="touch-scale w-full py-4 rounded-2xl font-bold text-center text-base border"
+            style={{ borderColor: "#E5E7EB", color: "#6B7280", background: "#fff" }}>
             Terug naar home
           </Link>
         </div>
@@ -517,13 +546,29 @@ export default function AanvraagPage() {
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => setFoto("https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400")}
-                  className="touch-scale w-full h-28 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2"
-                  style={{ borderColor: "#E5E7EB", background: "#F9FAFB" }}>
-                  <Camera size={22} style={{ color: "#9CA3AF" }} />
-                  <p className="text-sm font-semibold" style={{ color: "#9CA3AF" }}>Foto toevoegen</p>
-                </button>
+                <>
+                  <button
+                    onClick={() => fotoInputRef.current?.click()}
+                    className="touch-scale w-full h-28 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2"
+                    style={{ borderColor: "#E5E7EB", background: "#F9FAFB" }}>
+                    <Camera size={22} style={{ color: "#9CA3AF" }} />
+                    <p className="text-sm font-semibold" style={{ color: "#9CA3AF" }}>Foto toevoegen</p>
+                  </button>
+                  <input
+                    ref={fotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = ev => setFoto(ev.target?.result as string);
+                      reader.readAsDataURL(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </>
               )}
             </div>
 
