@@ -214,8 +214,8 @@ export default function BetaalplanPage() {
                     <p className="font-bold text-sm truncate" style={{ color: "#0f172a" }}>{p.omschrijving}</p>
                     <p className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>{p.klant}</p>
                     {volgende && (
-                      <p className="text-xs mt-1" style={{ color: "#4F46E5" }}>
-                        Volgende: €{volgende.bedrag} op {volgende.datum}
+                      <p className="text-xs mt-1 truncate" style={{ color: "#4F46E5" }}>
+                        €{volgende.bedrag} · {volgende.datum}
                       </p>
                     )}
                   </div>

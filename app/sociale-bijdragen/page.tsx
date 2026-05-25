@@ -208,8 +208,7 @@ export default function SocialeBijdragenPage() {
           <button onClick={() => setShowLandPicker(true)}
             className="touch-scale flex items-center gap-2 px-3 py-2 rounded-2xl font-bold text-sm"
             style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", color: "#374151" }}>
-            <span className="text-base">{cfg.vlag}</span>
-            {land}
+            <span className="font-black">{land}</span>
             <ChevronDown size={14} style={{ color: "#94a3b8" }} />
           </button>
         </div>

@@ -255,13 +255,13 @@ export default function OpleidingenPage() {
                     {locked ? "🔒" : cfg.emoji}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-bold text-sm" style={{ color: "#0f172a" }}>{m.titel}</p>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="font-bold text-sm truncate" style={{ color: "#0f172a" }}>{m.titel}</p>
                       {m.status === "afgerond" && (
-                        <CheckCircle2 size={14} style={{ color: "#10B981" }} />
+                        <CheckCircle2 size={14} style={{ color: "#10B981", flexShrink: 0 }} />
                       )}
                       {m.certificaat && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-lg"
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-lg flex-shrink-0"
                           style={{ background: "#F5F3FF", color: "#7C3AED" }}>CERT</span>
                       )}
                     </div>

@@ -363,8 +363,7 @@ export default function BoekhoudingPage() {
           {/* Land selector */}
           <button onClick={()=>setShowLand(v=>!v)}
             className="touch-scale flex items-center gap-1 px-2.5 py-2 rounded-xl bg-white shadow-sm text-xs font-bold relative whitespace-nowrap flex-shrink-0">
-            <span className="text-sm leading-none">{cfg.vlag}</span>
-            <span>{storeLand}</span>
+            <span className="text-sm font-black">{storeLand}</span>
           </button>
           <button onClick={exportData}
             className="touch-scale w-9 h-9 rounded-xl flex items-center justify-center bg-white shadow-sm flex-shrink-0"

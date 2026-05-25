@@ -162,41 +162,40 @@ export default function PushNotificatiesPage() {
         {/* Tab: Instellingen */}
         {activeTab === "instellingen" && (
           <div className="flex flex-col gap-3">
-            {/* Channel headers */}
-            <div className="flex items-center px-4">
-              <div className="flex-1" />
-              {(["push","email","sms","geluid"] as const).map(k => (
-                <div key={k} className="w-12 flex justify-center">
-                  <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#94a3b8" }}>{k}</span>
-                </div>
-              ))}
-            </div>
             {instellingen.map(inst => {
               const cfg = CAT_CFG[inst.categorie];
               const Icon = cfg.icon;
               return (
-                <div key={inst.categorie} className="flex items-center p-4 rounded-3xl gap-3"
+                <div key={inst.categorie} className="rounded-3xl p-4 flex flex-col gap-3"
                   style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: cfg.bg }}>
-                    <Icon size={16} style={{ color: cfg.color }} />
+                  {/* Category header */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: cfg.bg }}>
+                      <Icon size={15} style={{ color: cfg.color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm" style={{ color: "#0f172a" }}>{cfg.label}</p>
+                      <p className="text-[10px] leading-tight truncate" style={{ color: "#94a3b8" }}>{cfg.desc}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm" style={{ color: "#0f172a" }}>{cfg.label}</p>
-                    <p className="text-[10px] mt-0.5 truncate" style={{ color: "#94a3b8" }}>{cfg.desc}</p>
-                  </div>
-                  {(["push","email","sms","geluid"] as const).map(kanaal => (
-                    <button key={kanaal} onClick={() => toggle(inst.categorie, kanaal)}
-                      className="touch-scale w-12 flex justify-center">
-                      <div className="w-6 h-6 rounded-xl flex items-center justify-center"
+                  {/* Toggles row */}
+                  <div className="grid grid-cols-4 gap-2">
+                    {(["push","email","sms","geluid"] as const).map(kanaal => (
+                      <button key={kanaal} onClick={() => toggle(inst.categorie, kanaal)}
+                        className="touch-scale flex flex-col items-center gap-1 py-2 rounded-2xl"
                         style={{
-                          background: inst[kanaal] ? cfg.bg : "#F1F5F9",
-                          border: `1.5px solid ${inst[kanaal] ? cfg.color + "40" : "#E5E7EB"}`,
+                          background: inst[kanaal] ? cfg.bg : "#F8FAFC",
+                          border: `1.5px solid ${inst[kanaal] ? cfg.color + "30" : "#E5E7EB"}`,
                         }}>
-                        {inst[kanaal] && <Check size={11} style={{ color: cfg.color }} strokeWidth={3} />}
-                      </div>
-                    </button>
-                  ))}
+                        <div className="w-5 h-5 rounded-lg flex items-center justify-center"
+                          style={{ background: inst[kanaal] ? cfg.color : "#E5E7EB" }}>
+                          {inst[kanaal] && <Check size={10} color="white" strokeWidth={3} />}
+                        </div>
+                        <span className="text-[9px] font-black uppercase" style={{ color: inst[kanaal] ? cfg.color : "#94a3b8" }}>{kanaal}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               );
             })}

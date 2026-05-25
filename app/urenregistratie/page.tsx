@@ -245,10 +245,10 @@ export default function UrenregistratiePage() {
             <p className="text-xs truncate" style={{ color: "#64748b" }}>Tijdregistratie per klus</p>
           </div>
           <button onClick={() => setShowNieuw(true)}
-            className="touch-scale flex items-center gap-2 px-4 py-2 rounded-2xl font-bold text-sm text-white"
+            className="touch-scale flex items-center gap-1.5 px-3 py-2.5 rounded-2xl font-bold text-sm text-white flex-shrink-0 whitespace-nowrap"
             style={{ background: "#4F46E5" }}>
-            <Plus size={16} />
-            Start timer
+            <Plus size={15} />
+            Timer
           </button>
         </div>
 
