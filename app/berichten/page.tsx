@@ -396,8 +396,8 @@ export default function BerichtenPage() {
             </div>
             {g.via === "whatsapp" && (
               <div className="flex items-center gap-1 mt-0.5">
-                <WaIcon size={9} color={WA_GREEN} />
-                <span className="text-[10px]" style={{ color: WA_GREEN }}>WhatsApp</span>
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: WA_GREEN }} />
+                <span className="text-[10px] font-medium" style={{ color: WA_GREEN }}>wa</span>
               </div>
             )}
           </div>
@@ -530,52 +530,47 @@ export default function BerichtenPage() {
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1.5">
-          <button onClick={e => { e.stopPropagation(); setActiveTab("gesprekken"); closeAllSwipes(); }}
-            className="touch-scale flex-1 py-2 rounded-xl text-xs font-bold"
-            style={{
-              background: activeTab === "gesprekken" ? "var(--teal)" + "18" : "var(--surface-2)",
-              color: activeTab === "gesprekken" ? "var(--teal)" : "var(--muted)",
-            }}>
-            💬 Gesprekken
-            {totaalOngelezen > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-white text-[9px] font-black"
-                style={{ background: "var(--teal)" }}>
-                {totaalOngelezen}
-              </span>
-            )}
-          </button>
-
-          <button onClick={e => { e.stopPropagation(); setActiveTab("whatsapp"); closeAllSwipes(); }}
-            className="touch-scale flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1"
-            style={{
-              background: activeTab === "whatsapp" ? WA_GREEN + "18" : "var(--surface-2)",
-              color: activeTab === "whatsapp" ? WA_DARK : "var(--muted)",
-            }}>
-            <WaIcon size={11} color={activeTab === "whatsapp" ? WA_DARK : "var(--muted)"} />
-            WhatsApp
-            {waOngelezen > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full text-white text-[9px] font-black"
-                style={{ background: WA_GREEN }}>
-                {waOngelezen}
-              </span>
-            )}
-          </button>
-
-          <button onClick={e => { e.stopPropagation(); setActiveTab("archief"); closeAllSwipes(); }}
-            className="touch-scale flex-1 py-2 rounded-xl text-xs font-bold"
-            style={{
-              background: activeTab === "archief" ? "var(--teal)" + "18" : "var(--surface-2)",
-              color: activeTab === "archief" ? "var(--teal)" : "var(--muted)",
-            }}>
-            🗂️ Archief
-            {gearchiveerd.length > 0 && (
-              <span className="ml-1 text-[10px]" style={{ color: "var(--muted)" }}>
-                ({gearchiveerd.length})
-              </span>
-            )}
-          </button>
+        {/* Tabs — text-only segmented (per-scherm checklist) */}
+        <div className="flex" style={{ borderBottom: "1.5px solid var(--border)" }}>
+          {(["gesprekken", "whatsapp", "archief"] as const).map(tab => {
+            const isActive = activeTab === tab;
+            const labels: Record<Tab, string> = {
+              gesprekken: "Gesprekken",
+              whatsapp:   "WhatsApp",
+              archief:    "Archief",
+            };
+            const badge = tab === "gesprekken" ? totaalOngelezen
+                        : tab === "whatsapp"   ? waOngelezen
+                        : 0;
+            return (
+              <button key={tab}
+                onClick={e => { e.stopPropagation(); setActiveTab(tab); closeAllSwipes(); }}
+                className="touch-scale flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold relative"
+                style={{
+                  color: isActive ? "var(--teal)" : "var(--muted)",
+                  background: "transparent",
+                  borderBottom: isActive ? "2px solid var(--teal)" : "2px solid transparent",
+                  marginBottom: -1.5,
+                }}>
+                {tab === "whatsapp" && (
+                  <span className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ background: isActive ? WA_GREEN : "var(--muted)" }} />
+                )}
+                {labels[tab]}
+                {badge > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-white text-[9px] font-black"
+                    style={{ background: isActive ? "var(--teal)" : "var(--muted)" }}>
+                    {badge}
+                  </span>
+                )}
+                {tab === "archief" && gearchiveerd.length > 0 && badge === 0 && (
+                  <span className="text-[10px]" style={{ color: "var(--muted)" }}>
+                    ({gearchiveerd.length})
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -1136,10 +1136,10 @@ export default function AgendaPage() {
           </div>
           {/* Dag plannen CTA */}
           <button onClick={() => setShowPlanner(true)}
-            className="touch-scale flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl font-black text-white text-xs"
+            className="touch-scale flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl font-bold text-xs"
             style={{
-              background: "linear-gradient(135deg, #F59E0B, #D97706)",
-              boxShadow: "0 4px 14px rgba(245,158,11,0.45)",
+              background: "#EEF2FF",
+              color: "#4F46E5",
             }}>
             <Route size={14} /> Dag plannen
           </button>
