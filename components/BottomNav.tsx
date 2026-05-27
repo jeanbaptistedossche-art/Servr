@@ -24,7 +24,7 @@ type NavItem = {
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { role, activeView, setActiveView, isLoggedIn } = useUserStore();
+  const { role, activeView, setActiveView, isLoggedIn, unreadBerichten } = useUserStore();
   const { taal } = useInstellingenStore();
   const t = useT(taal);
   const [mounted, setMounted] = useState(false);
@@ -47,7 +47,7 @@ export default function BottomNav() {
         { href: "/",          icon: Home,          label: t("home") },
         { href: "/search",    icon: Search,        label: t("zoeken") },
         { href: "/panic",     icon: Zap,           label: "Spoed", isPanic: true },
-        { href: "/berichten", icon: MessageCircle, label: t("berichten") },
+        { href: "/berichten", icon: MessageCircle, label: t("berichten"), badge: unreadBerichten },
         { href: "/profile",   icon: User,          label: t("profiel") },
       ];
 

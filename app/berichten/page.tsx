@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -9,6 +9,7 @@ import {
   Phone, Video,
 } from "lucide-react";
 import { PROVIDERS } from "@/lib/mockData";
+import { useUserStore } from "@/lib/store";
 
 // ── WhatsApp icon ─────────────────────────────────────────────────────────────
 function WaIcon({ size = 18, color = "currentColor" }: { size?: number; color?: string }) {
@@ -67,6 +68,7 @@ const GESPREKKEN_INIT: Gesprek[] = [
     delivered: true,
     read: false,
     archived: false,
+    phone: "+31670234567",
   },
   {
     id: "p3",
@@ -93,6 +95,7 @@ const GESPREKKEN_INIT: Gesprek[] = [
     delivered: true,
     read: true,
     archived: false,
+    phone: "+31670123456",
   },
   {
     id: "p5",
@@ -189,9 +192,13 @@ const SWIPE_SNAP   = 72;
 
 export default function BerichtenPage() {
   const router = useRouter();
+  const markBerichtenRead = useUserStore(s => s.markBerichtenRead);
   const [activeTab, setActiveTab] = useState<Tab>("gesprekken");
   const [query, setQuery] = useState("");
   const [gesprekken, setGesprekken] = useState(GESPREKKEN_INIT);
+
+  // Wis de berichten-badge wanneer de pagina geopend wordt
+  useEffect(() => { markBerichtenRead(); }, [markBerichtenRead]);
   const [showNieuw, setShowNieuw] = useState(false);
   const [zoekNieuw, setZoekNieuw] = useState("");
 

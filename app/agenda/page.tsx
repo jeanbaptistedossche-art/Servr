@@ -60,7 +60,7 @@ const DAG_SHORT = ["Zo","Ma","Di","Wo","Do","Vr","Za"];
 /* ═══════════════════════════════════════════════
    MOCK DATA — rijke afspraken
 ═══════════════════════════════════════════════ */
-const VANDAAG = "2026-05-25";
+const VANDAAG = "2026-05-27";
 const HOME_LAT = 52.3676, HOME_LNG = 4.9041; // Marco's home base
 
 const INIT_AFSPRAKEN: Afspraak[] = [
@@ -120,8 +120,8 @@ const INIT_AFSPRAKEN: Afspraak[] = [
     prijs: 280,
   },
   {
-    id: "a6", datum: "2026-05-27", start: "10:00", eind: "12:30",
-    status: "gepland",
+    id: "a6", datum: "2026-05-27", start: "09:00", eind: "10:30",
+    status: "klaar",
     klant: "Kevin de Groot", klantTelefoon: "06-77778888",
     klantAdres: "Rozengracht 78, Amsterdam",
     lat: 52.3721, lng: 4.8776,
@@ -129,6 +129,61 @@ const INIT_AFSPRAKEN: Afspraak[] = [
     notitie: "Mural split unit. Buiten unit op balkon.",
     materialen: ["Airco unit + remote", "Koelleiding 3m", "Boorset", "Muurbeugel buiten"],
     prijs: 350,
+  },
+  {
+    id: "a7", datum: "2026-05-27", start: "13:00", eind: "14:30",
+    status: "bezig",
+    klant: "Hana Özdemir", klantTelefoon: "06-22223333",
+    klantAdres: "Van Baerlestraat 55, Amsterdam",
+    lat: 52.3569, lng: 4.8742,
+    dienst: "Douche lekkage repareren", categorie: "loodgieter",
+    notitie: "Doucheput lekt door naar verdieping beneden",
+    materialen: ["Kitkit transparant", "Doucheput 90mm", "Silicone pistool", "Putje afdichting"],
+    prijs: 95,
+  },
+  {
+    id: "a8", datum: "2026-05-27", start: "16:00", eind: "17:30",
+    status: "gepland",
+    klant: "Bas Vermeer", klantTelefoon: "06-44445555",
+    klantAdres: "Jan Pieter Heijestraat 20, Amsterdam",
+    lat: 52.3667, lng: 4.8710,
+    dienst: "CV ketel vervangen", categorie: "hvac",
+    notitie: "Intergas ketel 25kW, 12 jaar oud. Klant wil HR combiketel.",
+    materialen: ["Intergas HRE 28/24 A", "Appendages set", "Rookgasafvoer", "CV vulset"],
+    prijs: 280,
+  },
+  {
+    id: "a9", datum: "2026-05-28", start: "08:00", eind: "10:00",
+    status: "gepland",
+    klant: "Wendy Bakker", klantTelefoon: "06-66667777",
+    klantAdres: "Stadhouderskade 99, Amsterdam",
+    lat: 52.3564, lng: 4.8834,
+    dienst: "Groepenkast vervangen", categorie: "elektricien",
+    notitie: "Groepenkast 16 groepen incl. aardlekschakelaars",
+    materialen: ["Groepenkast 16G", "Aardlekschakelaars (4x)", "Automaten set", "DIN rail"],
+    prijs: 420,
+  },
+  {
+    id: "a10", datum: "2026-05-28", start: "11:00", eind: "14:00",
+    status: "gepland",
+    klant: "Tom Willems", klantTelefoon: "06-88889999",
+    klantAdres: "Linnaeusstraat 44, Amsterdam",
+    lat: 52.3627, lng: 4.9238,
+    dienst: "Badkamerwanden betegelen", categorie: "tegels",
+    notitie: "Douche 2m² + wastafelwand. Klant heeft tegels al.",
+    materialen: ["Tegellijm wit 20kg", "Voegmiddel grijs 5kg", "Nivelleerset", "Kruisjes"],
+    prijs: 320,
+  },
+  {
+    id: "a11", datum: "2026-05-29", start: "09:30", eind: "11:30",
+    status: "gepland",
+    klant: "Anne Hoogenbosch", klantTelefoon: "06-11223344",
+    klantAdres: "Rijnstraat 12, Amsterdam",
+    lat: 52.3503, lng: 4.8939,
+    dienst: "Tuinonderhoud lente", categorie: "tuinman",
+    notitie: "Borders bijhouden, mos verwijderen terras, struiken snoeien",
+    materialen: ["Snoeischaar", "Onkruidbrander", "Afvalzakken"],
+    prijs: 85,
   },
 ];
 

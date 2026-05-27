@@ -68,8 +68,18 @@ function SearchContent() {
       || p.category.toLowerCase().includes(q)
       || p.bio.toLowerCase().includes(q)
       || p.badges.some(b => b.toLowerCase().includes(q));
-    const matchCat = !activeCategory
-      || p.category.toLowerCase() === CATEGORIES.find(c => c.id === activeCategory)?.label.toLowerCase();
+
+    let matchCat = !activeCategory;
+    if (activeCategory) {
+      const cat = CATEGORIES.find(c => c.id === activeCategory);
+      if (cat) {
+        matchCat = p.category.toLowerCase() === cat.label.toLowerCase()
+          // fallback: check if category id is contained in category string
+          || p.category.toLowerCase().includes(activeCategory.toLowerCase())
+          || activeCategory.toLowerCase().includes(p.category.toLowerCase().split("/")[0].trim());
+      }
+    }
+
     const matchAvail = !onlyAvailable || p.available;
     return matchQuery && matchCat && matchAvail;
   });

@@ -15,6 +15,7 @@ export type UserState = {
   isLoggedIn: boolean;
   isAdmin: boolean;
   unreadMeldingen: number;
+  unreadBerichten: number;
   // extra profiel velden
   avatar: string;        // base64 data-URL of lege string
   phone: string;
@@ -34,6 +35,7 @@ export type UserState = {
   >>) => void;
   setLand: (l: Land) => void;
   markMeldingenRead: () => void;
+  markBerichtenRead: () => void;
   logout: () => void;
 };
 
@@ -54,6 +56,7 @@ export const useUserStore = create<UserState>()(
       isLoggedIn: false,
       isAdmin: false,
       unreadMeldingen: 2,
+      unreadBerichten: 3,
       avatar: "",
       phone: "",
       email: "",
@@ -86,6 +89,8 @@ export const useUserStore = create<UserState>()(
       setLand: (land) => set({ land }),
 
       markMeldingenRead: () => set({ unreadMeldingen: 0 }),
+
+      markBerichtenRead: () => set({ unreadBerichten: 0 }),
 
       logout: () =>
         set({ role: null, activeView: "klant", isLoggedIn: false, isAdmin: false, name: "", address: "" }),
