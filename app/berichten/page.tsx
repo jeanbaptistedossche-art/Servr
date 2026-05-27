@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Search, Edit, CheckCheck, X, ChevronRight,
   Archive, Circle, ArchiveRestore, ArrowLeft, Settings2,
+  Phone, Video,
 } from "lucide-react";
 import { PROVIDERS } from "@/lib/mockData";
 
@@ -394,12 +395,29 @@ export default function BerichtenPage() {
             )}
           </div>
 
-          {g.unread > 0 && (
-            <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: "var(--teal)" }}>
-              <span className="text-[10px] font-black text-white">{g.unread}</span>
-            </div>
-          )}
+          {/* Quick action buttons — must be <button> not <a>/<Link> since parent is already <Link> */}
+          <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
+            {g.phone && (
+              <button
+                onClick={e => { e.preventDefault(); e.stopPropagation(); window.location.href = `tel:${g.phone}`; }}
+                className="w-8 h-8 rounded-full flex items-center justify-center touch-scale"
+                style={{ background: "#F1F5F9" }}>
+                <Phone size={13} style={{ color: "#4F46E5" }} />
+              </button>
+            )}
+            <button
+              onClick={e => { e.preventDefault(); e.stopPropagation(); router.push("/video-bellen"); }}
+              className="w-8 h-8 rounded-full flex items-center justify-center touch-scale"
+              style={{ background: "#F1F5F9" }}>
+              <Video size={13} style={{ color: "#4F46E5" }} />
+            </button>
+            {g.unread > 0 && (
+              <div className="w-5 h-5 rounded-full flex items-center justify-center"
+                style={{ background: "var(--teal)" }}>
+                <span className="text-[9px] font-black text-white">{g.unread}</span>
+              </div>
+            )}
+          </div>
         </Link>
       </div>
     );

@@ -645,29 +645,48 @@ export default function ProfilePage() {
         {!isVakman && (
           <div>
             <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: "#94a3b8" }}>Snelle acties</p>
-            <div className="grid grid-cols-3 gap-3">
+            {/* 2×2 grid */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
               {[
-                { href: "/opdracht/nieuw",  icon: ClipboardList, color: "#4F46E5", bg: "#EEF2FF",  label: "Opdracht" },
-                { href: "/berichten",        icon: MessageCircle, color: "#10B981", bg: "#ECFDF5",  label: "Berichten" },
-                { href: "/mijn-opdrachten",  icon: Clock,         color: "#F59E0B", bg: "#FFFBEB",  label: "Klussen" },
-                { href: "/favorieten",       icon: Heart,         color: "#EF4444", bg: "#FEF2F2",  label: "Favorieten" },
-                { href: "/scan",             icon: Scan,          color: "#8B5CF6", bg: "#F5F3FF",  label: "AI Scan" },
-                { href: "/te-betalen",       icon: CreditCard,    color: "#0EA5E9", bg: "#F0F9FF",  label: "Betalen" },
+                { href: "/te-betalen",      icon: CreditCard,    color: "#4F46E5", bg: "#EEF2FF",  label: "Betalingen",  sub: "Overzicht & iDEAL" },
+                { href: "/offerte-vergelijker", icon: ClipboardList, color: "#10B981", bg: "#ECFDF5",  label: "Offertes",    sub: "Vergelijken & keuren" },
+                { href: "/mijn-opdrachten",  icon: Clock,         color: "#F59E0B", bg: "#FFFBEB",  label: "Klussen",     sub: "Mijn geschiedenis" },
+                { href: "/favorieten",       icon: Heart,         color: "#EF4444", bg: "#FEF2F2",  label: "Favorieten",  sub: "Mijn vakmans" },
               ].map(item => {
                 const Icon = item.icon;
                 return (
                   <Link key={item.href} href={item.href}
-                    className="touch-scale flex flex-col items-center gap-2 py-4 rounded-2xl"
+                    className="touch-scale flex items-center gap-3 p-4 rounded-2xl"
                     style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: item.bg }}>
-                      <Icon size={20} style={{ color: item.color }} strokeWidth={1.8} />
+                      <Icon size={18} style={{ color: item.color }} strokeWidth={1.8} />
                     </div>
-                    <span className="text-xs font-bold" style={{ color: "#334155" }}>{item.label}</span>
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs truncate" style={{ color: "#0f172a" }}>{item.label}</p>
+                      <p className="text-[10px] truncate mt-0.5" style={{ color: "#94a3b8" }}>{item.sub}</p>
+                    </div>
                   </Link>
                 );
               })}
             </div>
+            {/* Full-width AI prijsscanner */}
+            <Link href="/scan"
+              className="touch-scale flex items-center gap-3 p-4 rounded-2xl w-full"
+              style={{ background: "linear-gradient(135deg, #EDE9FE, #DDD6FE)", boxShadow: "0 4px 16px rgba(124,58,237,0.12)" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: "#7C3AED" }}>
+                <Scan size={18} color="white" strokeWidth={1.8} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-xs" style={{ color: "#4C1D95" }}>AI prijsscanner</p>
+                <p className="text-[10px] mt-0.5" style={{ color: "#6D28D9" }}>Scan een offerte — AI vergelijkt eerlijke prijs</p>
+              </div>
+              <span className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-black text-white"
+                style={{ background: "#7C3AED" }}>
+                Scan
+              </span>
+            </Link>
           </div>
         )}
 
