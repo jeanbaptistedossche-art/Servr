@@ -1,8 +1,11 @@
 "use client";
 
+"use client";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, MessageCircle, AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, MessageCircle, AlertCircle, CheckCircle2, Clock, XCircle, Download, Share2 } from "lucide-react";
 import { MOCK_BEDRIJF } from "@/lib/bedrijfStore";
 
 type FactuurStatus = "open" | "herinnering" | "betaald" | "verlopen";
@@ -106,6 +109,7 @@ export default function FactuurDetailPage() {
   const { id } = useParams<{ id: string }>();
   const bedrijf = MOCK_BEDRIJF;
   const data = FACTUREN[id];
+  const [downloadToast, setDownloadToast] = useState(false);
 
   if (!data) return (
     <div className="flex flex-col items-center justify-center min-h-dvh gap-4 px-6 text-center">
@@ -247,10 +251,34 @@ export default function FactuurDetailPage() {
       </div>
 
       {/* Acties */}
-      <div className="px-5 mt-5 flex flex-col gap-3">
+      <div className="px-5 mt-5 pb-10 flex flex-col gap-3">
+
+        {/* Download PDF — voor iedereen zichtbaar */}
+        <button
+          onClick={() => {
+            setDownloadToast(true);
+            setTimeout(() => setDownloadToast(false), 2500);
+          }}
+          className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
+          style={{ background: "linear-gradient(135deg, #4F46E5, #818CF8)", boxShadow: "0 4px 16px rgba(79,70,229,0.35)" }}>
+          <Download size={18} /> Download PDF
+        </button>
+
+        {/* Delen */}
+        <button
+          onClick={() => {
+            if (typeof navigator !== "undefined" && navigator.share) {
+              navigator.share({ title: `Factuur ${data.nummer}`, text: `Factuur van ${bedrijf.handelsnaam} — €${fmt(totaal)}` });
+            }
+          }}
+          className="touch-scale w-full py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2"
+          style={{ background: "#F1F5F9", color: "#475569" }}>
+          <Share2 size={16} /> Delen
+        </button>
+
         {(data.status === "open" || data.status === "herinnering") && (
           <button
-            className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
+            className="touch-scale w-full py-3.5 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
             style={{ background: "#d97706" }}>
             <AlertCircle size={18} /> Herinnering sturen
           </button>
@@ -258,9 +286,19 @@ export default function FactuurDetailPage() {
         <Link href={`/chat/${data.chatId}`}
           className="touch-scale w-full py-3.5 rounded-2xl font-bold text-center border flex items-center justify-center gap-2"
           style={{ borderColor: "var(--border)", color: "var(--teal)" }}>
-          <MessageCircle size={16} /> Stuur klant een bericht
+          <MessageCircle size={16} /> Stuur een bericht
         </Link>
       </div>
+
+      {/* Download toast */}
+      {downloadToast && (
+        <div
+          className="fixed bottom-28 left-1/2 -translate-x-1/2 flex items-center gap-2.5 px-5 py-3.5 rounded-2xl animate-bounce-in"
+          style={{ background: "#0f172a", color: "white", zIndex: 99, boxShadow: "0 8px 32px rgba(0,0,0,0.35)", whiteSpace: "nowrap" }}>
+          <CheckCircle2 size={18} style={{ color: "#10B981" }} />
+          <span className="font-bold text-sm">{data.nummer}.pdf wordt gedownload…</span>
+        </div>
+      )}
     </div>
   );
 }

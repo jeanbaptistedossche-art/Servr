@@ -35,6 +35,10 @@ export default function BottomNav() {
 
   const isVakman = activeView === "vakman";
 
+  // Vakman kleur schema: donkerblauw/navy tint
+  const PRIMARY   = isVakman ? "#3730A3" : "#4F46E5";
+  const PRIMARY_BG = isVakman ? "#EEF2FF" : "#EEF2FF";
+
   const navItems: NavItem[] = isVakman
     ? [
         { href: "/dashboard",  icon: LayoutDashboard, label: t("dashboard") },
@@ -53,24 +57,24 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* Role switcher — alleen tonen als gebruiker beide rollen heeft, rechtsboven boven bottomnav */}
+      {/* Role switcher — only shown when user has both roles */}
       {role === "beide" && (
         <div
           className="fixed z-50"
-          style={{ bottom: "calc(var(--bottom-nav-height) + 8px)", right: 16 }}
+          style={{ bottom: "calc(var(--bottom-nav-height) + 10px)", right: 16 }}
         >
           <button
             onClick={() => setActiveView(isVakman ? "klant" : "vakman")}
-            className="touch-scale flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold"
+            className="touch-scale flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[11px] font-black"
             style={{
               background: isVakman
-                ? "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)"
-                : "linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)",
+                ? "linear-gradient(135deg, #4F46E5 0%, #818CF8 100%)"
+                : "linear-gradient(135deg, #1e1b4b 0%, #3730A3 100%)",
               color: "white",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
             }}
           >
-            <ArrowLeftRight size={10} />
+            <ArrowLeftRight size={11} />
             {isVakman ? "Naar klant" : "Naar vakman"}
           </button>
         </div>
@@ -80,36 +84,44 @@ export default function BottomNav() {
       <nav
         className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40 pb-safe"
         style={{
-          background: "rgba(255,255,255,0.98)",
-          borderTop: "1px solid #F3F4F6",
+          background: "rgba(255,255,255,0.97)",
+          borderTop: "1.5px solid #F1F4FA",
           height: "var(--bottom-nav-height)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
         }}
       >
-        <div className="flex items-center justify-around h-full px-1">
+        <div className="flex items-center h-full px-2">
           {navItems.map(({ href, icon: Icon, label, isPanic, badge }) => {
             const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
 
             if (isPanic) {
               return (
-                <Link
-                  key={href}
-                  href={href}
-                  className="relative flex items-center justify-center -mt-4 touch-scale"
-                  aria-label="Spoeddienst"
-                >
-                  <span
-                    className="flex flex-col items-center justify-center w-14 h-14 rounded-2xl shadow-lg"
-                    style={{
-                      background: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
-                      boxShadow: "0 4px 20px rgba(239,68,68,0.45)",
-                    }}
+                <div key={href} className="flex-1 flex items-center justify-center">
+                  <Link
+                    href={href}
+                    className="relative flex items-center justify-center -mt-5 touch-scale"
+                    aria-label="Spoeddienst"
                   >
-                    <Icon size={20} color="white" strokeWidth={2.5} />
-                    <span className="text-[9px] text-white font-black mt-0.5 leading-none tracking-wide">SPOED</span>
-                  </span>
-                </Link>
+                    {/* Pulse ring */}
+                    <span
+                      className="absolute w-14 h-14 rounded-[20px] animate-pulse-ring"
+                      style={{ background: "rgba(239,68,68,0.2)" }}
+                    />
+                    <span
+                      className="relative flex flex-col items-center justify-center w-14 h-14 rounded-[20px]"
+                      style={{
+                        background: "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)",
+                        boxShadow: "0 6px 24px rgba(239,68,68,0.5)",
+                      }}
+                    >
+                      <Icon size={21} color="white" strokeWidth={2.5} />
+                      <span className="text-[9px] text-white font-black mt-0.5 leading-none tracking-widest uppercase">
+                        Spoed
+                      </span>
+                    </span>
+                  </Link>
+                </div>
               );
             }
 
@@ -117,32 +129,50 @@ export default function BottomNav() {
               <Link
                 key={href}
                 href={href}
-                className="relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full touch-scale"
+                className="relative flex-1 flex flex-col items-center justify-center gap-0.5 h-full touch-scale"
                 aria-label={label}
               >
-                {badge && badge > 0 && !isActive && (
-                  <span className="absolute top-2 right-3 w-4 h-4 rounded-full flex items-center justify-center text-white"
-                    style={{ background: "#EF4444", zIndex: 1 }}>
-                    <span className="text-[9px] font-black">{badge > 9 ? "9+" : badge}</span>
+                {/* Badge */}
+                {!!(badge && badge > 0 && !isActive) && (
+                  <span
+                    className="absolute flex items-center justify-center text-white font-black"
+                    style={{
+                      top: 10, right: "calc(50% - 22px)",
+                      minWidth: 17, height: 17,
+                      borderRadius: 999,
+                      fontSize: 9,
+                      background: "#EF4444",
+                      border: "2px solid white",
+                      zIndex: 1,
+                      paddingInline: 3,
+                    }}
+                  >
+                    {badge > 9 ? "9+" : badge}
                   </span>
                 )}
-                <Icon
-                  size={21}
-                  strokeWidth={isActive ? 2.5 : 1.8}
-                  style={{ color: isActive ? "#4F46E5" : "#9CA3AF" }}
-                />
+
+                {/* Icon container — pill highlight when active */}
+                <div
+                  className="flex items-center justify-center w-10 h-8 rounded-2xl transition-all"
+                  style={{
+                    background: isActive ? PRIMARY_BG : "transparent",
+                    transform: isActive ? "scale(1.0)" : "scale(1)",
+                  }}
+                >
+                  <Icon
+                    size={isActive ? 20 : 21}
+                    strokeWidth={isActive ? 2.5 : 1.8}
+                    style={{ color: isActive ? PRIMARY : "#9CA3AF" }}
+                  />
+                </div>
+
+                {/* Label */}
                 <span
-                  className="text-[10px] font-semibold"
-                  style={{ color: isActive ? "#4F46E5" : "#9CA3AF" }}
+                  className="text-[10px] font-semibold leading-none"
+                  style={{ color: isActive ? PRIMARY : "#9CA3AF" }}
                 >
                   {label}
                 </span>
-                {isActive && (
-                  <span
-                    className="absolute bottom-1 w-4 h-0.5 rounded-full"
-                    style={{ background: "#4F46E5" }}
-                  />
-                )}
               </Link>
             );
           })}

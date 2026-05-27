@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Plus, ChevronRight, Clock, CheckCircle, Euro, CreditCard, ArrowLeft } from "lucide-react";
+import { Plus, ChevronRight, Clock, CheckCircle, Euro, CreditCard, ArrowLeft, FileText } from "lucide-react";
 import { MOCK_OPDRACHTEN } from "@/lib/store";
 import { useOfferteStore } from "@/lib/offerteStore";
 
@@ -64,7 +64,14 @@ function OpdrachtKaart({ o, highlight }: { o: typeof MOCK_OPDRACHTEN[0]; highlig
             <Clock size={13} />
             <span className="text-xs capitalize">{o.urgentie === "hoog" ? "Spoed" : o.urgentie}</span>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            {(o.status === "betaald" || o.status === "afgerond") && (
+              <Link href="/factuur/fac-2"
+                className="touch-scale flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full"
+                style={{ background: "#EEF2FF", color: "#4F46E5" }}>
+                <FileText size={11} /> Factuur
+              </Link>
+            )}
             {o.status === "offerte_ontvangen" ? (
               <Link href="/offertes"
                 className="touch-scale text-xs font-bold px-3 py-1.5 rounded-full text-white"
@@ -73,9 +80,9 @@ function OpdrachtKaart({ o, highlight }: { o: typeof MOCK_OPDRACHTEN[0]; highlig
               </Link>
             ) : o.status === "open" ? (
               <span className="text-xs" style={{ color: "var(--muted)" }}>Wacht op reacties...</span>
-            ) : (
+            ) : (o.status !== "betaald" && o.status !== "afgerond") ? (
               <span className="text-xs font-semibold" style={{ color: "var(--muted)" }}>Details →</span>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
