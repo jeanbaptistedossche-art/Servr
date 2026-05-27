@@ -27,10 +27,31 @@
   --warning:    #F59E0B;
   --indigo-bg:  #EEF2FF;   /* Light indigo surface */
 
+  /* Page background (grey wash behind white cards) */
+  --page-bg:    #F1F4FA;
+
   /* Radius */
   --radius:     14px;
   --radius-sm:  10px;
   --radius-xs:  6px;
+  --radius-lg:  20px;
+  --radius-xl:  24px;
+
+  /* Shadows */
+  --shadow-xs:  0 1px 4px  rgba(0,0,0,0.06);
+  --shadow-sm:  0 2px 8px  rgba(0,0,0,0.08);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.14);
+
+  /* Typography scale */
+  --text-xs:    11px;
+  --text-sm:    13px;
+  --text-base:  15px;
+  --text-md:    16px;
+  --text-lg:    18px;
+  --text-xl:    20px;
+  --text-2xl:   24px;
+  --text-3xl:   28px;
 
   /* Nav */
   --bottom-nav-height: 68px;
@@ -45,6 +66,7 @@
   --border:     rgba(255,255,255,0.07);
   --muted:      #6B7280;
   --indigo-bg:  #1E1B4B;
+  --page-bg:    #08080E;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -56,12 +78,14 @@
     --border:     rgba(255,255,255,0.07);
     --muted:      #6B7280;
     --indigo-bg:  #1E1B4B;
+    --page-bg:    #08080E;
   }
 }
 
 @theme inline {
   --color-background:  var(--background);
   --color-foreground:  var(--foreground);
+  --color-page-bg:     var(--page-bg);
   --color-teal:        var(--teal);
   --color-teal-dark:   var(--teal-dark);
   --color-teal-light:  var(--teal-light);
@@ -70,6 +94,8 @@
   --color-surface-2:   var(--surface-2);
   --color-border:      var(--border);
   --color-muted:       var(--muted);
+  --color-success:     var(--success);
+  --color-warning:     var(--warning);
 }
 
 /* ── Base ────────────────────────────────────────────────────── */

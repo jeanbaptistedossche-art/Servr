@@ -583,8 +583,6 @@ export default function ProfilePage() {
                 { href: "/onderhoud-schema",  icon: RefreshCw,       label: "Onderhoud Schema",   sub: "Auto-boeken",         color: "#10B981", bg: "#ECFDF5" },
                 { href: "/id-verificatie",    icon: Fingerprint,     label: "ID Verificatie",     sub: "Vertrouwensbadge",    color: "#4F46E5", bg: "#EEF2FF" },
                 { href: "/escrow",            icon: Lock,            label: "Escrow",             sub: "Veilig betalen",      color: "#7C3AED", bg: "#F5F3FF" },
-                { href: "/betalingen",        icon: CreditCard,      label: "Betalingen",         sub: "iDEAL & Bancontact",  color: "#D97706", bg: "#FFFBEB" },
-                { href: "/betaalplan",        icon: CalendarDays,    label: "Betaalplan",         sub: "Gespreide betaling",  color: "#EC4899", bg: "#FDF2F8" },
                 { href: "/gps-tracking",      icon: Navigation,      label: "GPS Tracking",       sub: "Locatie delen",       color: "#0EA5E9", bg: "#F0F9FF" },
                 { href: "/video-bellen",      icon: Video,           label: "Video Bellen",       sub: "Gratis in-app",       color: "#4F46E5", bg: "#EEF2FF" },
                 { href: "/push-notificaties", icon: Bell,            label: "Notificaties",       sub: "Push & SMS",          color: "#F59E0B", bg: "#FFFBEB" },
@@ -650,7 +648,7 @@ export default function ProfilePage() {
               {[
                 { href: "/te-betalen",      icon: CreditCard,    color: "#4F46E5", bg: "#EEF2FF",  label: "Betalingen",  sub: "Overzicht & iDEAL" },
                 { href: "/offerte-vergelijker", icon: ClipboardList, color: "#10B981", bg: "#ECFDF5",  label: "Offertes",    sub: "Vergelijken & keuren" },
-                { href: "/mijn-opdrachten",  icon: Clock,         color: "#F59E0B", bg: "#FFFBEB",  label: "Klussen",     sub: "Mijn geschiedenis" },
+                { href: "/mijn-opdrachten",  icon: Clock,         color: "#F59E0B", bg: "#FFFBEB",  label: "Mijn opdrachten", sub: "Geschiedenis & status" },
                 { href: "/favorieten",       icon: Heart,         color: "#EF4444", bg: "#FEF2F2",  label: "Favorieten",  sub: "Mijn vakmans" },
               ].map(item => {
                 const Icon = item.icon;
@@ -749,6 +747,7 @@ export default function ProfilePage() {
                 { href: "/video-bellen",       icon: Video,         label: "Video Bellen",      sub: "Gratis in-app",       color: "#4F46E5", bg: "#EEF2FF" },
                 { href: "/escrow",             icon: Lock,          label: "Escrow",            sub: "Veilig betalen",      color: "#7C3AED", bg: "#F5F3FF" },
                 { href: "/betaalplan",         icon: CalendarDays,  label: "Betaalplan",        sub: "Gespreide betaling",  color: "#D97706", bg: "#FFFBEB" },
+                { href: "/betalingen",         icon: CreditCard,    label: "Betalingen",        sub: "iDEAL & Bancontact",  color: "#4F46E5", bg: "#EEF2FF" },
               ].map(item => {
                 const Icon = item.icon;
                 return (

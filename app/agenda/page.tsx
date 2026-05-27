@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Plus, Clock, MapPin, Phone, ChevronRight, ChevronLeft,
@@ -994,10 +994,44 @@ export default function AgendaPage() {
   const [afspraken, setAfspraken] = useState<Afspraak[]>(INIT_AFSPRAKEN);
   const [view, setView] = useState<View>("dag");
   const [selectedDay, setSelectedDay] = useState(VANDAAG);
-  const [weekBase, setWeekBase] = useState(new Date("2026-05-19"));
+  const [weekBase, setWeekBase] = useState(() => getWeekDates(new Date(VANDAAG))[0]);
+
+  // Sync weekBase when selected day changes (e.g. from month view click)
+  const handleSelectDay = (ymd: string) => {
+    setSelectedDay(ymd);
+    setWeekBase(getWeekDates(new Date(ymd))[0]);
+  };
   const [showPlanner, setShowPlanner] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editAfspraak, setEditAfspraak] = useState<Afspraak | undefined>();
+
+  // A6 — Auto-advance statuses based on real clock
+  useEffect(() => {
+    const now = new Date();
+    const todayYMD = toYMD(now);
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+
+    setAfspraken(prev => prev.map(a => {
+      const [endH, endM] = a.eind.split(":").map(Number);
+      const [startH, startM] = a.start.split(":").map(Number);
+      const endMins = endH * 60 + endM;
+      const startMins = startH * 60 + startM;
+
+      // Appointments in the past (different day or same day but already ended)
+      const isPastDate = a.datum < todayYMD;
+      const isEndedToday = a.datum === todayYMD && nowMins >= endMins;
+      const isStartedToday = a.datum === todayYMD && nowMins >= startMins && nowMins < endMins;
+
+      if ((isPastDate || isEndedToday) && (a.status === "gepland" || a.status === "onderweg" || a.status === "bezig")) {
+        return { ...a, status: "klaar" as Status };
+      }
+      if (isStartedToday && a.status === "gepland") {
+        return { ...a, status: "bezig" as Status };
+      }
+      return a;
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const weekDagen = getWeekDates(weekBase);
   const vandaagAfspraken = afspraken.filter(a => a.datum === selectedDay)
@@ -1096,7 +1130,7 @@ export default function AgendaPage() {
                 const isSelected = ymd === selectedDay;
                 const isVandaag = ymd === VANDAAG;
                 return (
-                  <button key={i} onClick={() => { setSelectedDay(ymd); setView("dag"); }}
+                  <button key={i} onClick={() => { handleSelectDay(ymd); setView("dag"); }}
                     className="touch-scale flex flex-col items-center gap-0.5 py-2 rounded-2xl transition-all"
                     style={{
                       background: isSelected ? "linear-gradient(135deg, #4F46E5, #818CF8)" : isVandaag ? "#EEF2FF" : "#fff",
@@ -1291,7 +1325,7 @@ export default function AgendaPage() {
 
         {/* MAAND VIEW */}
         {view === "maand" && (
-          <MaandView afspraken={afspraken} selectedDay={selectedDay} onSelectDay={setSelectedDay} />
+          <MaandView afspraken={afspraken} selectedDay={selectedDay} onSelectDay={handleSelectDay} />
         )}
 
         {/* SCHEMA VIEW */}

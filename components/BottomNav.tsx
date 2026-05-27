@@ -71,7 +71,7 @@ export default function BottomNav() {
             }}
           >
             <ArrowLeftRight size={10} />
-            {isVakman ? "Vakman" : "Klant"}
+            {isVakman ? "Naar klant" : "Naar vakman"}
           </button>
         </div>
       )}

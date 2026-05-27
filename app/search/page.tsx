@@ -225,8 +225,8 @@ function SearchContent() {
 
       {/* ── MAP VIEW ── */}
       {viewMode === "map" && (
-        <div className="flex-1 relative">
-          <div style={{ height: "calc(100dvh - 220px)", position: "relative" }}>
+        <div className="flex-1 flex flex-col" style={{ minHeight: 0 }}>
+          <div style={{ flex: 1, minHeight: 400, height: "calc(100svh - var(--bottom-nav-height) - 200px)" }}>
             <ProviderMap providers={filtered} height="100%" interactive showNavButtons zoom={13} />
           </div>
           <div className="sticky bottom-0 px-5 py-3"
@@ -343,15 +343,18 @@ function SearchContent() {
 
               {/* CTA buttons */}
               <div className="px-4 pb-4 pt-1 flex gap-2.5">
-                <Link href={`/agenda/boeken/${p.id}`}
+                <Link
+                  href={p.available ? `/agenda/boeken/${p.id}` : `/agenda/boeken/${p.id}?later=1`}
                   className="touch-scale flex-1 flex items-center justify-center gap-2 font-bold text-sm"
                   style={{
                     height: 50, borderRadius: 18,
                     background: p.available
                       ? "linear-gradient(135deg, #4F46E5, #818CF8)"
-                      : "#e2e8f0",
-                    color: p.available ? "white" : "#94a3b8",
-                    boxShadow: p.available ? "0 4px 16px rgba(79,70,229,0.35)" : "none",
+                      : "linear-gradient(135deg, #F59E0B, #D97706)",
+                    color: "white",
+                    boxShadow: p.available
+                      ? "0 4px 16px rgba(79,70,229,0.35)"
+                      : "0 4px 16px rgba(245,158,11,0.35)",
                   }}>
                   <CalendarDays size={15} />
                   {p.available ? "Boek direct" : "Plan later"}

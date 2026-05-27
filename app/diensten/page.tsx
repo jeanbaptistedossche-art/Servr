@@ -394,22 +394,33 @@ export default function DienstenPage() {
 
       <div className="px-5 pt-4 flex flex-col gap-4">
 
-        {/* Stats strip */}
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { v: String(actief.length), l: "Actieve diensten", color: "#4F46E5", bg: "#EEF2FF" },
-            { v: `€${actief.reduce((t, d) => t + d.prijs, 0) / Math.max(actief.length, 1) | 0}`, l: "Gem. prijs", color: "#10B981", bg: "#ECFDF5" },
-            { v: `${actief.reduce((t, d) => t + d.duurMinuten, 0) / 60 / Math.max(actief.length, 1) | 0}u`, l: "Gem. duur", color: "#F59E0B", bg: "#FFFBEB" },
-          ].map(s => (
-            <div key={s.l} className="flex flex-col items-center py-3.5 rounded-2xl"
-              style={{ background: s.bg }}>
-              <span className="font-black text-xl leading-none" style={{ color: s.color }}>{s.v}</span>
-              <span className="text-[10px] mt-1 font-semibold text-center leading-tight" style={{ color: s.color + "99" }}>
-                {s.l}
-              </span>
+        {/* Stats strip — alleen tonen als er actieve diensten zijn */}
+        {actief.length > 0 ? (
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { v: String(actief.length), l: "Actieve diensten", color: "#4F46E5", bg: "#EEF2FF" },
+              { v: `€${actief.reduce((t, d) => t + d.prijs, 0) / Math.max(actief.length, 1) | 0}`, l: "Gem. prijs", color: "#10B981", bg: "#ECFDF5" },
+              { v: `${actief.reduce((t, d) => t + d.duurMinuten, 0) / 60 / Math.max(actief.length, 1) | 0}u`, l: "Gem. duur", color: "#F59E0B", bg: "#FFFBEB" },
+            ].map(s => (
+              <div key={s.l} className="flex flex-col items-center py-3.5 rounded-2xl"
+                style={{ background: s.bg }}>
+                <span className="font-black text-xl leading-none" style={{ color: s.color }}>{s.v}</span>
+                <span className="text-[10px] mt-1 font-semibold text-center leading-tight" style={{ color: s.color + "99" }}>
+                  {s.l}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 p-4 rounded-2xl"
+            style={{ background: "#EEF2FF", border: "1px dashed #C7D2FE" }}>
+            <span className="text-2xl">📋</span>
+            <div>
+              <p className="font-bold text-sm" style={{ color: "#3730A3" }}>Nog geen actieve diensten</p>
+              <p className="text-xs mt-0.5" style={{ color: "#6366F1" }}>Klik op &ldquo;Nieuw&rdquo; om je eerste dienst toe te voegen</p>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
         {/* Tip card */}
         <div className="flex items-start gap-3 px-4 py-4 rounded-2xl"
