@@ -168,21 +168,21 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── SPOED BANNER ──────────────────────────────────────────────── */}
+      {/* ── SPOED BANNER (D7: rustigere variant) ─────────────────────── */}
       <div className="px-5 mb-5">
         <Link href="/panic" className="touch-scale block">
           <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
-            style={{ background: "linear-gradient(135deg, #FEE2E2, #FECACA)", border: "1.5px solid #FCA5A5" }}>
+            style={{ background: "#fff", border: "1.5px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "#EF4444" }}>
-              <Zap size={18} color="white" strokeWidth={2.5} />
+              style={{ background: "#EEF2FF" }}>
+              <Zap size={17} style={{ color: "#4F46E5" }} strokeWidth={2.5} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-black text-sm" style={{ color: "#991B1B" }}>Spoed nodig?</p>
-              <p className="text-xs" style={{ color: "#B91C1C" }}>Vakman binnen 30 min bij jou</p>
+              <p className="font-bold text-sm" style={{ color: "#0f172a" }}>Spoed nodig?</p>
+              <p className="text-xs" style={{ color: "#64748b" }}>Vakman binnen 30 min bij jou</p>
             </div>
             <span className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-black text-white"
-              style={{ background: "#EF4444" }}>
+              style={{ background: "#4F46E5" }}>
               Nu
             </span>
           </div>

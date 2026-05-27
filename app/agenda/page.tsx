@@ -37,12 +37,17 @@ type Afspraak = {
 /* ═══════════════════════════════════════════════
    CONSTANTS
 ═══════════════════════════════════════════════ */
+/* D4: Semantisch uniforme badge-kleuren
+   success (groen) = Klaar, Gefactureerd
+   warning (oranje) = Onderweg, Bezig (beiden actief/lopend)
+   info    (paars)  = Gepland
+   danger  (rood)   = Gemist, Geannuleerd  */
 const STATUS_CFG: Record<Status, { label: string; color: string; bg: string; next: Status | null }> = {
   gepland:      { label: "Gepland",      color: "#6366F1", bg: "#EEF2FF",  next: "onderweg"    },
   onderweg:     { label: "Onderweg",     color: "#F59E0B", bg: "#FFFBEB",  next: "bezig"       },
-  bezig:        { label: "Bezig",        color: "#3B82F6", bg: "#EFF6FF",  next: "klaar"       },
+  bezig:        { label: "Bezig",        color: "#F59E0B", bg: "#FFFBEB",  next: "klaar"       },
   klaar:        { label: "Klaar",        color: "#10B981", bg: "#ECFDF5",  next: "gefactureerd"},
-  gefactureerd: { label: "Gefactureerd", color: "#8B5CF6", bg: "#F5F3FF",  next: null          },
+  gefactureerd: { label: "Gefactureerd", color: "#10B981", bg: "#ECFDF5",  next: null          },
 };
 
 const CAT_COLORS: Record<string, string> = {

@@ -334,7 +334,7 @@ function SearchContent() {
                       </span>
                     </div>
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-                      style={{ background: "#ECFDF5", color: "#059669" }}>
+                      style={{ background: "#F1F5F9", color: "#334155" }}>
                       €{p.priceMin}–{p.priceMax}/u
                     </span>
                   </div>

@@ -346,6 +346,49 @@ function FormField({ icon: Icon, label, required, children }: {
   );
 }
 
+// ── Collapsible menu group (C1 / D5) ──────────────────────────────────────
+type MenuGroupItem = { href: string; icon: LucideIcon; label: string; sub?: string };
+
+function MenuGroup({ title, items, defaultOpen = false }: {
+  title: string; items: MenuGroupItem[]; defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div style={{ background: "#fff", borderRadius: 20, boxShadow: "0 4px 16px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="touch-scale w-full flex items-center justify-between px-4 py-3.5"
+        style={{ borderBottom: open ? "1px solid #F8FAFC" : "none" }}
+      >
+        <span className="font-black text-sm" style={{ color: "#0f172a" }}>{title}</span>
+        <ChevronRight
+          size={16}
+          style={{
+            color: "#94a3b8",
+            transition: "transform 0.2s ease",
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
+      {open && items.map(({ href, icon: Icon, label, sub }, i) => (
+        <Link key={href} href={href}
+          className="touch-scale flex items-center gap-3.5 px-4 py-3.5"
+          style={{ borderBottom: i < items.length - 1 ? "1px solid #F8FAFC" : "none" }}>
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "#F1F5F9" }}>
+            <Icon size={18} style={{ color: "#374151" }} strokeWidth={1.8} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm truncate" style={{ color: "#0f172a" }}>{label}</p>
+            {sub && <p className="text-xs mt-0.5 truncate" style={{ color: "#94a3b8" }}>{sub}</p>}
+          </div>
+          <ChevronRight size={14} style={{ color: "#CBD5E1", flexShrink: 0 }} />
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const { role, activeView, setActiveView, logout, isAdmin,
@@ -554,55 +597,55 @@ export default function ProfilePage() {
         )}
 
         {/* ══════════════════════════
-            VAKMAN — Beheer
+            VAKMAN — Beheer (4 groepen, C1)
         ══════════════════════════ */}
         {isVakman && (
           <div>
             <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: "#94a3b8" }}>Beheer</p>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { href: "/dashboard",         icon: LayoutDashboard, label: "Dashboard",         sub: "Stats & omzet",      color: "#4F46E5", bg: "#EEF2FF" },
-                { href: "/agenda",            icon: CalendarDays,    label: "Agenda",             sub: "Boekingen",          color: "#10B981", bg: "#ECFDF5" },
-                { href: "/urenregistratie",   icon: Clock,           label: "Urenregistratie",    sub: "Timer per klus",     color: "#8B5CF6", bg: "#F5F3FF" },
-                { href: "/materialen",        icon: Package,         label: "Materialen",         sub: "Voorraad & inkoop",  color: "#0EA5E9", bg: "#F0F9FF" },
-                { href: "/klanten",           icon: Users,           label: "Klantenbestand",     sub: "CRM & contacten",    color: "#EC4899", bg: "#FDF2F8" },
-                { href: "/sociale-bijdragen", icon: Shield,          label: "Soc. bijdragen",     sub: "Kwartaalafdrachten",  color: "#0EA5E9", bg: "#F0F9FF" },
-                { href: "/documenten-kluis", icon: Award,           label: "Documenten kluis",   sub: "Certs & verzekeringen",color: "#F59E0B", bg: "#FFFBEB" },
-                { href: "/portfolio",        icon: Camera,          label: "Portfolio",          sub: "Voor & na foto's",    color: "#EC4899", bg: "#FDF2F8" },
-                { href: "/handtekening",    icon: PenTool,         label: "Oplevering",         sub: "Digitaal tekenen",    color: "#4F46E5", bg: "#EEF2FF" },
-                { href: "/reviews",         icon: Star,            label: "Reviews",            sub: "Beoordelingen",       color: "#F59E0B", bg: "#FFFBEB" },
-                { href: "/inchecken",       icon: QrCode,          label: "QR Check-in",        sub: "Aanwezigheid",        color: "#10B981", bg: "#ECFDF5" },
-                { href: "/diensten",          icon: Wrench,          label: "Diensten",           sub: "Prijzen & aanbod",   color: "#6366F1", bg: "#EEF2FF" },
-                { href: "/verdiensten",       icon: Banknote,        label: "Verdiensten",        sub: "Uitbetalingen",      color: "#F59E0B", bg: "#FFFBEB" },
-                { href: "/boekhouding",       icon: TrendingUp,      label: "Boekhouding",        sub: "BTW & belasting",    color: "#10B981", bg: "#ECFDF5" },
-                { href: "/offerte/maak",      icon: FileText,        label: "Offerte",            sub: "PDF maken",          color: "#8B5CF6", bg: "#F5F3FF" },
-                { href: "/bedrijf",           icon: Building2,       label: "Bedrijf",            sub: "KvK & BTW",          color: "#0EA5E9", bg: "#F0F9FF" },
-                { href: "/opleidingen",       icon: GraduationCap,   label: "Opleidingen",        sub: "Certificaten",        color: "#8B5CF6", bg: "#F5F3FF" },
-                { href: "/personeel",         icon: Users,           label: "Personeel",          sub: "Team & subbies",      color: "#EC4899", bg: "#FDF2F8" },
-                { href: "/pensioen",          icon: Wallet,          label: "Pensioen",           sub: "Spaarassistent",      color: "#0EA5E9", bg: "#F0F9FF" },
-                { href: "/onderhoud-schema",  icon: RefreshCw,       label: "Onderhoud Schema",   sub: "Auto-boeken",         color: "#10B981", bg: "#ECFDF5" },
-                { href: "/id-verificatie",    icon: Fingerprint,     label: "ID Verificatie",     sub: "Vertrouwensbadge",    color: "#4F46E5", bg: "#EEF2FF" },
-                { href: "/escrow",            icon: Lock,            label: "Escrow",             sub: "Veilig betalen",      color: "#7C3AED", bg: "#F5F3FF" },
-                { href: "/gps-tracking",      icon: Navigation,      label: "GPS Tracking",       sub: "Locatie delen",       color: "#0EA5E9", bg: "#F0F9FF" },
-                { href: "/video-bellen",      icon: Video,           label: "Video Bellen",       sub: "Gratis in-app",       color: "#4F46E5", bg: "#EEF2FF" },
-                { href: "/push-notificaties", icon: Bell,            label: "Notificaties",       sub: "Push & SMS",          color: "#F59E0B", bg: "#FFFBEB" },
-              ].map(item => {
-                const Icon = item.icon;
-                return (
-                  <Link key={item.href} href={item.href}
-                    className="touch-scale flex items-center gap-2.5 p-3 rounded-2xl"
-                    style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: item.bg }}>
-                      <Icon size={17} style={{ color: item.color }} strokeWidth={1.8} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-xs truncate" style={{ color: "#0f172a" }}>{item.label}</p>
-                      <p className="text-[10px] mt-0.5 truncate" style={{ color: "#94a3b8" }}>{item.sub}</p>
-                    </div>
-                  </Link>
-                );
-              })}
+            <div className="flex flex-col gap-3">
+
+              {/* Groep 1: Vandaag (default open) */}
+              <MenuGroup title="Vandaag" defaultOpen={true} items={[
+                { href: "/dashboard",       icon: LayoutDashboard, label: "Dashboard",        sub: "Stats & omzet" },
+                { href: "/agenda",          icon: CalendarDays,    label: "Agenda",            sub: "Boekingen & planning" },
+                { href: "/urenregistratie", icon: Clock,           label: "Urenregistratie",   sub: "Timer per klus" },
+                { href: "/inchecken",       icon: QrCode,          label: "QR Check-in",       sub: "Aanwezigheid" },
+              ]} />
+
+              {/* Groep 2: Klanten & werk */}
+              <MenuGroup title="Klanten & werk" items={[
+                { href: "/diensten",     icon: Wrench,      label: "Diensten",       sub: "Prijzen & aanbod" },
+                { href: "/klanten",      icon: Users,       label: "Klantenbestand", sub: "CRM & contacten" },
+                { href: "/berichten",    icon: MessageCircle,label: "Berichten",     sub: "Gesprekken" },
+                { href: "/offerte/maak", icon: FileText,    label: "Offertes",       sub: "PDF maken & versturen" },
+                { href: "/handtekening", icon: PenTool,     label: "Oplevering",     sub: "Digitaal tekenen" },
+                { href: "/portfolio",    icon: Camera,      label: "Portfolio",      sub: "Voor & na foto's" },
+                { href: "/reviews",      icon: Star,        label: "Reviews",        sub: `Klantbeoordelingen` },
+              ]} />
+
+              {/* Groep 3: Financiën */}
+              <MenuGroup title="Financiën" items={[
+                { href: "/verdiensten",       icon: Banknote,   label: "Verdiensten",         sub: "Uitbetalingen" },
+                { href: "/boekhouding",       icon: TrendingUp, label: "Boekhouding & BTW",   sub: "Belasting & administratie" },
+                { href: "/escrow",            icon: Lock,       label: "Escrow",               sub: "Veilig betalen" },
+                { href: "/sociale-bijdragen", icon: Shield,     label: "Sociale bijdragen",    sub: "Kwartaalafdrachten" },
+                { href: "/pensioen",          icon: Wallet,     label: "Pensioensparen",       sub: "Spaarassistent" },
+              ]} />
+
+              {/* Groep 4: Bedrijf & tools */}
+              <MenuGroup title="Bedrijf & tools" items={[
+                { href: "/bedrijf",          icon: Building2,   label: "Bedrijf",              sub: "Ondernemersnummer & BTW" },
+                { href: "/personeel",        icon: Users,       label: "Personeel",            sub: "Team & subbies" },
+                { href: "/materialen",       icon: Package,     label: "Materialen",           sub: "Voorraad & inkoop" },
+                { href: "/documenten-kluis", icon: Award,       label: "Documenten & certs",   sub: "Kluis & verzekeringen" },
+                { href: "/opleidingen",      icon: GraduationCap,label: "Opleidingen",         sub: "Certificaten" },
+                { href: "/id-verificatie",   icon: Fingerprint, label: "ID Verificatie",       sub: "Vertrouwensbadge" },
+                { href: "/onderhoud-schema", icon: RefreshCw,   label: "Onderhoud Schema",     sub: "Auto-boeken" },
+                { href: "/gps-tracking",     icon: Navigation,  label: "GPS Tracking",         sub: "Locatie delen" },
+                { href: "/video-bellen",     icon: Video,       label: "Video Bellen",         sub: "Gratis in-app" },
+                { href: "/schadedetectie",   icon: Scan,        label: "AI Schade-scan",       sub: "Foto-analyse" },
+              ]} />
+
             </div>
           </div>
         )}
@@ -638,53 +681,32 @@ export default function ProfilePage() {
         )}
 
         {/* ══════════════════════════
-            KLANT — Snelle acties
+            KLANT — Snelle acties (C2: max 3)
         ══════════════════════════ */}
         {!isVakman && (
           <div>
             <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: "#94a3b8" }}>Snelle acties</p>
-            {/* 2×2 grid */}
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { href: "/te-betalen",      icon: CreditCard,    color: "#4F46E5", bg: "#EEF2FF",  label: "Betalingen",  sub: "Overzicht & iDEAL" },
-                { href: "/offerte-vergelijker", icon: ClipboardList, color: "#10B981", bg: "#ECFDF5",  label: "Offertes",    sub: "Vergelijken & keuren" },
-                { href: "/mijn-opdrachten",  icon: Clock,         color: "#F59E0B", bg: "#FFFBEB",  label: "Mijn opdrachten", sub: "Geschiedenis & status" },
-                { href: "/favorieten",       icon: Heart,         color: "#EF4444", bg: "#FEF2F2",  label: "Favorieten",  sub: "Mijn vakmans" },
+                { href: "/opdracht/nieuw", icon: Plus,          color: "#4F46E5", bg: "#EEF2FF", label: "Nieuwe opdracht" },
+                { href: "/berichten",      icon: MessageCircle, color: "#10B981", bg: "#ECFDF5", label: "Berichten" },
+                { href: "/favorieten",     icon: Heart,         color: "#EF4444", bg: "#FEF2F2", label: "Favorieten" },
               ].map(item => {
                 const Icon = item.icon;
                 return (
                   <Link key={item.href} href={item.href}
-                    className="touch-scale flex items-center gap-3 p-4 rounded-2xl"
+                    className="touch-scale flex flex-col items-center gap-2.5 py-5 rounded-2xl"
                     style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
                       style={{ background: item.bg }}>
-                      <Icon size={18} style={{ color: item.color }} strokeWidth={1.8} />
+                      <Icon size={20} style={{ color: item.color }} strokeWidth={1.8} />
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-xs truncate" style={{ color: "#0f172a" }}>{item.label}</p>
-                      <p className="text-[10px] truncate mt-0.5" style={{ color: "#94a3b8" }}>{item.sub}</p>
-                    </div>
+                    <p className="font-bold text-xs text-center leading-tight px-1"
+                      style={{ color: "#0f172a" }}>{item.label}</p>
                   </Link>
                 );
               })}
             </div>
-            {/* Full-width AI prijsscanner */}
-            <Link href="/scan"
-              className="touch-scale flex items-center gap-3 p-4 rounded-2xl w-full"
-              style={{ background: "linear-gradient(135deg, #EDE9FE, #DDD6FE)", boxShadow: "0 4px 16px rgba(124,58,237,0.12)" }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: "#7C3AED" }}>
-                <Scan size={18} color="white" strokeWidth={1.8} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-xs" style={{ color: "#4C1D95" }}>AI prijsscanner</p>
-                <p className="text-[10px] mt-0.5" style={{ color: "#6D28D9" }}>Scan een offerte — AI vergelijkt eerlijke prijs</p>
-              </div>
-              <span className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-black text-white"
-                style={{ background: "#7C3AED" }}>
-                Scan
-              </span>
-            </Link>
           </div>
         )}
 
