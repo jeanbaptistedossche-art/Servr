@@ -70,7 +70,7 @@ export default function HomePage() {
   const firstName = mounted && name ? name.split(" ")[0] : "";
 
   return (
-    <div className="flex flex-col min-h-full" style={{ background: "#F1F4FA" }}>
+    <div className="flex flex-col min-h-full" style={{ background: "#F5EFE5" }}>
 
       {/* ── STICKY HEADER ─────────────────────────────────────────────── */}
       <div className="sticky top-0 z-30 px-5 pt-14 pb-4"

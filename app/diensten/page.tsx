@@ -1,499 +1,275 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import {
-  ArrowLeft, Plus, Clock, Euro, Edit3, Trash2,
-  Check, ToggleLeft, ToggleRight, X, ChevronRight,
-  Wrench, Coffee, Package,
-} from "lucide-react";
+import { Plus, Pencil, X, Check } from "lucide-react";
 import { MOCK_DIENSTEN, type Dienst } from "@/lib/bedrijfStore";
 
-const EENHEDEN: Dienst["eenheid"][] = ["per uur", "per dag", "vast bedrag", "per m²", "per stuk"];
-const CATEGORIEEN = ["Loodgieter", "Elektricien", "Schilder", "Schoonmaak", "Timmerman", "HVAC", "Slotenmaker", "Overig"];
+const SERIF = "'Source Serif 4', Georgia, serif";
 
 function duurLabel(min: number) {
   const u = Math.floor(min / 60), m = min % 60;
   return u > 0 ? `${u}u${m > 0 ? ` ${m}m` : ""}` : `${m}m`;
 }
 
-/* ── Service card ─────────────────────────────────────────────────────────── */
-function DienstKaart({ dienst, onEdit, onDelete, onToggle }: {
-  dienst: Dienst; onEdit: () => void; onDelete: () => void; onToggle: () => void;
+// ── Toggle component ──────────────────────────────────────────
+function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <button
+      className="touch-scale flex-shrink-0"
+      onClick={onToggle}
+      style={{
+        width: 32, height: 18,
+        background: on ? "#2B4030" : "#D3D1C7",
+        borderRadius: 99, position: "relative",
+        border: "none", cursor: "pointer",
+        flexShrink: 0,
+      }}
+      aria-label={on ? "Deactiveer" : "Activeer"}
+    >
+      <span style={{
+        position: "absolute",
+        top: 2,
+        left: on ? "calc(100% - 16px)" : 2,
+        width: 14, height: 14,
+        background: "#F5EFE5",
+        borderRadius: "50%",
+        transition: "left 0.15s",
+      }} />
+    </button>
+  );
+}
+
+// ── Service card ──────────────────────────────────────────────
+function DienstKaart({ dienst, onToggle, onEdit }: {
+  dienst: Dienst;
+  onToggle: () => void;
+  onEdit: () => void;
 }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const priceLabel = dienst.eenheid === "vast bedrag"
+    ? `€${dienst.prijs}`
+    : `€${dienst.prijs}/${dienst.eenheid === "per uur" ? "u" : dienst.eenheid}`;
+
+  const metaLabel = [
+    dienst.eenheid === "vast bedrag" ? "vast" : null,
+    `${duurLabel(dienst.duurMinuten)}${dienst.bufferMinuten > 0 ? ` + ${duurLabel(dienst.bufferMinuten)} buffer` : ""}`,
+    dienst.btw ? "BTW 21%" : null,
+  ].filter(Boolean).join("  ·  ");
 
   return (
     <div style={{
-      background: "#fff",
-      borderRadius: 22,
-      boxShadow: "0 4px 20px rgba(0,0,0,0.07)",
-      opacity: dienst.actief ? 1 : 0.55,
+      background: "#FBF7F0",
+      border: "0.5px solid #E5DDD0",
+      borderRadius: 14,
+      padding: 16,
+      marginBottom: 10,
+      opacity: dienst.actief ? 1 : 0.65,
       transition: "opacity 0.2s",
     }}>
-      {/* Color accent */}
+      {/* Name + toggle */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+        <p style={{ fontFamily: SERIF, fontSize: 17, margin: 0, color: "#1A1D1A" }}>
+          {dienst.naam}
+        </p>
+        <Toggle on={dienst.actief} onToggle={onToggle} />
+      </div>
+
+      {/* Description */}
+      <p style={{ fontSize: 12, color: "#8A8A83", margin: "0 0 12px" }}>
+        {dienst.beschrijving}
+      </p>
+
+      {/* Footer */}
       <div style={{
-        height: 4,
-        borderRadius: "22px 22px 0 0",
-        background: dienst.actief
-          ? "linear-gradient(90deg, #4F46E5, #818CF8)"
-          : "linear-gradient(90deg, #cbd5e1, #e2e8f0)",
-      }} />
-
-      <div className="p-4">
-        {/* Top row: name + toggle */}
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="font-black text-base leading-tight" style={{ color: "#0f172a" }}>{dienst.naam}</p>
-              {!dienst.actief && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                  style={{ background: "#F1F5F9", color: "#94a3b8" }}>Inactief</span>
-              )}
-            </div>
-            <p className="text-sm mt-1 leading-relaxed" style={{ color: "#64748b" }}>{dienst.beschrijving}</p>
-          </div>
-          {/* Toggle */}
-          <button onClick={onToggle} className="touch-scale flex-shrink-0 mt-0.5">
-            <div className="relative w-12 h-6 rounded-full transition-all"
-              style={{ background: dienst.actief ? "#4F46E5" : "#e2e8f0" }}>
-              <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all"
-                style={{ left: dienst.actief ? "calc(100% - 22px)" : "2px", transition: "left 0.2s" }} />
-            </div>
-          </button>
-        </div>
-
-        {/* Tags row */}
-        <div className="flex flex-wrap gap-2 my-3">
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black"
-            style={{ background: "#EEF2FF", color: "#4F46E5" }}>
-            <Euro size={11} /> {dienst.prijs} {dienst.eenheid}
-          </span>
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-            style={{ background: "#F8FAFC", color: "#64748b" }}>
-            <Clock size={11} /> {duurLabel(dienst.duurMinuten)}
-          </span>
-          {dienst.bufferMinuten > 0 && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ background: "#FFFBEB", color: "#D97706" }}>
-              <Coffee size={11} /> +{dienst.bufferMinuten}m buffer
-            </span>
-          )}
-          {dienst.btw && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold"
-              style={{ background: "#F0FDF4", color: "#16A34A" }}>
-              BTW 21%
-            </span>
-          )}
-        </div>
-
-        {/* Actions */}
-        {confirmDelete ? (
-          <div className="flex items-center gap-2 mt-1 p-3 rounded-2xl"
-            style={{ background: "#FEF2F2", border: "1px solid #FECACA" }}>
-            <p className="flex-1 text-xs font-semibold" style={{ color: "#DC2626" }}>
-              Weet je het zeker?
-            </p>
-            <button onClick={() => setConfirmDelete(false)}
-              className="touch-scale px-3 py-1.5 rounded-xl text-xs font-bold"
-              style={{ background: "#fff", color: "#64748b" }}>
-              Nee
-            </button>
-            <button onClick={onDelete}
-              className="touch-scale px-3 py-1.5 rounded-xl text-xs font-bold text-white"
-              style={{ background: "#DC2626" }}>
-              Verwijder
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 mt-1">
-            <button onClick={onEdit}
-              className="touch-scale flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold"
-              style={{ background: "#EEF2FF", color: "#4F46E5" }}>
-              <Edit3 size={13} /> Bewerken
-            </button>
-            <button onClick={() => setConfirmDelete(true)}
-              className="touch-scale w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: "#FEF2F2" }}>
-              <Trash2 size={15} style={{ color: "#EF4444" }} />
-            </button>
-          </div>
-        )}
+        display: "flex", gap: 14, alignItems: "baseline",
+        paddingTop: 12, borderTop: "0.5px solid #E5DDD0",
+      }}>
+        <span style={{
+          fontFamily: SERIF, fontSize: 15,
+          color: dienst.actief ? "#2B4030" : "#8A8A83",
+        }}>{priceLabel}</span>
+        <span style={{ fontSize: 11, color: "#8A8A83", flex: 1 }}>{metaLabel}</span>
+        <button
+          className="touch-scale"
+          onClick={onEdit}
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          aria-label="Bewerken"
+        >
+          <Pencil size={15} style={{ color: dienst.actief ? "#1A1D1A" : "#8A8A83" }} />
+        </button>
       </div>
     </div>
   );
 }
 
-/* ── Service form ─────────────────────────────────────────────────────────── */
-function DienstForm({ dienst, onSave, onCancel }: {
-  dienst: Partial<Dienst>; onSave: (d: Dienst) => void; onCancel: () => void;
+// ── Simple edit form overlay ──────────────────────────────────
+function EditForm({ dienst, onSave, onCancel }: {
+  dienst: Dienst;
+  onSave: (d: Dienst) => void;
+  onCancel: () => void;
 }) {
-  const [form, setForm] = useState<Partial<Dienst>>({
-    naam: "", beschrijving: "", prijs: 0, eenheid: "per uur",
-    duurMinuten: 60, bufferMinuten: 15, categorie: "Loodgieter",
-    actief: true, btw: true, ...dienst,
-  });
-
-  const up = <K extends keyof Dienst>(k: K) => (v: Dienst[K]) => setForm(f => ({ ...f, [k]: v }));
-  const isValid = !!(form.naam?.trim() && form.prijs && form.prijs > 0);
+  const [naam, setNaam] = useState(dienst.naam);
+  const [prijs, setPrijs] = useState(String(dienst.prijs));
+  const [beschrijving, setBeschrijving] = useState(dienst.beschrijving);
 
   return (
     <div style={{
-      background: "#fff", borderRadius: 24,
-      boxShadow: "0 8px 40px rgba(79,70,229,0.15)",
-      border: "2px solid #EEF2FF",
+      background: "#FBF7F0", border: "0.5px solid #E5DDD0",
+      borderRadius: 14, padding: 16, marginBottom: 10,
     }}>
-      {/* Form header */}
-      <div className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: "1px solid #F1F5F9" }}>
-        <div>
-          <p className="font-black text-base" style={{ color: "#0f172a" }}>
-            {dienst.id ? "Dienst bewerken" : "Nieuwe dienst"}
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>Vul alle verplichte velden in</p>
-        </div>
-        <button onClick={onCancel} className="touch-scale w-9 h-9 rounded-2xl flex items-center justify-center"
-          style={{ background: "#F1F5F9" }}>
-          <X size={16} style={{ color: "#64748b" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <p style={{ fontFamily: SERIF, fontSize: 17, margin: 0, color: "#1A1D1A" }}>Bewerken</p>
+        <button className="touch-scale" onClick={onCancel}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "#8A8A83" }}>
+          <X size={16} />
         </button>
       </div>
 
-      <div className="p-5 flex flex-col gap-5">
-
-        {/* Naam */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>
-            Naam *
-          </label>
-          <input value={form.naam || ""} onChange={e => up("naam")(e.target.value)}
-            placeholder="bijv. Lekkage repareren"
-            style={{
-              width: "100%", padding: "14px 16px", borderRadius: 14, outline: "none",
-              fontSize: 15, fontWeight: 600, color: "#0f172a",
-              border: `2px solid ${form.naam ? "#4F46E5" : "#E5E7EB"}`,
-              background: form.naam ? "#F8F8FF" : "#FAFAFA",
-              boxSizing: "border-box",
-              boxShadow: form.naam ? "0 0 0 4px rgba(79,70,229,0.08)" : "none",
-            }} />
-        </div>
-
-        {/* Beschrijving */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>
-            Beschrijving
-          </label>
-          <textarea value={form.beschrijving || ""} onChange={e => up("beschrijving")(e.target.value)}
-            placeholder="Wat is inbegrepen bij deze dienst?"
-            rows={2}
-            style={{
-              width: "100%", padding: "14px 16px", borderRadius: 14, outline: "none",
-              fontSize: 14, color: "#0f172a", resize: "none",
-              border: "2px solid #E5E7EB", background: "#FAFAFA", boxSizing: "border-box",
-            }} />
-        </div>
-
-        {/* Prijs + eenheid */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>
-              Prijs (€) *
-            </label>
-            <div className="flex items-center gap-2 px-4 py-3.5 rounded-2xl"
-              style={{
-                border: `2px solid ${form.prijs ? "#4F46E5" : "#E5E7EB"}`,
-                background: form.prijs ? "#F8F8FF" : "#FAFAFA",
-              }}>
-              <span className="font-black" style={{ color: "#4F46E5", fontSize: 16 }}>€</span>
-              <input type="number" value={form.prijs || ""} onChange={e => up("prijs")(+e.target.value)}
-                className="flex-1 bg-transparent outline-none font-black"
-                style={{ color: "#0f172a", fontSize: 18 }} inputMode="decimal" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>
-              Eenheid
-            </label>
-            <select value={form.eenheid} onChange={e => up("eenheid")(e.target.value as Dienst["eenheid"])}
-              style={{
-                width: "100%", padding: "14px 16px", borderRadius: 14, outline: "none",
-                fontSize: 13, fontWeight: 600, color: "#0f172a",
-                border: "2px solid #E5E7EB", background: "#FAFAFA", appearance: "none",
-              }}>
-              {EENHEDEN.map(e => <option key={e} value={e}>{e}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Duur */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest mb-3" style={{ color: "#94a3b8" }}>
-            Geschatte duur
-          </label>
-          <div className="grid grid-cols-4 gap-2">
-            {[30, 60, 90, 120, 180, 240, 360, 480].map(m => {
-              const l = m < 60 ? `${m}m` : m % 60 === 0 ? `${m / 60}u` : `${Math.floor(m / 60)}u${m % 60}m`;
-              const active = form.duurMinuten === m;
-              return (
-                <button key={m} onClick={() => up("duurMinuten")(m)}
-                  className="touch-scale py-3 rounded-2xl text-xs font-bold transition-all"
-                  style={{
-                    background: active ? "#4F46E5" : "#F1F5F9",
-                    color: active ? "white" : "#64748b",
-                    boxShadow: active ? "0 4px 12px rgba(79,70,229,0.35)" : "none",
-                  }}>
-                  {l}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Buffer */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest mb-1.5" style={{ color: "#94a3b8" }}>
-            Reistijd / buffer erna
-          </label>
-          <p className="text-xs mb-3" style={{ color: "#94a3b8" }}>
-            Blokkeerttijd na de klus: <strong style={{ color: "#0f172a" }}>{(form.duurMinuten || 0) + (form.bufferMinuten || 0)} min totaal</strong>
-          </p>
-          <div className="grid grid-cols-5 gap-2">
-            {[0, 15, 20, 30, 45].map(m => {
-              const active = form.bufferMinuten === m;
-              return (
-                <button key={m} onClick={() => up("bufferMinuten")(m)}
-                  className="touch-scale py-3 rounded-2xl text-xs font-bold transition-all"
-                  style={{
-                    background: active ? "#D97706" : "#F1F5F9",
-                    color: active ? "white" : "#64748b",
-                    boxShadow: active ? "0 4px 12px rgba(217,119,6,0.35)" : "none",
-                  }}>
-                  {m === 0 ? "Geen" : `+${m}m`}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Categorie */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest mb-2.5" style={{ color: "#94a3b8" }}>
-            Categorie
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIEEN.map(c => {
-              const active = form.categorie === c;
-              return (
-                <button key={c} onClick={() => up("categorie")(c)}
-                  className="touch-scale flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all"
-                  style={{
-                    background: active ? "#4F46E5" : "#F1F5F9",
-                    color: active ? "white" : "#64748b",
-                    boxShadow: active ? "0 3px 10px rgba(79,70,229,0.35)" : "none",
-                  }}>
-                  {active && <Check size={11} />} {c}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* BTW toggle */}
-        <button onClick={() => up("btw")(!form.btw)}
-          className="touch-scale flex items-center gap-4 px-4 py-4 rounded-2xl"
-          style={{ background: form.btw ? "#F0FDF4" : "#F8FAFC", border: `2px solid ${form.btw ? "#BBF7D0" : "#E5E7EB"}` }}>
-          <div className="w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all flex-shrink-0"
-            style={{ borderColor: form.btw ? "#16A34A" : "#E5E7EB", background: form.btw ? "#16A34A" : "white" }}>
-            {form.btw && <Check size={13} color="white" strokeWidth={3} />}
-          </div>
-          <div className="text-left">
-            <p className="font-bold text-sm" style={{ color: "#0f172a" }}>BTW 21% toepassen</p>
-            {form.btw && form.prijs ? (
-              <p className="text-xs mt-0.5" style={{ color: "#16A34A" }}>
-                Incl. BTW: € {(form.prijs * 1.21).toFixed(2)}
-              </p>
-            ) : (
-              <p className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>Prijs exclusief BTW</p>
-            )}
-          </div>
+      <input
+        value={naam}
+        onChange={e => setNaam(e.target.value)}
+        placeholder="Naam"
+        style={{
+          width: "100%", padding: "10px 12px", borderRadius: 8,
+          border: "0.5px solid #E5DDD0", background: "#F5EFE5",
+          fontSize: 14, color: "#1A1D1A", marginBottom: 8,
+          fontFamily: "'Inter', sans-serif",
+        }}
+      />
+      <input
+        value={prijs}
+        onChange={e => setPrijs(e.target.value)}
+        placeholder="Prijs"
+        type="number"
+        style={{
+          width: "100%", padding: "10px 12px", borderRadius: 8,
+          border: "0.5px solid #E5DDD0", background: "#F5EFE5",
+          fontSize: 14, color: "#1A1D1A", marginBottom: 8,
+          fontFamily: "'Inter', sans-serif",
+        }}
+      />
+      <textarea
+        value={beschrijving}
+        onChange={e => setBeschrijving(e.target.value)}
+        placeholder="Omschrijving"
+        rows={2}
+        style={{
+          width: "100%", padding: "10px 12px", borderRadius: 8,
+          border: "0.5px solid #E5DDD0", background: "#F5EFE5",
+          fontSize: 13, color: "#5C5C56", marginBottom: 12,
+          resize: "none", fontFamily: "'Inter', sans-serif",
+        }}
+      />
+      <div style={{ display: "flex", gap: 8 }}>
+        <button className="touch-scale" onClick={onCancel} style={{
+          flex: 1, padding: "10px", fontSize: 13,
+          background: "transparent", color: "#5C5C56",
+          border: "0.5px solid #E5DDD0", borderRadius: 10, cursor: "pointer",
+          fontFamily: "'Inter', sans-serif",
+        }}>Annuleren</button>
+        <button className="touch-scale"
+          onClick={() => onSave({ ...dienst, naam, prijs: Number(prijs), beschrijving })}
+          style={{
+            flex: 2, padding: "10px", fontSize: 13, fontWeight: 500,
+            background: "#2B4030", color: "#F5EFE5",
+            border: "none", borderRadius: 10, cursor: "pointer",
+            fontFamily: "'Inter', sans-serif",
+          }}>
+          <Check size={13} style={{ display: "inline", marginRight: 4 }} />
+          Opslaan
         </button>
-
-        {/* Save / Cancel */}
-        <div className="flex gap-3 pt-1">
-          <button onClick={onCancel}
-            className="touch-scale flex-1 py-4 rounded-2xl font-bold text-sm"
-            style={{ background: "#F1F5F9", color: "#64748b" }}>
-            Annuleren
-          </button>
-          <button onClick={() => isValid && onSave(form as Dienst)}
-            disabled={!isValid}
-            className="touch-scale flex-1 py-4 rounded-2xl font-black text-white text-sm"
-            style={{
-              background: isValid ? "linear-gradient(135deg, #4F46E5, #818CF8)" : "#E2E8F0",
-              color: isValid ? "white" : "#94a3b8",
-              boxShadow: isValid ? "0 6px 20px rgba(79,70,229,0.4)" : "none",
-            }}>
-            Opslaan
-          </button>
-        </div>
       </div>
     </div>
   );
 }
 
-/* ── Main page ────────────────────────────────────────────────────────────── */
+// ── Main page ─────────────────────────────────────────────────
 export default function DienstenPage() {
   const [diensten, setDiensten] = useState<Dienst[]>(MOCK_DIENSTEN);
   const [editId, setEditId] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
 
-  const toggle = (id: string) => setDiensten(ds => ds.map(d => d.id === id ? { ...d, actief: !d.actief } : d));
-  const verwijder = (id: string) => setDiensten(ds => ds.filter(d => d.id !== id));
-  const slaOp = (dienst: Dienst) => {
-    if (editId) {
-      setDiensten(ds => ds.map(d => d.id === editId ? { ...dienst, id: editId } : d));
-      setEditId(null);
-    } else {
-      setDiensten(ds => [...ds, { ...dienst, id: `d${Date.now()}` }]);
-      setShowForm(false);
-    }
+  const toggle = (id: string) =>
+    setDiensten(ds => ds.map(d => d.id === id ? { ...d, actief: !d.actief } : d));
+  const save = (updated: Dienst) => {
+    setDiensten(ds => ds.map(d => d.id === updated.id ? updated : d));
+    setEditId(null);
   };
 
   const actief = diensten.filter(d => d.actief);
-  const inactief = diensten.filter(d => !d.actief);
+  const gemPrijs = actief.length
+    ? Math.round(actief.reduce((t, d) => t + d.prijs, 0) / actief.length)
+    : 0;
+  const gemDuur = actief.length
+    ? duurLabel(Math.round(actief.reduce((t, d) => t + d.duurMinuten, 0) / actief.length))
+    : "—";
 
   return (
-    <div className="flex flex-col min-h-full pb-10 animate-fade-in" style={{ background: "#F1F4FA" }}>
+    <div className="flex flex-col min-h-full" style={{ background: "#F5EFE5" }}>
 
       {/* ── Header ── */}
-      <div className="sticky top-0 z-20 pt-14 pb-4"
-        style={{ background: "rgba(241,244,250,0.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
-        <div className="flex items-center gap-3 px-5">
-          <Link href="/profile"
-            className="touch-scale w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "#fff", boxShadow: "0 2px 10px rgba(0,0,0,0.08)" }}>
-            <ArrowLeft size={18} style={{ color: "#475569" }} />
-          </Link>
-          <div className="flex-1">
-            <h1 className="font-black text-xl leading-tight" style={{ color: "#0f172a" }}>Mijn diensten</h1>
-            <p className="text-xs font-medium mt-0.5" style={{ color: "#94a3b8" }}>
-              {actief.length} actief · {inactief.length} inactief
+      <div className="sticky top-0 z-20 px-5 pt-14 pb-4"
+        style={{ background: "rgba(245,239,229,0.97)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div>
+            <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, color: "#8A8A83", margin: 0 }}>
+              Wat ik aanbied
             </p>
+            <h2 style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 400, margin: "2px 0 0", color: "#1A1D1A" }}>
+              Mijn diensten
+            </h2>
           </div>
-          {!showForm && editId === null && (
-            <button onClick={() => setShowForm(true)}
-              className="touch-scale flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-white text-sm"
-              style={{
-                background: "linear-gradient(135deg, #4F46E5, #818CF8)",
-                boxShadow: "0 4px 14px rgba(79,70,229,0.4)",
-              }}>
-              <Plus size={16} /> Nieuw
-            </button>
-          )}
+          <button className="touch-scale" style={{
+            padding: "8px 12px", background: "#2B4030", color: "#F5EFE5",
+            border: "none", borderRadius: 99, fontSize: 12, fontWeight: 500,
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 4,
+            fontFamily: "'Inter', sans-serif",
+          }}>
+            <Plus size={12} /> Nieuw
+          </button>
         </div>
       </div>
 
-      <div className="px-5 pt-4 flex flex-col gap-4">
+      <div className="px-5 pb-28">
 
-        {/* Stats strip — alleen tonen als er actieve diensten zijn */}
-        {actief.length > 0 ? (
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { v: String(actief.length), l: "Actieve diensten", color: "#4F46E5", bg: "#EEF2FF" },
-              { v: `€${actief.reduce((t, d) => t + d.prijs, 0) / Math.max(actief.length, 1) | 0}`, l: "Gem. prijs", color: "#10B981", bg: "#ECFDF5" },
-              { v: `${actief.reduce((t, d) => t + d.duurMinuten, 0) / 60 / Math.max(actief.length, 1) | 0}u`, l: "Gem. duur", color: "#F59E0B", bg: "#FFFBEB" },
-            ].map(s => (
-              <div key={s.l} className="flex flex-col items-center py-3.5 rounded-2xl"
-                style={{ background: s.bg }}>
-                <span className="font-black text-xl leading-none" style={{ color: s.color }}>{s.v}</span>
-                <span className="text-[10px] mt-1 font-semibold text-center leading-tight" style={{ color: s.color + "99" }}>
-                  {s.l}
-                </span>
-              </div>
-            ))}
+        {/* Stats row */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
+          paddingTop: 16, paddingBottom: 16, marginBottom: 20,
+          borderTop: "0.5px solid #E5DDD0", borderBottom: "0.5px solid #E5DDD0",
+        }}>
+          <div style={{ textAlign: "center", borderRight: "0.5px solid #E5DDD0" }}>
+            <p style={{ fontFamily: SERIF, fontSize: 22, margin: 0, color: "#1A1D1A" }}>{actief.length}</p>
+            <p style={{ fontSize: 11, color: "#8A8A83", margin: "2px 0 0" }}>Actief</p>
           </div>
-        ) : (
-          <div className="flex items-center gap-3 p-4 rounded-2xl"
-            style={{ background: "#EEF2FF", border: "1px dashed #C7D2FE" }}>
-            <span className="text-2xl">📋</span>
-            <div>
-              <p className="font-bold text-sm" style={{ color: "#3730A3" }}>Nog geen actieve diensten</p>
-              <p className="text-xs mt-0.5" style={{ color: "#6366F1" }}>Klik op &ldquo;Nieuw&rdquo; om je eerste dienst toe te voegen</p>
-            </div>
+          <div style={{ textAlign: "center", borderRight: "0.5px solid #E5DDD0" }}>
+            <p style={{ fontFamily: SERIF, fontSize: 22, margin: 0, color: "#2B4030" }}>€{gemPrijs}</p>
+            <p style={{ fontSize: 11, color: "#8A8A83", margin: "2px 0 0" }}>Gem. prijs</p>
           </div>
-        )}
-
-        {/* Tip card */}
-        <div className="flex items-start gap-3 px-4 py-4 rounded-2xl"
-          style={{ background: "#EEF2FF", border: "1px solid #C7D2FE" }}>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "#4F46E5" }}>
-            <Wrench size={15} color="white" />
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontFamily: SERIF, fontSize: 22, margin: 0, color: "#1A1D1A" }}>{gemDuur}</p>
+            <p style={{ fontSize: 11, color: "#8A8A83", margin: "2px 0 0" }}>Gem. duur</p>
           </div>
-          <p className="text-xs leading-relaxed" style={{ color: "#3730A3" }}>
-            <strong>Tip:</strong> Stel duur + buffer correct in — zo blokkeert het systeem de juiste tijd voor de volgende boeking.
-          </p>
         </div>
 
-        {/* New form */}
-        {showForm && !editId && (
-          <DienstForm dienst={{}} onSave={slaOp} onCancel={() => setShowForm(false)} />
+        {/* Service cards */}
+        {diensten.map(d =>
+          editId === d.id
+            ? <EditForm key={d.id} dienst={d} onSave={save} onCancel={() => setEditId(null)} />
+            : <DienstKaart
+                key={d.id}
+                dienst={d}
+                onToggle={() => toggle(d.id)}
+                onEdit={() => setEditId(d.id)}
+              />
         )}
 
-        {/* Active services */}
-        {actief.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-full bg-green-500" />
-              <p className="font-black text-sm" style={{ color: "#0f172a" }}>Actief ({actief.length})</p>
-            </div>
-            <div className="flex flex-col gap-3">
-              {actief.map(d => editId === d.id
-                ? <DienstForm key={d.id} dienst={d} onSave={slaOp} onCancel={() => setEditId(null)} />
-                : <DienstKaart key={d.id} dienst={d}
-                    onEdit={() => { setShowForm(false); setEditId(d.id); }}
-                    onDelete={() => verwijder(d.id)}
-                    onToggle={() => toggle(d.id)} />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Inactive services */}
-        {inactief.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-full bg-gray-300" />
-              <p className="font-black text-sm" style={{ color: "#94a3b8" }}>Inactief ({inactief.length})</p>
-            </div>
-            <div className="flex flex-col gap-3">
-              {inactief.map(d => editId === d.id
-                ? <DienstForm key={d.id} dienst={d} onSave={slaOp} onCancel={() => setEditId(null)} />
-                : <DienstKaart key={d.id} dienst={d}
-                    onEdit={() => { setShowForm(false); setEditId(d.id); }}
-                    onDelete={() => verwijder(d.id)}
-                    onToggle={() => toggle(d.id)} />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {diensten.length === 0 && !showForm && (
-          <div className="flex flex-col items-center py-16 gap-4 text-center">
-            <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
-              style={{ background: "#EEF2FF" }}>
-              <Package size={34} style={{ color: "#4F46E5" }} />
-            </div>
-            <div>
-              <p className="font-black text-lg" style={{ color: "#0f172a" }}>Nog geen diensten</p>
-              <p className="text-sm mt-1" style={{ color: "#94a3b8" }}>Voeg je eerste dienst toe om boekingen te ontvangen</p>
-            </div>
-            <button onClick={() => setShowForm(true)}
-              className="touch-scale px-6 py-3.5 rounded-2xl font-bold text-white text-sm"
-              style={{ background: "linear-gradient(135deg, #4F46E5, #818CF8)", boxShadow: "0 6px 20px rgba(79,70,229,0.4)" }}>
-              + Dienst toevoegen
-            </button>
-          </div>
+        {/* Footer hint */}
+        {diensten.length > 3 && (
+          <p style={{
+            fontFamily: SERIF, fontStyle: "italic", fontSize: 12,
+            color: "#8A8A83", marginTop: 16, textAlign: "center",
+          }}>
+            + {diensten.length - 3} actieve diensten
+          </p>
         )}
       </div>
     </div>
