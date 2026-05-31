@@ -14,6 +14,7 @@ export type UserState = {
   lng: number;
   isLoggedIn: boolean;
   isAdmin: boolean;
+  userId: string | null;   // Supabase auth UID
   unreadMeldingen: number;
   unreadBerichten: number;
   // extra profiel velden
@@ -34,6 +35,7 @@ export type UserState = {
     "avatar" | "phone" | "email" | "bio" | "website" | "specialty" | "uurtarief" | "land"
   >>) => void;
   setLand: (l: Land) => void;
+  setUserId: (id: string | null) => void;
   markMeldingenRead: () => void;
   markBerichtenRead: () => void;
   logout: () => void;
@@ -55,6 +57,7 @@ export const useUserStore = create<UserState>()(
       lng: 4.9041,
       isLoggedIn: false,
       isAdmin: false,
+      userId: null,
       unreadMeldingen: 2,
       unreadBerichten: 3,
       avatar: "",
@@ -87,6 +90,8 @@ export const useUserStore = create<UserState>()(
       setProfile: (p) => set(p),
 
       setLand: (land) => set({ land }),
+
+      setUserId: (userId) => set({ userId }),
 
       markMeldingenRead: () => set({ unreadMeldingen: 0 }),
 

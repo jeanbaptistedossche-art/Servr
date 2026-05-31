@@ -3,281 +3,264 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Bell, MapPin, Star, ChevronRight, Zap, Shield,
-  Search, Phone, MessageCircle, Calendar,
-  Wrench, Paintbrush, Hammer, Sparkles, Leaf, Lock,
-  Thermometer, Building2, Sun, Settings2, Grid3X3,
-  Layers, Car, Droplets, Wind, BellIcon,
-  LucideIcon, Clock, LayoutGrid, MoreHorizontal,
-} from "lucide-react";
-import { CATEGORIES, PROVIDERS } from "@/lib/mockData";
+import { MapPin, ChevronDown, Search, Zap, ChevronRight } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 
-// ── Cat icons ────────────────────────────────────────────────────────────────
-const CAT_ICONS: Record<string, LucideIcon> = {
-  loodgieter: Wrench, elektricien: Zap, schilder: Paintbrush,
-  timmerman: Hammer, schoonmaak: Sparkles, tuinman: Leaf,
-  verhuizen: Layers, sloten: Lock, hvac: Thermometer,
-  dak: Building2, zonnepanelen: Sun, glas: Grid3X3,
-  it: LayoutGrid, klusser: Hammer, verwarming: Zap,
-  airco: Wind, riolering: Droplets, intercom: Bell,
-  andere: Settings2,
-};
+const SERIF = "'Source Serif 4', Georgia, serif";
 
-function CatIcon({ id, size = 20 }: { id: string; size?: number }) {
-  const Icon = CAT_ICONS[id] ?? Settings2;
-  return <Icon size={size} strokeWidth={2} />;
-}
-
-// ── Grid categories (8 items incl. Meer) ─────────────────────────────────────
-const GRID_CATS = [
-  { id: "elektricien", label: "Elektro",       bg: "#FEF3C7", color: "#D97706" },
-  { id: "loodgieter",  label: "Loodgieter",    bg: "#DBEAFE", color: "#2563EB" },
-  { id: "schilder",    label: "Schilder",      bg: "#FCE7F3", color: "#DB2777" },
-  { id: "timmerman",   label: "Timmerman",     bg: "#FED7AA", color: "#EA580C" },
-  { id: "zonnepanelen",label: "Zonnepanelen",  bg: "#D1FAE5", color: "#059669" },
-  { id: "dak",         label: "Dakdekker",     bg: "#FFF7ED", color: "#C2410C" },
-  { id: "hvac",        label: "HVAC / Ketel",  bg: "#CCFBF1", color: "#0D9488" },
+// ── Categorieën (2-koloms grid, PDF spec) ─────────────────────
+const CATS = [
+  { id: "loodgieter",  label: "Loodgieter",  emoji: "🔧", count: 8  },
+  { id: "elektricien", label: "Elektricien", emoji: "⚡", count: 12 },
+  { id: "schilder",    label: "Schilder",    emoji: "🖌️", count: 5  },
+  { id: "schoonmaak",  label: "Schoonmaak",  emoji: "🧹", count: 14 },
+  { id: "tuinman",     label: "Tuinier",     emoji: "🌿", count: 6  },
+  { id: "klusser",     label: "Klusser",     emoji: "🔨", count: 9  },
 ];
 
-// ── Initials helper ───────────────────────────────────────────────────────────
-const AVATAR_COLORS = [
-  "#4F46E5","#059669","#D97706","#DC2626","#7C3AED","#0284C7","#DB2777",
+// ── Lopende opdrachten mock ───────────────────────────────────
+const OPDRACHTEN = [
+  {
+    id: "o1",
+    vakman: "Marco van den Berg",
+    beroep: "Loodgieter",
+    omschrijving: "CV-ketel inspectie",
+    status: "Bezig",
+    bedrag: "€95",
+    urgent: true,
+  },
+  {
+    id: "o2",
+    vakman: "Kim Nguyen",
+    beroep: "Schilder",
+    omschrijving: "Schilderwerk woonkamer",
+    status: "Gepland",
+    bedrag: "€350",
+    urgent: false,
+  },
 ];
-function getInitials(name: string) {
-  return name.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase();
-}
-function getAvatarColor(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
 
-// ── Main page ─────────────────────────────────────────────────────────────────
-export default function HomePage() {
-  const name            = useUserStore(s => s.name);
-  const userAddress     = useUserStore(s => s.address);
-  const unreadMeldingen = useUserStore(s => s.unreadMeldingen);
-  const [mounted, setMounted]   = useState(false);
-  const [homeQuery, setHomeQuery] = useState("");
+export default function KlantHomePage() {
+  const { name, address, role, activeView, setActiveView } = useUserStore();
+  const [mounted, setMounted] = useState(false);
+  const [query, setQuery] = useState("");
   const router = useRouter();
 
   useEffect(() => setMounted(true), []);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Goedemorgen" : hour < 18 ? "Goedemiddag" : "Goedenavond";
-  const firstName = mounted && name ? name.split(" ")[0] : "";
+  const firstName = (mounted && name) ? name.split(" ")[0] : "";
+  const displayAddress = (mounted && address) ? address : "Amsterdam";
+  const isKlant = !mounted || activeView === "klant";
+  const hasBoth = role === "beide";
 
   return (
     <div className="flex flex-col min-h-full" style={{ background: "#F5EFE5" }}>
 
-      {/* ── STICKY HEADER ─────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-30 px-5 pt-14 pb-4"
-        style={{ background: "rgba(241,244,250,0.97)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
+      {/* ── Sticky header ── */}
+      <div className="sticky top-0 z-20 px-5 pt-14 pb-4"
+        style={{ background: "rgba(245,239,229,0.97)" }}>
 
-        <div className="flex items-start justify-between">
-          {/* Greeting + location */}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold" style={{ color: "#94a3b8" }}>
+        {/* Top row: location + role toggle */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+          <div>
+            <p style={{ fontSize: 11, color: "#8A8A83", margin: "0 0 2px" }}>
               {mounted ? `${greeting}${firstName ? `, ${firstName}` : ""}` : greeting} 👋
             </p>
-            <button className="flex items-center gap-1 mt-0.5 touch-scale">
-              <MapPin size={13} style={{ color: "#4F46E5" }} />
-              <span className="font-bold text-sm" style={{ color: "#0f172a" }}>
-                {mounted && userAddress ? userAddress : "Amsterdam"}
-              </span>
-              <ChevronRight size={12} style={{ color: "#94a3b8", transform: "rotate(90deg)" }} />
+            <button className="touch-scale" style={{
+              display: "flex", alignItems: "center", gap: 4,
+              background: "none", border: "none", cursor: "pointer", padding: 0,
+            }}>
+              <MapPin size={13} style={{ color: "#2B4030" }} />
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#1A1D1A" }}>{displayAddress}</span>
+              <ChevronDown size={12} style={{ color: "#8A8A83" }} />
             </button>
           </div>
 
-          {/* Bell + Avatar */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Link href="/meldingen"
-              className="touch-scale relative w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-              <Bell size={17} style={{ color: "#475569" }} />
-              {mounted && unreadMeldingen > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 rounded-full text-[9px] font-black flex items-center justify-center text-white"
-                  style={{ background: "#EF4444", width: 18, height: 18 }}>
-                  {unreadMeldingen > 9 ? "9+" : unreadMeldingen}
-                </span>
-              )}
-            </Link>
-            <Link href="/profile"
-              className="touch-scale w-10 h-10 rounded-2xl flex items-center justify-center font-black text-white text-sm"
-              style={{ background: "linear-gradient(135deg, #4F46E5, #818CF8)", boxShadow: "0 4px 12px rgba(79,70,229,0.35)" }}>
-              {mounted && name ? name.charAt(0).toUpperCase() : "?"}
-            </Link>
-          </div>
+          {hasBoth && (
+            <button className="touch-scale" onClick={() => setActiveView(isKlant ? "vakman" : "klant")}
+              style={{ display: "flex", padding: 3, background: "#EDE4D2", borderRadius: 99, border: "none", cursor: "pointer" }}>
+              <span style={{
+                fontSize: 11, padding: "5px 11px",
+                color: isKlant ? "#F5EFE5" : "#5C5C56",
+                background: isKlant ? "#2B4030" : "transparent",
+                borderRadius: 99, fontWeight: isKlant ? 500 : 400,
+                fontFamily: "'Inter', sans-serif",
+              }}>Klant</span>
+              <span style={{
+                fontSize: 11, padding: "5px 11px",
+                color: isKlant ? "#5C5C56" : "#F5EFE5",
+                background: isKlant ? "transparent" : "#2B4030",
+                borderRadius: 99, fontWeight: isKlant ? 400 : 500,
+                fontFamily: "'Inter', sans-serif",
+              }}>Vakman</span>
+            </button>
+          )}
         </div>
 
         {/* Search bar */}
-        <form className="mt-4" onSubmit={e => { e.preventDefault(); router.push(`/search${homeQuery ? `?q=${encodeURIComponent(homeQuery)}` : ""}`); }}>
-          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl"
-            style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-            <Search size={16} style={{ color: "#94a3b8", flexShrink: 0 }} />
+        <form onSubmit={e => { e.preventDefault(); router.push(`/search${query ? `?q=${encodeURIComponent(query)}` : ""}`); }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10,
+            background: "#FBF7F0", border: "0.5px solid #E5DDD0",
+            borderRadius: 10, padding: "11px 14px",
+          }}>
+            <Search size={16} style={{ color: "#8A8A83", flexShrink: 0 }} />
             <input
               type="text"
-              value={homeQuery}
-              onChange={e => setHomeQuery(e.target.value)}
-              placeholder="Zoek een vakman of dienst..."
-              className="flex-1 bg-transparent outline-none text-sm"
-              style={{ color: homeQuery ? "#0f172a" : "#94a3b8" }}
-              autoComplete="off"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Zoek een vakman of dienst…"
+              style={{
+                flex: 1, background: "transparent", border: "none", outline: "none",
+                fontFamily: SERIF, fontStyle: "italic", fontSize: 14,
+                color: query ? "#1A1D1A" : "#8A8A83",
+              }}
             />
-            <button type="submit"
-              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 touch-scale"
-              style={{ background: "#4F46E5" }}>
-              <Search size={14} color="white" />
-            </button>
           </div>
         </form>
       </div>
 
-      {/* ── CATEGORIES GRID ───────────────────────────────────────────── */}
-      <div className="px-5 mt-5 mb-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-black text-base" style={{ color: "#0f172a" }}>Diensten</h2>
-        </div>
-        <div className="grid grid-cols-4 gap-3">
-          {GRID_CATS.map(cat => (
-            <Link key={cat.id} href={`/search?cat=${cat.id}`}
-              className="touch-scale flex flex-col items-center gap-2">
-              <div className="w-full aspect-square rounded-2xl flex items-center justify-center"
-                style={{ background: cat.bg, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                <span style={{ color: cat.color }}><CatIcon id={cat.id} size={22} /></span>
-              </div>
-              <span className="text-[10px] font-bold text-center leading-tight w-full"
-                style={{ color: "#475569" }}>
-                {cat.label}
-              </span>
-            </Link>
-          ))}
-          {/* "Meer" tile */}
-          <Link href="/search" className="touch-scale flex flex-col items-center gap-2">
-            <div className="w-full aspect-square rounded-2xl flex items-center justify-center"
-              style={{ background: "#EDE9FE", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-              <MoreHorizontal size={22} style={{ color: "#7C3AED" }} />
-            </div>
-            <span className="text-[10px] font-bold text-center leading-tight w-full"
-              style={{ color: "#475569" }}>
-              Meer
-            </span>
-          </Link>
-        </div>
-      </div>
+      <div className="px-5 pb-28">
 
-      {/* ── SPOED BANNER (D7: rustigere variant) ─────────────────────── */}
-      <div className="px-5 mb-5">
-        <Link href="/panic" className="touch-scale block">
-          <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl"
-            style={{ background: "#fff", border: "1.5px solid #E5E7EB", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: "#EEF2FF" }}>
-              <Zap size={17} style={{ color: "#4F46E5" }} strokeWidth={2.5} />
+        {/* Hero */}
+        <h1 style={{
+          fontFamily: SERIF, fontSize: 32, fontWeight: 400,
+          margin: "0 0 22px", color: "#1A1D1A", lineHeight: 1.1,
+        }}>
+          Wat heb je<br />
+          <span style={{ color: "#8A8A83", fontStyle: "italic" }}>nodig?</span>
+        </h1>
+
+        {/* Spoed focus-card */}
+        <Link href="/panic" style={{ textDecoration: "none", display: "block", marginBottom: 22 }}>
+          <div className="touch-scale" style={{
+            background: "#1A1D1A", color: "#F5EFE5",
+            borderRadius: 14, padding: "16px 18px",
+            display: "flex", alignItems: "center", gap: 14,
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: "#C97A4D",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <Zap size={20} style={{ color: "#1A1D1A" }} strokeWidth={2.5} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm" style={{ color: "#0f172a" }}>Spoed nodig?</p>
-              <p className="text-xs" style={{ color: "#64748b" }}>Vakman binnen 30 min bij jou</p>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 14, fontWeight: 500, margin: "0 0 2px" }}>Spoedhulp nodig?</p>
+              <p style={{ fontSize: 12, color: "#B8B4A8", margin: 0 }}>
+                8 vakmensen beschikbaar in de buurt
+              </p>
             </div>
-            <span className="flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-black text-white"
-              style={{ background: "#4F46E5" }}>
-              Nu
-            </span>
+            <ChevronRight size={16} style={{ color: "#8A8A83", flexShrink: 0 }} />
           </div>
         </Link>
-      </div>
 
-      {/* ── AANBEVOLEN VAKMANSEN ──────────────────────────────────────── */}
-      <div className="px-5 mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-black text-base" style={{ color: "#0f172a" }}>Aanbevolen</h2>
-          <Link href="/search" className="text-xs font-bold flex items-center gap-0.5"
-            style={{ color: "#4F46E5" }}>
-            Alle <ChevronRight size={13} />
-          </Link>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {PROVIDERS.slice(0, 4).map(p => {
-            const initials = getInitials(p.name);
-            const avatarColor = getAvatarColor(p.name);
-            return (
-              <div key={p.id}
-                className="rounded-3xl p-4"
-                style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
-                {/* Top row */}
-                <div className="flex items-center gap-3 mb-3">
-                  {/* Avatar */}
-                  <div className="relative flex-shrink-0">
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-sm"
-                      style={{ background: avatarColor }}>
-                      {initials}
-                    </div>
-                    {p.available && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white"
-                        style={{ background: "#10B981" }} />
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm truncate" style={{ color: "#0f172a" }}>{p.name}</p>
-                    <p className="text-xs truncate" style={{ color: "#64748b" }}>
-                      {p.category} · {p.distance}
+        {/* Categorie grid 2-koloms */}
+        <div style={{ marginBottom: 28 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 500, color: "#1A1D1A", margin: "0 0 12px" }}>
+            Categorieën
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {CATS.map(cat => (
+              <Link key={cat.id} href={`/search?cat=${cat.id}`} style={{ textDecoration: "none" }}>
+                <div className="touch-scale" style={{
+                  background: "#FBF7F0", border: "0.5px solid #E5DDD0",
+                  borderRadius: 12, padding: "14px 14px",
+                  display: "flex", alignItems: "center", gap: 10,
+                }}>
+                  <span style={{ fontSize: 22, lineHeight: 1 }}>{cat.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "#1A1D1A" }}>{cat.label}</p>
+                    <p style={{ fontSize: 11, color: "#8A8A83", margin: "1px 0 0" }}>
+                      {cat.count} in de buurt
                     </p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Star size={11} style={{ color: "#F59E0B" }} fill="#F59E0B" />
-                      <span className="text-xs font-bold" style={{ color: "#0f172a" }}>{p.rating}</span>
-                      <span className="text-xs" style={{ color: "#94a3b8" }}>({p.reviewCount})</span>
-                    </div>
-                  </div>
-
-                  {/* Price */}
-                  <div className="flex-shrink-0 text-right">
-                    <p className="font-black text-sm" style={{ color: "#4F46E5" }}>€{p.priceMin}/u</p>
                   </div>
                 </div>
-
-                {/* Action buttons */}
-                <div className="grid grid-cols-3 gap-2">
-                  <a href={`tel:${p.phone}`}
-                    className="touch-scale flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold"
-                    style={{ background: "#F1F5F9", color: "#334155" }}>
-                    <Phone size={13} />
-                    Bellen
-                  </a>
-                  <Link href={`/chat/${p.id}`}
-                    className="touch-scale flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold"
-                    style={{ background: "#F1F5F9", color: "#334155" }}>
-                    <MessageCircle size={13} />
-                    Bericht
-                  </Link>
-                  <Link href={`/agenda/boeken/${p.id}`}
-                    className="touch-scale flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white"
-                    style={{ background: "#4F46E5" }}>
-                    <Calendar size={13} />
-                    Boeken
-                  </Link>
+              </Link>
+            ))}
+            {/* Meer tile */}
+            <Link href="/search" style={{ textDecoration: "none" }}>
+              <div className="touch-scale" style={{
+                background: "#FBF7F0", border: "0.5px solid #E5DDD0",
+                borderRadius: 12, padding: "14px 14px",
+                display: "flex", alignItems: "center", gap: 10,
+              }}>
+                <span style={{ fontSize: 22, lineHeight: 1 }}>🛠️</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "#1A1D1A" }}>Meer</p>
+                  <p style={{ fontSize: 11, color: "#8A8A83", margin: "1px 0 0" }}>Alle categorieën</p>
                 </div>
               </div>
-            );
-          })}
+            </Link>
+          </div>
         </div>
-      </div>
 
-      {/* ── TRUST BADGE ───────────────────────────────────────────────── */}
-      <div className="px-5 pb-28">
-        <div className="flex items-center justify-center gap-2 py-4 rounded-2xl"
-          style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-          <Shield size={14} style={{ color: "#10B981" }} />
-          <span className="text-xs font-semibold" style={{ color: "#374151" }}>
-            100% veilig betalen · Gecertificeerde vakmensen
-          </span>
-        </div>
-      </div>
+        {/* Lopende opdrachten */}
+        {OPDRACHTEN.length > 0 && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <h2 style={{ fontSize: 13, fontWeight: 500, color: "#1A1D1A", margin: 0 }}>
+                Mijn lopende opdrachten
+              </h2>
+              <Link href="/klussen" style={{
+                fontSize: 12, color: "#2B4030", fontWeight: 500, textDecoration: "none",
+                display: "flex", alignItems: "center", gap: 2,
+              }}>
+                Alle <ChevronRight size={12} />
+              </Link>
+            </div>
 
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {OPDRACHTEN.map(op => (
+                <Link key={op.id} href={`/opdracht/${op.id}`} style={{ textDecoration: "none" }}>
+                  <div className="touch-scale" style={{
+                    background: "#FBF7F0", border: "0.5px solid #E5DDD0",
+                    borderRadius: 12, padding: 14,
+                    display: "flex", alignItems: "center", gap: 12,
+                  }}>
+                    {/* Avatar */}
+                    <div style={{
+                      width: 40, height: 40, borderRadius: "50%",
+                      background: op.urgent ? "#C97A4D" : "#2B4030",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontFamily: SERIF, fontSize: 16,
+                      color: op.urgent ? "#1A1D1A" : "#F5EFE5",
+                      flexShrink: 0,
+                    }}>
+                      {op.vakman.charAt(0)}
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "#1A1D1A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {op.vakman}
+                      </p>
+                      <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 11, color: "#8A8A83", margin: "1px 0 0" }}>
+                        {op.beroep} · {op.omschrijving}
+                      </p>
+                    </div>
+
+                    {/* Status badge or amount */}
+                    {op.urgent ? (
+                      <span style={{
+                        fontSize: 10, fontWeight: 500, padding: "3px 8px",
+                        background: "#C97A4D", color: "#1A1D1A",
+                        borderRadius: 99, flexShrink: 0,
+                      }}>Actie</span>
+                    ) : (
+                      <span style={{
+                        fontFamily: SERIF, fontSize: 14, color: "#1A1D1A", flexShrink: 0,
+                      }}>{op.bedrag}</span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
