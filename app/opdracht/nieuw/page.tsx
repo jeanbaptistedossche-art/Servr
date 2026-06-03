@@ -48,13 +48,23 @@ function NieuweOpdrachtContent() {
   const submit = async () => {
     if (!categorie || !titel) return;
     setSubmitting(true);
-    // Haal userId op — ook rechtstreeks uit Supabase sessie als fallback
     let userId = useUserStore.getState().userId;
     if (!userId && supabaseReady) {
       const { data: { session } } = await supabase.auth.getSession();
       userId = session?.user?.id ?? null;
     }
     if (!userId) { alert("Je bent niet ingelogd."); setSubmitting(false); return; }
+
+    // Locatie ophalen (gebruikt al gecachede toestemming — geen extra popup)
+    let lat: number | null = null;
+    let lng: number | null = null;
+    try {
+      const pos = await new Promise<GeolocationPosition>((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000, maximumAge: 3600000 })
+      );
+      lat = pos.coords.latitude;
+      lng = pos.coords.longitude;
+    } catch { /* geen locatie beschikbaar */ }
 
     const { data, error } = await (supabase.from("opdrachten") as any).insert({
       klant_id: userId,
@@ -65,6 +75,8 @@ function NieuweOpdrachtContent() {
       urgentie,
       budget: budget || null,
       status: "open",
+      lat,
+      lng,
     }).select("id").single();
 
     if (error) {
@@ -72,11 +84,11 @@ function NieuweOpdrachtContent() {
       setSubmitting(false);
       return;
     }
-    // Push notificatie naar vakmensen
+    // Push notificatie naar vakmensen binnen straal
     fetch("/api/push/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ categorie, titel, beschrijving, opdrachtId: data?.id }),
+      body: JSON.stringify({ categorie, titel, beschrijving, opdrachtId: data?.id, lat, lng }),
     });
 
     router.push("/mijn-opdrachten?nieuw=1");

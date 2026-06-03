@@ -298,6 +298,18 @@ export default function KlantHomePage() {
                       userId = session?.user?.id ?? null;
                     }
                     if (!userId) { alert("Log eerst in"); setStemVersturen(false); return; }
+
+                    // Locatie ophalen (gebruikt gecachede toestemming)
+                    let opdrachtLat: number | null = null;
+                    let opdrachtLng: number | null = null;
+                    try {
+                      const pos = await new Promise<GeolocationPosition>((res, rej) =>
+                        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000, maximumAge: 3600000 })
+                      );
+                      opdrachtLat = pos.coords.latitude;
+                      opdrachtLng = pos.coords.longitude;
+                    } catch { /* geen locatie */ }
+
                     const { data: opdracht } = await (sb.from("opdrachten") as any).insert({
                       klant_id: userId,
                       titel: stemResultaat.titel || stemTekst.slice(0, 60),
@@ -305,9 +317,11 @@ export default function KlantHomePage() {
                       categorie: stemResultaat.categorie,
                       urgentie: stemResultaat.urgentie ?? "middel",
                       status: "open",
+                      lat: opdrachtLat,
+                      lng: opdrachtLng,
                     }).select("id").single();
 
-                    // Stuur push notificatie naar alle vakmensen van die categorie
+                    // Stuur push notificatie naar vakmensen binnen straal
                     fetch("/api/push/send", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -316,6 +330,8 @@ export default function KlantHomePage() {
                         titel: stemResultaat.titel || stemTekst.slice(0, 60),
                         beschrijving: stemTekst,
                         opdrachtId: opdracht?.id,
+                        lat: opdrachtLat,
+                        lng: opdrachtLng,
                       }),
                     });
                     setStemStatus("verzonden");
