@@ -4,6 +4,7 @@ import BottomNav from "@/components/BottomNav";
 import ThemeProvider from "@/components/ThemeProvider";
 import AuthGuard from "@/components/AuthGuard";
 import PushSubscriber from "@/components/PushSubscriber";
+import LocationTracker from "@/components/LocationTracker";
 
 export const metadata: Metadata = {
   title: "Servr — De app voor lokale dienstverleners",
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider />
         <AuthGuard />
         <PushSubscriber />
+        <LocationTracker />
         <main className="flex-1 pb-[var(--bottom-nav-height)]">
           {children}
         </main>

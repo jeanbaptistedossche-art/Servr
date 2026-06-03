@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   try {
-    const { subscription, userId, categorie } = await req.json();
+    const { subscription, userId, categorie, lat, lng } = await req.json();
     if (!subscription || !userId) return NextResponse.json({ error: "Ontbrekende data" }, { status: 400 });
 
     const supabase = createClient(
@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
       p256dh: subscription.keys?.p256dh,
       auth: subscription.keys?.auth,
       categorie: categorie ?? null,
+      lat: lat ?? null,
+      lng: lng ?? null,
     }, { onConflict: "user_id" });
 
     return NextResponse.json({ success: true });

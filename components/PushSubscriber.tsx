@@ -41,10 +41,21 @@ export default function PushSubscriber() {
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
         });
 
+        // Haal locatie op voor push filtering
+        let lat: number | null = null;
+        let lng: number | null = null;
+        try {
+          const pos = await new Promise<GeolocationPosition>((res, rej) =>
+            navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 })
+          );
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        } catch { /* locatie niet beschikbaar */ }
+
         await fetch("/api/push/subscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ subscription: subscription.toJSON(), userId, categorie: specialty || null }),
+          body: JSON.stringify({ subscription: subscription.toJSON(), userId, categorie: specialty || null, lat, lng }),
         });
       } catch (e) {
         console.warn("Push subscription mislukt:", e);
