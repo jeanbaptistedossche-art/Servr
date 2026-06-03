@@ -69,25 +69,25 @@ export default function PrivacybeleidPage() {
   return (
     <div className="flex flex-col min-h-full pb-10 animate-fade-in">
       <div className="px-5 pt-12 pb-5 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <div className="flex items-center gap-3">
           <Link href="/instellingen"
             className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: "var(--surface-2)" }}>
+            style={{ background: "#EDE4D2" }}>
             <ArrowLeft size={18} />
           </Link>
           <div>
             <h1 className="font-black text-xl">Privacybeleid</h1>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>Versie 1.0 · Geldig vanaf 1 januari 2026</p>
+            <p className="text-xs" style={{ color: "#8A8A83" }}>Versie 1.0 · Geldig vanaf 1 januari 2026</p>
           </div>
         </div>
       </div>
 
       <div className="px-5 pt-5 flex flex-col gap-6">
         <div className="p-4 rounded-2xl flex items-start gap-3"
-          style={{ background: "var(--teal)" + "10" }}>
-          <Shield size={18} style={{ color: "var(--teal)", flexShrink: 0, marginTop: 2 }} />
-          <p className="text-sm leading-relaxed" style={{ color: "var(--teal)" }}>
+          style={{ background: "#2B4030" + "10" }}>
+          <Shield size={18} style={{ color: "#2B4030", flexShrink: 0, marginTop: 2 }} />
+          <p className="text-sm leading-relaxed" style={{ color: "#2B4030" }}>
             <strong>Jouw privacy is onze prioriteit.</strong> Servr verkoopt nooit jouw gegevens. Locatie wordt alleen gedeeld met toestemming. Betalingen lopen via de beveiligde Stripe infrastructuur.
           </p>
         </div>
@@ -99,8 +99,8 @@ export default function PrivacybeleidPage() {
               {s.items.map((item, i) => (
                 <div key={i} className="flex items-start gap-2.5">
                   <div className="w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0"
-                    style={{ background: "var(--teal)" }} />
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{item}</p>
+                    style={{ background: "#2B4030" }} />
+                  <p className="text-sm leading-relaxed" style={{ color: "#8A8A83" }}>{item}</p>
                 </div>
               ))}
             </div>
@@ -109,13 +109,13 @@ export default function PrivacybeleidPage() {
 
         <div className="card p-4">
           <p className="font-bold text-sm mb-1">Contact DPO</p>
-          <p className="text-xs" style={{ color: "var(--muted)" }}>
+          <p className="text-xs" style={{ color: "#8A8A83" }}>
             Vragen over jouw privacy? Neem contact op met onze Data Protection Officer via{" "}
-            <span style={{ color: "var(--teal)" }}>privacy@servr.app</span>
+            <span style={{ color: "#2B4030" }}>privacy@servr.app</span>
           </p>
         </div>
 
-        <div className="text-xs text-center pb-4" style={{ color: "var(--muted)" }}>
+        <div className="text-xs text-center pb-4" style={{ color: "#8A8A83" }}>
           © 2026 Servr BV · Gebaseerd op GDPR / AVG
         </div>
       </div>

@@ -3,10 +3,10 @@
 import { useState, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChevronLeft, Plus, Camera, Star, Eye, Share2,
+  ArrowLeft, Plus, Camera, Star, Eye, Share2,
   X, Check, ChevronRight, ChevronDown, Image,
   Trash2, Heart, Filter, Globe, Lock,
-  ArrowLeft, ArrowRight, Edit3,
+  ArrowRight, Edit3,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -18,11 +18,11 @@ type PortfolioItem = {
   beschrijving?: string;
   categorie: Categorie;
   datumAfgerond: string;
-  fotoVoor: string;    // URL or base64
-  fotoNa: string;      // URL or base64
+  fotoVoor: string;
+  fotoNa: string;
   klant?: string;
   locatie?: string;
-  duur?: string;       // "3 uur", "2 dagen"
+  duur?: string;
   prijs?: number;
   rating?: number;
   klantReview?: string;
@@ -33,12 +33,12 @@ type PortfolioItem = {
 
 // ─── Category config ──────────────────────────────────────────────────────────
 const CAT_CFG: Record<Categorie, { label: string; icon: string; color: string; bg: string }> = {
-  loodgieter: { label: "Loodgieter",  icon: "🔧", color: "#0EA5E9", bg: "#F0F9FF" },
-  schilder:   { label: "Schilder",    icon: "🖌️", color: "#8B5CF6", bg: "#F5F3FF" },
-  elektra:    { label: "Elektra",     icon: "⚡", color: "#F59E0B", bg: "#FFFBEB" },
-  tegels:     { label: "Tegels",      icon: "🔲", color: "#10B981", bg: "#ECFDF5" },
-  timmer:     { label: "Timmerwerk",  icon: "🔨", color: "#6366F1", bg: "#EEF2FF" },
-  overig:     { label: "Overig",      icon: "⭐", color: "#64748b", bg: "#F8FAFC" },
+  loodgieter: { label: "Loodgieter",  icon: "🔧", color: "#2B4030", bg: "#EAF0EC" },
+  schilder:   { label: "Schilder",    icon: "🖌️", color: "#5C5C56", bg: "#F0EFE8" },
+  elektra:    { label: "Elektra",     icon: "⚡", color: "#C97A4D", bg: "#FAF0E6" },
+  tegels:     { label: "Tegels",      icon: "🔲", color: "#2B4030", bg: "#EAF0EC" },
+  timmer:     { label: "Timmerwerk",  icon: "🔨", color: "#5C5C56", bg: "#F0EFE8" },
+  overig:     { label: "Overig",      icon: "⭐", color: "#8A8A83", bg: "#F5EFE5" },
 };
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ function Stars({ n }: { n: number }) {
   return (
     <div className="flex gap-0.5">
       {[1,2,3,4,5].map((i) => (
-        <Star key={i} size={12} fill={i <= n ? "#F59E0B" : "none"} style={{ color: i <= n ? "#F59E0B" : "#D1D5DB" }} />
+        <Star key={i} size={12} fill={i <= n ? "#C97A4D" : "none"} style={{ color: i <= n ? "#C97A4D" : "#E5DDD0" }} />
       ))}
     </div>
   );
@@ -147,7 +147,7 @@ function Stars({ n }: { n: number }) {
 
 // ─── Slider component ─────────────────────────────────────────────────────────
 function VoorNaSlider({ voor, na, titel }: { voor: string; na: string; titel: string }) {
-  const [pos, setPos] = useState(50); // 0-100
+  const [pos, setPos] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
 
@@ -170,8 +170,8 @@ function VoorNaSlider({ voor, na, titel }: { voor: string; na: string; titel: st
   return (
     <div
       ref={containerRef}
-      className="relative overflow-hidden rounded-2xl select-none"
-      style={{ aspectRatio: "4/3", cursor: "ew-resize" }}
+      className="relative overflow-hidden select-none"
+      style={{ aspectRatio: "4/3", cursor: "ew-resize", borderRadius: 12 }}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
@@ -179,40 +179,32 @@ function VoorNaSlider({ voor, na, titel }: { voor: string; na: string; titel: st
       onTouchMove={onTouchMove}
       onTouchStart={(e) => updatePos(e.touches[0].clientX)}
     >
-      {/* NA foto (onderste laag) */}
       <img src={na} alt={`${titel} na`}
         className="absolute inset-0 w-full h-full object-cover"
         draggable={false} />
-
-      {/* VOOR foto (clip) */}
       <div className="absolute inset-0 overflow-hidden"
         style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
         <img src={voor} alt={`${titel} voor`}
           className="w-full h-full object-cover"
           draggable={false} />
       </div>
-
-      {/* Divider lijn */}
       <div className="absolute top-0 bottom-0 w-0.5 pointer-events-none"
-        style={{ left: `${pos}%`, background: "#fff", boxShadow: "0 0 8px rgba(0,0,0,0.4)" }}>
-        {/* Handle */}
+        style={{ left: `${pos}%`, background: "#FBF7F0", boxShadow: "0 0 8px rgba(0,0,0,0.3)" }}>
         <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.25)", left: "50%" }}>
+          style={{ background: "#FBF7F0", boxShadow: "0 2px 12px rgba(0,0,0,0.2)", left: "50%", border: "0.5px solid #E5DDD0" }}>
           <div className="flex gap-1">
-            <ArrowLeft size={12} style={{ color: "#374151" }} />
-            <ArrowRight size={12} style={{ color: "#374151" }} />
+            <ArrowLeft size={12} style={{ color: "#5C5C56" }} />
+            <ArrowRight size={12} style={{ color: "#5C5C56" }} />
           </div>
         </div>
       </div>
-
-      {/* Labels */}
       <div className="absolute top-3 left-3 pointer-events-none">
-        <span className="text-xs font-bold px-2 py-1 rounded-full text-white"
-          style={{ background: "rgba(0,0,0,0.55)" }}>VOOR</span>
+        <span className="text-xs font-semibold px-2 py-1 text-white"
+          style={{ background: "rgba(0,0,0,0.5)", borderRadius: 99 }}>VOOR</span>
       </div>
       <div className="absolute top-3 right-3 pointer-events-none">
-        <span className="text-xs font-bold px-2 py-1 rounded-full text-white"
-          style={{ background: "rgba(0,0,0,0.55)" }}>NA</span>
+        <span className="text-xs font-semibold px-2 py-1 text-white"
+          style={{ background: "rgba(0,0,0,0.5)", borderRadius: 99 }}>NA</span>
       </div>
     </div>
   );
@@ -228,9 +220,7 @@ export default function PortfolioPage() {
   const [catFilter, setCatFilter] = useState<Categorie | "alle">("alle");
   const [showDetail, setShowDetail] = useState<PortfolioItem | null>(null);
   const [showNieuw, setShowNieuw] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // New item form
   const [form, setForm] = useState<Partial<PortfolioItem>>({
     categorie: "overig", publiek: true, likes: 0, views: 0,
   });
@@ -307,24 +297,27 @@ export default function PortfolioPage() {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen" style={{ background: "#F1F4FA" }}>
+    <div className="min-h-screen" style={{ background: "#F5EFE5", fontFamily: "'Inter', sans-serif" }}>
       {/* Header */}
-      <div className="sticky top-0 z-30 px-4 pt-12 pb-3"
-        style={{ background: "rgba(241,244,250,0.96)", backdropFilter: "blur(12px)" }}>
-        <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => router.back()}
-            className="touch-scale w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.10)" }}>
-            <ChevronLeft size={20} style={{ color: "#0f172a" }} />
+      <div className="px-5 pt-14 pb-4"
+        style={{ background: "rgba(245,239,229,0.97)" }}>
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => router.push('/profile')}
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+            <ArrowLeft size={18} style={{ color: "#1A1D1A" }} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black truncate" style={{ color: "#0f172a" }}>Portfolio</h1>
-            <p className="text-xs truncate" style={{ color: "#64748b" }}>Voor & na foto's per klus</p>
+            <h1 className="text-xl font-bold truncate"
+              style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+              Portfolio
+            </h1>
+            <p className="text-xs truncate" style={{ color: "#8A8A83" }}>Voor & na foto's per klus</p>
           </div>
           <button onClick={() => setShowNieuw(true)}
-            className="touch-scale flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-sm text-white"
-            style={{ background: "#4F46E5" }}>
-            <Plus size={16} />
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold"
+            style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 99, border: "none" }}>
+            <Plus size={15} />
             Toevoegen
           </button>
         </div>
@@ -332,11 +325,12 @@ export default function PortfolioPage() {
         {/* Category chips */}
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           <button onClick={() => setCatFilter("alle")}
-            className="flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold"
+            className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold"
             style={{
-              background: catFilter === "alle" ? "#4F46E5" : "#fff",
-              color: catFilter === "alle" ? "#fff" : "#64748b",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+              background: catFilter === "alle" ? "#2B4030" : "transparent",
+              color: catFilter === "alle" ? "#F5EFE5" : "#5C5C56",
+              borderRadius: 99,
+              border: catFilter === "alle" ? "none" : "0.5px solid #E5DDD0",
             }}>
             Alles ({items.length})
           </button>
@@ -346,11 +340,12 @@ export default function PortfolioPage() {
             const cfg = CAT_CFG[cat];
             return (
               <button key={cat} onClick={() => setCatFilter(cat)}
-                className="flex-shrink-0 flex items-center gap-1 px-4 py-2 rounded-full text-xs font-bold"
+                className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold"
                 style={{
-                  background: catFilter === cat ? cfg.color : "#fff",
-                  color: catFilter === cat ? "#fff" : "#64748b",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                  background: catFilter === cat ? "#2B4030" : "transparent",
+                  color: catFilter === cat ? "#F5EFE5" : "#5C5C56",
+                  borderRadius: 99,
+                  border: catFilter === cat ? "none" : "0.5px solid #E5DDD0",
                 }}>
                 {cfg.icon} {cfg.label} ({cnt})
               </button>
@@ -359,39 +354,38 @@ export default function PortfolioPage() {
         </div>
       </div>
 
-      <div className="px-4 pb-28 mt-4 flex flex-col gap-4">
+      <div className="px-5 pb-28 mt-4 flex flex-col gap-4">
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-2xl p-3 flex flex-col items-center gap-0.5"
-            style={{ background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-            <Image size={16} style={{ color: "#4F46E5" }} />
-            <p className="font-black text-xl leading-tight" style={{ color: "#0f172a" }}>{items.length}</p>
-            <p className="text-xs text-center" style={{ color: "#94a3b8" }}>Projecten</p>
+        <div className="grid grid-cols-3 gap-2"
+          style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+          <div className="flex flex-col items-center gap-0.5">
+            <p className="font-bold text-2xl leading-tight"
+              style={{ color: "#2B4030", fontFamily: "'Source Serif 4', Georgia, serif" }}>{items.length}</p>
+            <p className="text-xs text-center" style={{ color: "#8A8A83" }}>Projecten</p>
           </div>
-          <div className="rounded-2xl p-3 flex flex-col items-center gap-0.5"
-            style={{ background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-            <Eye size={16} style={{ color: "#10B981" }} />
-            <p className="font-black text-xl leading-tight" style={{ color: "#0f172a" }}>{totaalViews}</p>
-            <p className="text-xs text-center" style={{ color: "#94a3b8" }}>Bekeken</p>
+          <div className="flex flex-col items-center gap-0.5"
+            style={{ borderLeft: "0.5px solid #E5DDD0", borderRight: "0.5px solid #E5DDD0" }}>
+            <p className="font-bold text-2xl leading-tight"
+              style={{ color: "#2B4030", fontFamily: "'Source Serif 4', Georgia, serif" }}>{totaalViews}</p>
+            <p className="text-xs text-center" style={{ color: "#8A8A83" }}>Bekeken</p>
           </div>
-          <div className="rounded-2xl p-3 flex flex-col items-center gap-0.5"
-            style={{ background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-            <Heart size={16} style={{ color: "#EF4444" }} />
-            <p className="font-black text-xl leading-tight" style={{ color: "#0f172a" }}>{totaalLikes}</p>
-            <p className="text-xs text-center" style={{ color: "#94a3b8" }}>Likes</p>
+          <div className="flex flex-col items-center gap-0.5">
+            <p className="font-bold text-2xl leading-tight"
+              style={{ color: "#2B4030", fontFamily: "'Source Serif 4', Georgia, serif" }}>{totaalLikes}</p>
+            <p className="text-xs text-center" style={{ color: "#8A8A83" }}>Likes</p>
           </div>
         </div>
 
         {/* Grid */}
         {filtered.length === 0 ? (
-          <div className="rounded-3xl p-8 text-center"
-            style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+          <div className="p-8 text-center"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
             <p className="text-3xl mb-2">📸</p>
-            <p className="font-bold" style={{ color: "#0f172a" }}>Geen projecten gevonden</p>
-            <p className="text-sm mt-1" style={{ color: "#64748b" }}>Voeg je eerste voor/na project toe</p>
+            <p className="font-semibold" style={{ color: "#1A1D1A" }}>Geen projecten gevonden</p>
+            <p className="text-sm mt-1" style={{ color: "#8A8A83" }}>Voeg je eerste voor/na project toe</p>
             <button onClick={() => setShowNieuw(true)}
-              className="touch-scale mt-4 px-6 py-3 rounded-2xl font-bold text-white text-sm"
-              style={{ background: "#4F46E5" }}>
+              className="mt-4 px-6 py-3 font-semibold text-sm"
+              style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 99, border: "none" }}>
               Eerste project toevoegen
             </button>
           </div>
@@ -402,47 +396,39 @@ export default function PortfolioPage() {
               return (
                 <button key={item.id}
                   onClick={() => setShowDetail(item)}
-                  className="touch-scale rounded-2xl overflow-hidden text-left"
-                  style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-                  {/* Voor/Na thumbnail */}
+                  className="text-left overflow-hidden"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                   <div className="relative overflow-hidden" style={{ aspectRatio: "4/3" }}>
-                    {/* NA */}
                     <img src={item.fotoNa} alt="na" className="absolute inset-0 w-full h-full object-cover" />
-                    {/* VOOR halve overlay */}
                     <div className="absolute inset-0 overflow-hidden" style={{ clipPath: "inset(0 50% 0 0)" }}>
                       <img src={item.fotoVoor} alt="voor" className="w-full h-full object-cover" />
                     </div>
-                    {/* Center divider */}
-                    <div className="absolute inset-y-0 left-1/2 w-0.5" style={{ background: "#fff" }} />
-                    {/* Labels */}
-                    <span className="absolute top-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded-full text-white"
-                      style={{ background: "rgba(0,0,0,0.5)", fontSize: 9 }}>V</span>
-                    <span className="absolute top-2 right-2 text-xs font-bold px-1.5 py-0.5 rounded-full text-white"
-                      style={{ background: "rgba(0,0,0,0.5)", fontSize: 9 }}>N</span>
-                    {/* Public badge */}
+                    <div className="absolute inset-y-0 left-1/2 w-0.5" style={{ background: "#FBF7F0" }} />
+                    <span className="absolute top-2 left-2 text-xs font-semibold px-1.5 py-0.5 text-white"
+                      style={{ background: "rgba(0,0,0,0.45)", borderRadius: 99, fontSize: 9 }}>V</span>
+                    <span className="absolute top-2 right-2 text-xs font-semibold px-1.5 py-0.5 text-white"
+                      style={{ background: "rgba(0,0,0,0.45)", borderRadius: 99, fontSize: 9 }}>N</span>
                     {!item.publiek && (
                       <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
-                        style={{ background: "rgba(0,0,0,0.5)" }}>
+                        style={{ background: "rgba(0,0,0,0.45)" }}>
                         <Lock size={10} style={{ color: "#fff" }} />
                       </div>
                     )}
                   </div>
-
-                  {/* Card info */}
-                  <div className="p-3">
-                    <p className="text-sm font-bold leading-tight" style={{ color: "#0f172a" }}>{item.titel}</p>
+                  <div style={{ padding: "10px 12px 12px" }}>
+                    <p className="text-sm font-semibold leading-tight" style={{ color: "#1A1D1A" }}>{item.titel}</p>
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-xs" style={{ color: cfg.color }}>{cfg.icon}</span>
-                      <span className="text-xs" style={{ color: "#94a3b8" }}>{cfg.label}</span>
+                      <span className="text-xs">{cfg.icon}</span>
+                      <span className="text-xs" style={{ color: "#8A8A83" }}>{cfg.label}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-2">
                       <div className="flex items-center gap-1">
-                        <Heart size={11} style={{ color: "#EF4444" }} />
-                        <span className="text-xs" style={{ color: "#94a3b8" }}>{item.likes}</span>
+                        <Heart size={11} style={{ color: "#C97A4D" }} />
+                        <span className="text-xs" style={{ color: "#8A8A83" }}>{item.likes}</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Eye size={11} style={{ color: "#64748b" }} />
-                        <span className="text-xs" style={{ color: "#94a3b8" }}>{item.views}</span>
+                        <Eye size={11} style={{ color: "#8A8A83" }} />
+                        <span className="text-xs" style={{ color: "#8A8A83" }}>{item.views}</span>
                       </div>
                       {item.rating && <Stars n={item.rating} />}
                     </div>
@@ -457,22 +443,21 @@ export default function PortfolioPage() {
       {/* ── Detail sheet ─────────────────────────────────────────────────────── */}
       {showDetail && (
         <div className="fixed inset-0 z-50 flex items-end"
-          style={{ background: "rgba(0,0,0,0.6)" }}
+          style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setShowDetail(null)}>
-          <div className="w-full max-w-[480px] mx-auto rounded-t-[32px] overflow-hidden max-h-[92dvh] flex flex-col"
-            style={{ background: "#F1F4FA" }}
+          <div className="w-full max-w-[480px] mx-auto rounded-t-[24px] overflow-hidden max-h-[92dvh] flex flex-col"
+            style={{ background: "#F5EFE5" }}
             onClick={(e) => e.stopPropagation()}>
-            {/* Handle */}
-            <div className="px-5 pt-4 pb-2 flex-shrink-0" style={{ background: "#F1F4FA" }}>
-              <div className="w-10 h-1 rounded-full mx-auto mb-3" style={{ background: "#CBD5E1" }} />
+            <div className="px-5 pt-4 pb-2 flex-shrink-0" style={{ background: "#F5EFE5" }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-3" style={{ background: "#E5DDD0" }} />
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="font-black text-lg" style={{ color: "#0f172a" }}>{showDetail.titel}</h2>
+                  <h2 className="font-bold text-lg" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+                    {showDetail.titel}
+                  </h2>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span style={{ color: CAT_CFG[showDetail.categorie].color }}>
-                      {CAT_CFG[showDetail.categorie].icon}
-                    </span>
-                    <span className="text-xs font-semibold" style={{ color: "#64748b" }}>
+                    <span>{CAT_CFG[showDetail.categorie].icon}</span>
+                    <span className="text-xs font-medium" style={{ color: "#5C5C56" }}>
                       {CAT_CFG[showDetail.categorie].label}
                     </span>
                     {showDetail.rating && <Stars n={showDetail.rating} />}
@@ -480,80 +465,75 @@ export default function PortfolioPage() {
                 </div>
                 <button onClick={() => setShowDetail(null)}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: "#E2E8F0" }}>
-                  <X size={16} style={{ color: "#6B7280" }} />
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+                  <X size={15} style={{ color: "#8A8A83" }} />
                 </button>
               </div>
             </div>
 
-            {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto px-5 pb-6">
-              {/* Interactive slider */}
               <div className="mt-3 mb-4">
                 <VoorNaSlider voor={showDetail.fotoVoor} na={showDetail.fotoNa} titel={showDetail.titel} />
-                <p className="text-xs text-center mt-2" style={{ color: "#94a3b8" }}>
+                <p className="text-xs text-center mt-2" style={{ color: "#8A8A83" }}>
                   ← Sleep om voor/na te vergelijken →
                 </p>
               </div>
 
-              {/* Beschrijving */}
               {showDetail.beschrijving && (
-                <p className="text-sm leading-relaxed mb-4" style={{ color: "#374151" }}>
+                <p className="text-sm leading-relaxed mb-4" style={{ color: "#5C5C56" }}>
                   {showDetail.beschrijving}
                 </p>
               )}
 
-              {/* Details grid */}
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {showDetail.klant    && <DField label="Klant"    value={showDetail.klant} />}
                 {showDetail.locatie  && <DField label="Locatie"  value={showDetail.locatie} />}
                 {showDetail.duur     && <DField label="Duur"     value={showDetail.duur} />}
-                {showDetail.prijs    && <DField label="Prijs"    value={fmtEur(showDetail.prijs)} accent="#10B981" />}
+                {showDetail.prijs    && <DField label="Prijs"    value={fmtEur(showDetail.prijs)} accent="#2B4030" />}
                 <DField label="Datum" value={new Date(showDetail.datumAfgerond).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" })} />
                 <DField label="Views" value={`${showDetail.views} × bekeken`} />
               </div>
 
-              {/* Review */}
               {showDetail.klantReview && (
-                <div className="rounded-2xl p-4 mb-4" style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+                <div className="p-4 mb-4"
+                  style={{ background: "#FAF0E6", border: "0.5px solid #E5DDD0", borderRadius: 12 }}>
                   <div className="flex items-center gap-2 mb-2">
                     {showDetail.rating && <Stars n={showDetail.rating} />}
-                    <p className="text-xs font-bold" style={{ color: "#D97706" }}>{showDetail.klant}</p>
+                    <p className="text-xs font-medium" style={{ color: "#C97A4D" }}>{showDetail.klant}</p>
                   </div>
-                  <p className="text-sm italic" style={{ color: "#374151" }}>"{showDetail.klantReview}"</p>
+                  <p className="text-sm italic" style={{ color: "#5C5C56" }}>"{showDetail.klantReview}"</p>
                 </div>
               )}
 
-              {/* Action buttons */}
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <button onClick={() => toggleLike(showDetail.id)}
-                  className="touch-scale py-3 rounded-2xl flex flex-col items-center gap-1"
-                  style={{ background: "#FEF2F2" }}>
-                  <Heart size={18} style={{ color: "#EF4444" }} />
-                  <span className="text-xs font-bold" style={{ color: "#EF4444" }}>{showDetail.likes}</span>
+                  className="py-3 flex flex-col items-center gap-1"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 12 }}>
+                  <Heart size={17} style={{ color: "#C97A4D" }} />
+                  <span className="text-xs font-semibold" style={{ color: "#C97A4D" }}>{showDetail.likes}</span>
                 </button>
                 <button onClick={() => togglePubliek(showDetail.id)}
-                  className="touch-scale py-3 rounded-2xl flex flex-col items-center gap-1"
-                  style={{ background: showDetail.publiek ? "#ECFDF5" : "#F3F4F6" }}>
+                  className="py-3 flex flex-col items-center gap-1"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 12 }}>
                   {showDetail.publiek
-                    ? <Globe size={18} style={{ color: "#10B981" }} />
-                    : <Lock size={18} style={{ color: "#94a3b8" }} />
+                    ? <Globe size={17} style={{ color: "#2B4030" }} />
+                    : <Lock size={17} style={{ color: "#8A8A83" }} />
                   }
-                  <span className="text-xs font-bold" style={{ color: showDetail.publiek ? "#10B981" : "#94a3b8" }}>
+                  <span className="text-xs font-semibold" style={{ color: showDetail.publiek ? "#2B4030" : "#8A8A83" }}>
                     {showDetail.publiek ? "Publiek" : "Privé"}
                   </span>
                 </button>
-                <button className="touch-scale py-3 rounded-2xl flex flex-col items-center gap-1"
-                  style={{ background: "#EEF2FF" }}>
-                  <Share2 size={18} style={{ color: "#4F46E5" }} />
-                  <span className="text-xs font-bold" style={{ color: "#4F46E5" }}>Delen</span>
+                <button className="py-3 flex flex-col items-center gap-1"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 12 }}>
+                  <Share2 size={17} style={{ color: "#5C5C56" }} />
+                  <span className="text-xs font-semibold" style={{ color: "#5C5C56" }}>Delen</span>
                 </button>
               </div>
 
               <button onClick={() => deleteItem(showDetail.id)}
-                className="touch-scale w-full py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-                style={{ background: "#FEF2F2", color: "#EF4444" }}>
-                <Trash2 size={16} />
+                className="w-full py-3.5 font-semibold text-sm flex items-center justify-center gap-2"
+                style={{ background: "#F9EDEA", color: "#8A3A2A", border: "0.5px solid #E5DDD0", borderRadius: 12 }}>
+                <Trash2 size={15} />
                 Project verwijderen
               </button>
             </div>
@@ -564,10 +544,10 @@ export default function PortfolioPage() {
       {/* ── Nieuw project sheet ──────────────────────────────────────────────── */}
       {showNieuw && (
         <div className="fixed inset-0 z-50 flex items-end"
-          style={{ background: "rgba(0,0,0,0.5)" }}
+          style={{ background: "rgba(0,0,0,0.45)" }}
           onClick={() => setShowNieuw(false)}>
-          <div className="w-full max-w-[480px] mx-auto rounded-t-[32px] overflow-hidden max-h-[92dvh] overflow-y-auto"
-            style={{ background: "#fff" }}
+          <div className="w-full max-w-[480px] mx-auto rounded-t-[24px] overflow-hidden max-h-[92dvh] overflow-y-auto"
+            style={{ background: "#FBF7F0" }}
             onClick={(e) => e.stopPropagation()}>
             <input ref={voorRef} type="file" accept="image/*" className="hidden"
               onChange={(e) => handlePhoto("voor", e)} />
@@ -575,76 +555,76 @@ export default function PortfolioPage() {
               onChange={(e) => handlePhoto("na", e)} />
 
             <div className="p-5">
-              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5E7EB" }} />
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5DDD0" }} />
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-black" style={{ color: "#0f172a" }}>Nieuw project</h2>
+                <h2 className="text-lg font-bold"
+                  style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+                  Nieuw project
+                </h2>
                 <button onClick={() => setShowNieuw(false)}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: "#F3F4F6" }}>
-                  <X size={16} style={{ color: "#6B7280" }} />
+                  style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0" }}>
+                  <X size={15} style={{ color: "#8A8A83" }} />
                 </button>
               </div>
 
               <div className="flex flex-col gap-4">
                 {/* Foto upload */}
                 <div className="grid grid-cols-2 gap-3">
-                  {/* VOOR */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
+                    <label className="text-xs font-semibold uppercase tracking-wide mb-2 block" style={{ color: "#8A8A83" }}>
                       Foto VOOR *
                     </label>
                     <button onClick={() => voorRef.current?.click()}
-                      className="touch-scale w-full rounded-2xl overflow-hidden flex items-center justify-center"
-                      style={{ aspectRatio: "1", background: "#F8FAFC", border: "2px dashed #CBD5E1" }}>
+                      className="w-full overflow-hidden flex items-center justify-center"
+                      style={{ aspectRatio: "1", background: "#F5EFE5", border: "0.5px dashed #E5DDD0", borderRadius: 12 }}>
                       {voorPreview ? (
                         <img src={voorPreview} alt="voor" className="w-full h-full object-cover" />
                       ) : (
                         <div className="flex flex-col items-center gap-2">
-                          <Camera size={24} style={{ color: "#94a3b8" }} />
-                          <span className="text-xs" style={{ color: "#94a3b8" }}>Foto voor</span>
+                          <Camera size={22} style={{ color: "#8A8A83" }} />
+                          <span className="text-xs" style={{ color: "#8A8A83" }}>Foto voor</span>
                         </div>
                       )}
                     </button>
                   </div>
-                  {/* NA */}
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
+                    <label className="text-xs font-semibold uppercase tracking-wide mb-2 block" style={{ color: "#8A8A83" }}>
                       Foto NA *
                     </label>
                     <button onClick={() => naRef.current?.click()}
-                      className="touch-scale w-full rounded-2xl overflow-hidden flex items-center justify-center"
-                      style={{ aspectRatio: "1", background: "#F8FAFC", border: "2px dashed #CBD5E1" }}>
+                      className="w-full overflow-hidden flex items-center justify-center"
+                      style={{ aspectRatio: "1", background: "#F5EFE5", border: "0.5px dashed #E5DDD0", borderRadius: 12 }}>
                       {naPreview ? (
                         <img src={naPreview} alt="na" className="w-full h-full object-cover" />
                       ) : (
                         <div className="flex flex-col items-center gap-2">
-                          <Camera size={24} style={{ color: "#94a3b8" }} />
-                          <span className="text-xs" style={{ color: "#94a3b8" }}>Foto na</span>
+                          <Camera size={22} style={{ color: "#8A8A83" }} />
+                          <span className="text-xs" style={{ color: "#8A8A83" }}>Foto na</span>
                         </div>
                       )}
                     </button>
                   </div>
                 </div>
 
-                {/* Titel */}
                 <FormField label="Projectnaam *">
                   <input value={form.titel ?? ""} onChange={(e) => setForm((f) => ({ ...f, titel: e.target.value }))}
                     placeholder="Badkamer renovatie…"
-                    className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                    style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                    style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                 </FormField>
 
-                {/* Categorie */}
                 <FormField label="Categorie">
                   <div className="grid grid-cols-3 gap-2">
                     {(Object.keys(CAT_CFG) as Categorie[]).map((cat) => {
                       const cfg = CAT_CFG[cat];
                       return (
                         <button key={cat} onClick={() => setForm((f) => ({ ...f, categorie: cat }))}
-                          className="py-2.5 rounded-xl text-xs font-bold"
+                          className="py-2.5 text-xs font-semibold"
                           style={{
-                            background: form.categorie === cat ? cfg.color : "#F3F4F6",
-                            color: form.categorie === cat ? "#fff" : "#64748b",
+                            background: form.categorie === cat ? "#2B4030" : "transparent",
+                            color: form.categorie === cat ? "#F5EFE5" : "#5C5C56",
+                            borderRadius: 8,
+                            border: form.categorie === cat ? "none" : "0.5px solid #E5DDD0",
                           }}>
                           {cfg.icon} {cfg.label}
                         </button>
@@ -653,70 +633,61 @@ export default function PortfolioPage() {
                   </div>
                 </FormField>
 
-                {/* Beschrijving */}
                 <FormField label="Beschrijving">
                   <textarea value={form.beschrijving ?? ""} onChange={(e) => setForm((f) => ({ ...f, beschrijving: e.target.value }))}
                     placeholder="Omschrijf het project…" rows={2}
-                    className="w-full rounded-2xl px-4 py-3.5 text-sm resize-none"
-                    style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                    className="w-full resize-none"
+                    style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none" }} />
                 </FormField>
 
-                {/* Klant + locatie */}
                 <div className="grid grid-cols-2 gap-3">
                   <FormField label="Klant">
                     <input value={form.klant ?? ""} onChange={(e) => setForm((f) => ({ ...f, klant: e.target.value }))}
                       placeholder="Naam klant…"
-                      className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                      style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                   </FormField>
                   <FormField label="Locatie">
                     <input value={form.locatie ?? ""} onChange={(e) => setForm((f) => ({ ...f, locatie: e.target.value }))}
                       placeholder="Amsterdam…"
-                      className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                      style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                   </FormField>
                 </div>
 
-                {/* Duur + prijs */}
                 <div className="grid grid-cols-2 gap-3">
                   <FormField label="Duur">
                     <input value={form.duur ?? ""} onChange={(e) => setForm((f) => ({ ...f, duur: e.target.value }))}
                       placeholder="3 uur, 2 dagen…"
-                      className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                      style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                   </FormField>
                   <FormField label="Prijs (€)">
                     <input type="number" value={form.prijs ?? ""}
                       onChange={(e) => setForm((f) => ({ ...f, prijs: e.target.value ? Number(e.target.value) : undefined }))}
                       placeholder="480"
-                      className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                      style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                   </FormField>
                 </div>
 
-                {/* Datum */}
                 <FormField label="Datum afgerond">
                   <input type="date" value={form.datumAfgerond ?? ""}
                     onChange={(e) => setForm((f) => ({ ...f, datumAfgerond: e.target.value }))}
-                    className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                    style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                    style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                 </FormField>
 
                 {/* Publiek toggle */}
-                <div className="flex items-center justify-between p-4 rounded-2xl"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0" }}>
+                <div className="flex items-center justify-between p-4"
+                  style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0", borderRadius: 12 }}>
                   <div className="flex items-center gap-3">
-                    {form.publiek ? <Globe size={18} style={{ color: "#10B981" }} /> : <Lock size={18} style={{ color: "#94a3b8" }} />}
+                    {form.publiek ? <Globe size={17} style={{ color: "#2B4030" }} /> : <Lock size={17} style={{ color: "#8A8A83" }} />}
                     <div>
-                      <p className="text-sm font-bold" style={{ color: "#0f172a" }}>
+                      <p className="text-sm font-semibold" style={{ color: "#1A1D1A" }}>
                         {form.publiek ? "Publiek zichtbaar" : "Privé (alleen voor jou)"}
                       </p>
-                      <p className="text-xs" style={{ color: "#94a3b8" }}>Zichtbaar op je publiek profiel</p>
+                      <p className="text-xs" style={{ color: "#8A8A83" }}>Zichtbaar op je publiek profiel</p>
                     </div>
                   </div>
                   <button onClick={() => setForm((f) => ({ ...f, publiek: !f.publiek }))}
                     className="w-12 h-7 rounded-full transition-all"
-                    style={{ background: form.publiek ? "#10B981" : "#CBD5E1" }}>
+                    style={{ background: form.publiek ? "#2B4030" : "#E5DDD0" }}>
                     <div className="w-5 h-5 rounded-full bg-white transition-all mx-1"
                       style={{ transform: form.publiek ? "translateX(20px)" : "translateX(0)" }} />
                   </button>
@@ -724,9 +695,9 @@ export default function PortfolioPage() {
 
                 <button onClick={saveItem}
                   disabled={!form.titel || !form.fotoVoor || !form.fotoNa}
-                  className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2 disabled:opacity-40"
-                  style={{ background: "#4F46E5" }}>
-                  <Check size={18} />
+                  className="w-full py-4 font-semibold flex items-center justify-center gap-2 disabled:opacity-40"
+                  style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 99, border: "none" }}>
+                  <Check size={17} />
                   Project opslaan
                 </button>
               </div>
@@ -741,9 +712,9 @@ export default function PortfolioPage() {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 function DField({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="rounded-2xl p-3" style={{ background: "#fff" }}>
-      <p className="text-xs font-semibold mb-0.5" style={{ color: "#94a3b8" }}>{label}</p>
-      <p className="text-sm font-bold" style={{ color: accent ?? "#0f172a" }}>{value}</p>
+    <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 10, padding: 12 }}>
+      <p className="text-xs font-medium mb-0.5" style={{ color: "#8A8A83" }}>{label}</p>
+      <p className="text-sm font-semibold" style={{ color: accent ?? "#1A1D1A" }}>{value}</p>
     </div>
   );
 }
@@ -751,7 +722,7 @@ function DField({ label, value, accent }: { label: string; value: string; accent
 function FormField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>{label}</label>
+      <label className="text-xs font-semibold uppercase tracking-wide mb-2 block" style={{ color: "#8A8A83" }}>{label}</label>
       {children}
     </div>
   );

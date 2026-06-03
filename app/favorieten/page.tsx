@@ -2,117 +2,163 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Star, MapPin, Heart, CalendarDays, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Star, MapPin, Heart, CalendarDays, ChevronRight, Search } from "lucide-react";
 import { PROVIDERS } from "@/lib/mockData";
 
-// Use first 4 providers as favorites
+const SERIF = "'Source Serif 4', Georgia, serif";
+
 const FAVORIETEN = PROVIDERS.slice(0, 4);
 
 export default function FavorietenPage() {
+  const router = useRouter();
   const [verwijderd, setVerwijderd] = useState<string[]>([]);
-
   const actief = FAVORIETEN.filter(p => !verwijderd.includes(p.id));
 
   return (
-    <div className="flex flex-col min-h-full pb-10 animate-fade-in">
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", background: "#F5EFE5" }}>
+
       {/* Header */}
-      <div className="px-5 pt-12 pb-5 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
-        <div className="flex items-center gap-3">
-          <Link href="/profile"
-            className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: "var(--surface-2)" }}>
-            <ArrowLeft size={18} />
-          </Link>
-          <div className="flex-1">
-            <h1 className="font-black text-xl">Favorieten</h1>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>
-              {actief.length} opgeslagen {actief.length === 1 ? "vakman" : "vakmensen"}
+      <div className="px-5 pt-14 pb-4" style={{ background: "rgba(245,239,229,0.97)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={() => router.push("/profile")}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex" }}>
+            <ArrowLeft size={18} style={{ color: "#1A1D1A" }} />
+          </button>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, color: "#8A8A83", margin: 0 }}>
+              {actief.length} opgeslagen
             </p>
+            <h2 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 400, margin: 0, color: "#1A1D1A" }}>
+              Favorieten
+            </h2>
           </div>
         </div>
       </div>
 
-      <div className="px-5 pt-5 flex flex-col gap-3">
+      <div className="px-5 pb-28">
+
+        {/* Leeg */}
         {actief.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ background: "var(--surface-2)" }}>
-              <Heart size={28} style={{ color: "var(--muted)" }} />
+          <div style={{ textAlign: "center", paddingTop: 60 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: "50%", background: "#EDE4D2",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 16px",
+            }}>
+              <Heart size={24} style={{ color: "#8A8A83" }} />
             </div>
-            <p className="font-bold text-base">Geen favorieten</p>
-            <p className="text-sm text-center" style={{ color: "var(--muted)" }}>
-              Voeg vakmensen toe aan je favorieten om ze hier te zien.
+            <p style={{ fontFamily: SERIF, fontSize: 18, color: "#1A1D1A", margin: "0 0 8px" }}>
+              Geen favorieten
             </p>
-            <Link href="/search"
-              className="touch-scale mt-2 px-6 py-3 rounded-2xl font-bold text-white text-sm"
-              style={{ background: "var(--teal)" }}>
-              Vakmensen zoeken
+            <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 24px" }}>
+              Sla vakmensen op om ze hier te zien.
+            </p>
+            <Link href="/search" style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "10px 20px", background: "#2B4030", color: "#F5EFE5",
+              borderRadius: 99, fontSize: 13, fontWeight: 500, textDecoration: "none",
+            }}>
+              <Search size={14} /> Vakmensen zoeken
             </Link>
           </div>
         )}
 
-        {actief.map(p => (
-          <div key={p.id} className="card p-4 flex items-center gap-3">
-            {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <img src={p.avatar} className="w-14 h-14 rounded-2xl object-cover" alt={p.name} />
-              {p.available && (
-                <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white"
-                  style={{ background: "#22c55e" }} />
-              )}
-            </div>
+        {/* Lijst */}
+        {actief.map((p, i) => {
+          const initial = p.name.charAt(0).toUpperCase();
+          return (
+            <div key={p.id} style={{
+              background: "#FBF7F0", border: "0.5px solid #E5DDD0",
+              borderRadius: 14, padding: 16, marginBottom: 10,
+            }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
 
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm">{p.name}</p>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>{p.category}</p>
-              <div className="flex items-center gap-3 mt-1.5">
-                <div className="flex items-center gap-0.5">
-                  <Star size={11} className="fill-yellow-400 text-yellow-400" />
-                  <span className="text-xs font-semibold">{p.rating}</span>
-                  <span className="text-xs" style={{ color: "var(--muted)" }}>({p.reviewCount})</span>
+                {/* Avatar */}
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: "50%",
+                    background: "#2B4030",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: SERIF, fontSize: 20, color: "#F5EFE5",
+                  }}>{initial}</div>
+                  {p.available && (
+                    <span style={{
+                      position: "absolute", bottom: 1, right: 1,
+                      width: 11, height: 11, borderRadius: "50%",
+                      background: "#2B4030", border: "2px solid #FBF7F0",
+                    }} />
+                  )}
                 </div>
-                <div className="flex items-center gap-0.5">
-                  <MapPin size={10} style={{ color: "var(--muted)" }} />
-                  <span className="text-xs" style={{ color: "var(--muted)" }}>{p.distance}</span>
+
+                {/* Info */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 15, fontWeight: 500, margin: "0 0 2px", color: "#1A1D1A" }}>{p.name}</p>
+                  <p style={{ fontSize: 12, color: "#8A8A83", margin: "0 0 6px" }}>{p.category}</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12, color: "#C97A4D" }}>
+                      <Star size={11} style={{ fill: "#C97A4D" }} />
+                      <strong style={{ color: "#1A1D1A" }}>{p.rating}</strong>
+                      <span style={{ color: "#8A8A83" }}>({p.reviewCount})</span>
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12, color: "#8A8A83" }}>
+                      <MapPin size={11} /> {p.distance}
+                    </span>
+                  </div>
+                  <p style={{ fontFamily: SERIF, fontSize: 14, color: "#2B4030", margin: "6px 0 0" }}>
+                    Vanaf €{p.priceMin}/u
+                  </p>
                 </div>
               </div>
-              <p className="text-xs mt-1 font-semibold" style={{ color: "var(--teal)" }}>
-                Vanaf €{p.priceMin}/u
-              </p>
-            </div>
 
-            {/* Acties */}
-            <div className="flex flex-col gap-2 flex-shrink-0">
-              <Link href={`/agenda/boeken/${p.id}`}
-                className="touch-scale flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold text-white"
-                style={{ background: "var(--teal)" }}>
-                <CalendarDays size={12} /> Boek
-              </Link>
-              <button
-                onClick={() => setVerwijderd(v => [...v, p.id])}
-                className="touch-scale flex items-center justify-center w-full py-1.5 rounded-xl text-xs font-semibold border"
-                style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
-                <Heart size={12} className="fill-red-400 text-red-400 mr-1" /> Verwijder
-              </button>
+              {/* Acties */}
+              <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 12, borderTop: "0.5px solid #E5DDD0" }}>
+                <Link href={`/agenda/boeken/${p.id}`} style={{
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  padding: "10px 0", background: "#2B4030", color: "#F5EFE5",
+                  borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: "none",
+                }}>
+                  <CalendarDays size={13} /> Boeken
+                </Link>
+                <button onClick={() => setVerwijderd(v => [...v, p.id])} style={{
+                  padding: "10px 14px", background: "transparent",
+                  border: "0.5px solid #E5DDD0", borderRadius: 10,
+                  cursor: "pointer", display: "flex", alignItems: "center", gap: 5,
+                  fontSize: 12, color: "#8A8A83",
+                }}>
+                  <Heart size={13} style={{ fill: "#C97A4D", color: "#C97A4D" }} /> Verwijder
+                </button>
+                <Link href={`/provider/${p.id}`} style={{
+                  padding: "10px 12px", background: "transparent",
+                  border: "0.5px solid #E5DDD0", borderRadius: 10,
+                  display: "flex", alignItems: "center",
+                  textDecoration: "none", color: "#5C5C56",
+                }}>
+                  <ChevronRight size={15} />
+                </Link>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
+        {/* Meer zoeken */}
         {actief.length > 0 && (
-          <Link href="/search"
-            className="touch-scale card p-4 flex items-center gap-3 mt-2"
-            style={{ borderStyle: "dashed", borderWidth: 2, borderColor: "var(--border)" }}>
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{ background: "var(--teal)" + "12" }}>
-              <span className="text-2xl">🔍</span>
+          <Link href="/search" style={{
+            display: "flex", alignItems: "center", gap: 12, padding: 14,
+            background: "#FBF7F0", border: "0.5px dashed #C8C5BC",
+            borderRadius: 14, textDecoration: "none", marginTop: 4,
+          }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: "50%", background: "#EDE4D2",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              <Search size={18} style={{ color: "#5C5C56" }} />
             </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm">Meer vakmensen ontdekken</p>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Zoek en voeg toe aan je favorieten</p>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "#1A1D1A" }}>Meer vakmensen vinden</p>
+              <p style={{ fontSize: 12, color: "#8A8A83", margin: "2px 0 0" }}>Zoek en voeg toe aan je favorieten</p>
             </div>
-            <ChevronRight size={16} style={{ color: "var(--muted)" }} />
+            <ChevronRight size={14} style={{ color: "#8A8A83" }} />
           </Link>
         )}
       </div>

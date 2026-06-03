@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Plus, Trash2, Send, Eye, Euro,
@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { MOCK_BEDRIJF, MOCK_DIENSTEN, type OfferteRegel } from "@/lib/bedrijfStore";
 import { useOfferteStore } from "@/lib/offerteStore";
+import { supabase, supabaseReady } from "@/lib/supabase";
+import { useUserStore } from "@/lib/store";
 
 type Fase = "opstellen" | "preview" | "verstuurd";
 type KostenType = "alles_inbegrepen" | "plus_materiaal";
@@ -43,17 +45,35 @@ function fmt(n: number) {
   return n.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function OffertesMaakPage() {
+function OffertesMaakInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const opdrachtId = searchParams.get("opdracht_id");
+  const opdrachtTitel = searchParams.get("titel") ?? "Opdracht";
+  const klantId = searchParams.get("klant_id");
+
   const bedrijf = MOCK_BEDRIJF;
   const { verstuurOfferte } = useOfferteStore();
 
   const [fase, setFase] = useState<Fase>("opstellen");
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Klant
+  // Klant — automatisch geladen uit Supabase
   const [klantNaam, setKlantNaam] = useState("");
   const [klantEmail, setKlantEmail] = useState("");
   const [klantTelefoon, setKlantTelefoon] = useState("");
+
+  useEffect(() => {
+    if (!klantId || !supabaseReady) return;
+    supabase.from("profiles").select("name, email, phone").eq("id", klantId).single()
+      .then(({ data }) => {
+        if (data) {
+          setKlantNaam((data as any).name ?? "");
+          setKlantEmail((data as any).email ?? "");
+          setKlantTelefoon((data as any).phone ?? "");
+        }
+      });
+  }, [klantId]);
 
   // Werk
   const [omschrijving, setOmschrijving] = useState("");
@@ -69,6 +89,9 @@ export default function OffertesMaakPage() {
   const [nieuwAantal, setNieuwAantal] = useState(1);
   const [nieuwPrijs, setNieuwPrijs] = useState<number | "">("");
   const [showMatForm, setShowMatForm] = useState(false);
+
+  // ETA
+  const [eta, setEta] = useState("");
 
   // Notities
   const [notities, setNotities] = useState("");
@@ -99,90 +122,142 @@ export default function OffertesMaakPage() {
 
   const kanVersturen = omschrijving.trim() && prijs > 0;
 
-  // ── Versturen naar store ─────────────────────────────────────
-  const handleVersturen = () => {
-    const regels: OfferteRegel[] = [
-      {
-        id: "r1",
-        omschrijving,
-        aantal: 1,
-        eenheid: "klus",
-        prijsPerEenheid: prijs,
-        btwPercentage: btw ? 21 : 0,
-      },
-      ...(kostenType === "plus_materiaal"
-        ? materialen.map((m, i) => ({
-            id: `rm${i + 1}`,
-            omschrijving: m.naam,
-            aantal: m.aantal,
-            eenheid: "stuk",
-            prijsPerEenheid: m.prijs,
-            btwPercentage: btw ? 21 : 0,
-          }))
-        : []),
-    ];
-    verstuurOfferte({
-      nummer,
-      datum,
-      geldigTot,
-      vakmanNaam: bedrijf.handelsnaam,
-      vakmanAvatar: "https://i.pravatar.cc/150?img=11",
-      vakmanChatId: "p1",
-      klantNaam: klantNaam || "Klant",
-      klantAvatar: "https://i.pravatar.cc/150?img=68",
-      regels,
-      subtotaal,
-      totaalBtw: btwBedrag,
-      totaal,
-      notities,
-    });
-    setFase("verstuurd");
+  // ── Versturen naar Supabase ───────────────────────────────────
+  const handleVersturen = async () => {
+    setIsSaving(true);
+    try {
+      // Also save to local store
+      const regels: OfferteRegel[] = [
+        {
+          id: "r1",
+          omschrijving,
+          aantal: 1,
+          eenheid: "klus",
+          prijsPerEenheid: prijs,
+          btwPercentage: btw ? 21 : 0,
+        },
+        ...(kostenType === "plus_materiaal"
+          ? materialen.map((m, i) => ({
+              id: `rm${i + 1}`,
+              omschrijving: m.naam,
+              aantal: m.aantal,
+              eenheid: "stuk",
+              prijsPerEenheid: m.prijs,
+              btwPercentage: btw ? 21 : 0,
+            }))
+          : []),
+      ];
+      verstuurOfferte({
+        nummer,
+        datum,
+        geldigTot,
+        vakmanNaam: bedrijf.handelsnaam,
+        vakmanAvatar: "https://i.pravatar.cc/150?img=11",
+        vakmanChatId: "p1",
+        klantNaam: klantNaam || "Klant",
+        klantAvatar: "https://i.pravatar.cc/150?img=68",
+        regels,
+        subtotaal,
+        totaalBtw: btwBedrag,
+        totaal,
+        notities,
+      });
+
+      // Save to Supabase
+      let userId = useUserStore.getState().userId;
+      if (!userId && supabaseReady) {
+        const { data: { session } } = await supabase.auth.getSession();
+        userId = session?.user?.id ?? null;
+      }
+      if (!userId) { alert("Niet ingelogd — log opnieuw in."); return; }
+
+      const totaalBedrag = totaal;
+      const allOmschrijvingen = [omschrijving, ...materialen.map(m => m.naam)].filter(Boolean).join(", ");
+
+      const { error: offerteError } = await (supabase.from("offertes") as any).insert({
+        opdracht_id: opdrachtId || null,
+        vakman_id: userId,
+        prijs: totaalBedrag,
+        omschrijving: allOmschrijvingen,
+        eta: eta || null,
+        status: "wachtend",
+      });
+
+      if (offerteError) { alert("Fout bij verzenden: " + offerteError.message); return; }
+
+      if (opdrachtId) {
+        await (supabase.from("opdrachten") as any)
+          .update({ status: "offerte_ontvangen" })
+          .eq("id", opdrachtId);
+      }
+
+      setFase("verstuurd");
+    } catch (err) {
+      console.error("Fout bij opslaan offerte:", err);
+      alert("Er ging iets mis: " + String(err));
+      setFase("verstuurd");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  // ── Auto-navigate after verstuurd ────────────────────────────
+  useEffect(() => {
+    if (fase === "verstuurd" && opdrachtId) {
+      const timer = setTimeout(() => router.push("/feed"), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [fase, opdrachtId, router]);
 
   // ── Verstuurd ────────────────────────────────────────────────
   if (fase === "verstuurd") return (
     <div className="flex flex-col items-center justify-center min-h-dvh gap-6 px-6 text-center animate-bounce-in pb-24">
-      <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: "var(--teal)" }}>
+      <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: "#2B4030" }}>
         <Send size={32} color="white" />
       </div>
       <div>
         <h2 className="font-black text-2xl mb-2">Offerte verstuurd!</h2>
-        <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
+        <p className="text-sm leading-relaxed" style={{ color: "#8A8A83" }}>
           Offerte <strong>{nummer}</strong> is verstuurd{klantNaam ? ` naar ${klantNaam}` : ""}.
           De klant ontvangt een melding in de app.
         </p>
+        {opdrachtId && (
+          <p className="text-xs mt-2" style={{ color: "#8A8A83" }}>
+            Je wordt teruggestuurd naar het feed…
+          </p>
+        )}
       </div>
       <div className="card p-4 w-full text-left flex flex-col gap-2">
         <div className="flex justify-between text-sm">
-          <span style={{ color: "var(--muted)" }}>Arbeid / werkzaamheden</span>
+          <span style={{ color: "#8A8A83" }}>Arbeid / werkzaamheden</span>
           <span>€{fmt(prijs)}</span>
         </div>
         {kostenType === "plus_materiaal" && matSubtotaal > 0 && (
           <div className="flex justify-between text-sm">
-            <span style={{ color: "var(--muted)" }}>Materiaal ({materialen.length} art.)</span>
+            <span style={{ color: "#8A8A83" }}>Materiaal ({materialen.length} art.)</span>
             <span>€{fmt(matSubtotaal)}</span>
           </div>
         )}
         {btw && (
           <div className="flex justify-between text-sm">
-            <span style={{ color: "var(--muted)" }}>BTW (21%)</span>
+            <span style={{ color: "#8A8A83" }}>BTW (21%)</span>
             <span>€{fmt(btwBedrag)}</span>
           </div>
         )}
-        <div className="flex justify-between font-black text-base pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+        <div className="flex justify-between font-black text-base pt-2 border-t" style={{ borderColor: "#E5DDD0" }}>
           <span>Totaal</span>
-          <span style={{ color: "var(--teal)" }}>€{fmt(totaal)}</span>
+          <span style={{ color: "#2B4030" }}>€{fmt(totaal)}</span>
         </div>
       </div>
       <div className="flex flex-col gap-3 w-full">
         <Link href="/offerte/maak"
           className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-center"
-          style={{ background: "var(--teal)" }}>
+          style={{ background: "#2B4030" }}>
           Nieuwe offerte maken
         </Link>
-        <Link href="/dashboard"
+        <Link href="/profile"
           className="touch-scale py-3 text-center text-sm font-medium"
-          style={{ color: "var(--muted)" }}>
+          style={{ color: "#8A8A83" }}>
           Terug naar dashboard
         </Link>
       </div>
@@ -193,18 +268,31 @@ export default function OffertesMaakPage() {
   if (fase === "preview") return (
     <div className="flex flex-col min-h-full pb-8 animate-fade-in">
       <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <button onClick={() => setFase("opstellen")}
           className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
           <ArrowLeft size={18} />
         </button>
         <h1 className="font-black text-lg flex-1">Voorbeeld</h1>
-        <button onClick={handleVersturen}
+        <button
+          onClick={handleVersturen}
+          disabled={isSaving}
           className="touch-scale flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-white text-sm"
-          style={{ background: "var(--teal)" }}>
-          <Send size={14} /> Versturen
+          style={{ background: "#2B4030", opacity: isSaving ? 0.7 : 1 }}>
+          <Send size={14} /> {isSaving ? "Versturen…" : "Versturen"}
         </button>
       </div>
+
+      {/* Context banner */}
+      {opdrachtId && (
+        <div className="mx-5 mt-4">
+          <div style={{ background: "#EAF0EC", border: "0.5px solid #2B4030", borderRadius: 10, padding: "10px 14px" }}>
+            <p style={{ fontSize: 12, color: "#2B4030", margin: 0 }}>
+              📋 Offerte voor: <strong>{opdrachtTitel}</strong>
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Document */}
       <div className="mx-5 mt-5 rounded-3xl overflow-hidden shadow-lg mb-5"
@@ -321,10 +409,12 @@ export default function OffertesMaakPage() {
       </div>
 
       <div className="px-5">
-        <button onClick={handleVersturen}
+        <button
+          onClick={handleVersturen}
+          disabled={isSaving}
           className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-          style={{ background: "var(--teal)" }}>
-          <Send size={18} /> Offerte versturen naar {klantNaam || "klant"}
+          style={{ background: "#2B4030", opacity: isSaving ? 0.7 : 1 }}>
+          <Send size={18} /> {isSaving ? "Versturen…" : `Offerte versturen naar ${klantNaam || "klant"}`}
         </button>
       </div>
     </div>
@@ -335,22 +425,22 @@ export default function OffertesMaakPage() {
     <div className="flex flex-col min-h-full pb-8 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
-        <Link href="/dashboard"
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
+        <Link href="/profile"
           className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
           <ArrowLeft size={18} />
         </Link>
         <div className="flex-1">
           <h1 className="font-black text-lg">Nieuwe offerte</h1>
-          <p className="text-xs font-semibold" style={{ color: "var(--teal)" }}>{nummer}</p>
+          <p className="text-xs font-semibold" style={{ color: "#2B4030" }}>{nummer}</p>
         </div>
         <button
           onClick={() => kanVersturen && setFase("preview")}
           className="touch-scale flex items-center gap-1.5 px-4 py-2.5 rounded-2xl font-bold text-sm"
           style={{
-            background: kanVersturen ? "var(--teal)" + "15" : "var(--surface-2)",
-            color: kanVersturen ? "var(--teal)" : "var(--muted)",
-            border: `1.5px solid ${kanVersturen ? "var(--teal)" : "transparent"}`,
+            background: kanVersturen ? "#2B4030" + "15" : "#EDE4D2",
+            color: kanVersturen ? "#2B4030" : "#8A8A83",
+            border: `1.5px solid ${kanVersturen ? "#2B4030" : "transparent"}`,
           }}>
           <Eye size={14} /> Preview
         </button>
@@ -358,21 +448,40 @@ export default function OffertesMaakPage() {
 
       <div className="px-5 pt-5 flex flex-col gap-5">
 
-        {/* ── Klant ── */}
-        <section className="card p-4 flex flex-col gap-3">
-          <p className="font-black text-sm">👤 Klant</p>
-          {[
-            { label: "Naam", value: klantNaam, set: setKlantNaam, placeholder: "Lisa de Vries", required: false },
-            { label: "E-mail", value: klantEmail, set: setKlantEmail, placeholder: "lisa@email.nl", required: false },
-            { label: "Telefoon", value: klantTelefoon, set: setKlantTelefoon, placeholder: "06-98765432", required: false },
-          ].map(f => (
-            <div key={f.label}>
-              <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "var(--muted)" }}>{f.label}</label>
-              <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
-                className="w-full px-3 py-2.5 rounded-xl border outline-none text-sm"
-                style={{ borderColor: f.value ? "var(--teal)" : "var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
+        {/* Context banner */}
+        {opdrachtId && (
+          <div style={{ background: "#EAF0EC", border: "0.5px solid #2B4030", borderRadius: 10, padding: "10px 14px", marginBottom: 0 }}>
+            <p style={{ fontSize: 12, color: "#2B4030", margin: 0 }}>
+              📋 Offerte voor: <strong>{opdrachtTitel}</strong>
+            </p>
+          </div>
+        )}
+
+        {/* ── Klant — automatisch geladen ── */}
+        <section style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+          <p style={{ fontSize: 11, color: "#8A8A83", margin: "0 0 10px", fontWeight: 600, textTransform: "uppercase" as const }}>👤 Klant</p>
+          {klantNaam ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, color: "#8A8A83" }}>Naam</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: "#1A1D1A" }}>{klantNaam}</span>
+              </div>
+              {klantEmail && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 12, color: "#8A8A83" }}>E-mail</span>
+                  <span style={{ fontSize: 13, color: "#1A1D1A" }}>{klantEmail}</span>
+                </div>
+              )}
+              {klantTelefoon && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 12, color: "#8A8A83" }}>Telefoon</span>
+                  <span style={{ fontSize: 13, color: "#1A1D1A" }}>{klantTelefoon}</span>
+                </div>
+              )}
             </div>
-          ))}
+          ) : (
+            <p style={{ fontSize: 13, color: "#8A8A83", fontStyle: "italic" }}>Klantgegevens laden…</p>
+          )}
         </section>
 
         {/* ── Prijs & omschrijving ── */}
@@ -381,26 +490,26 @@ export default function OffertesMaakPage() {
 
           {/* Prijs */}
           <div>
-            <label className="text-[10px] font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+            <label className="text-[10px] font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
               Prijs arbeid / werkzaamheden *
             </label>
             <div className="flex items-center gap-2 px-4 py-3.5 rounded-2xl border"
-              style={{ borderColor: arbeidsPrijs ? "var(--teal)" : "var(--border)", background: "var(--surface)" }}>
-              <Euro size={18} style={{ color: "var(--teal)", flexShrink: 0 }} />
+              style={{ borderColor: arbeidsPrijs ? "#2B4030" : "#E5DDD0", background: "#FBF7F0" }}>
+              <Euro size={18} style={{ color: "#2B4030", flexShrink: 0 }} />
               <input
                 type="number"
                 value={arbeidsPrijs}
                 onChange={e => setArbeidsPrijs(e.target.value === "" ? "" : Number(e.target.value))}
                 placeholder="0,00"
                 className="flex-1 bg-transparent outline-none font-black text-xl"
-                style={{ color: "var(--teal)" }}
+                style={{ color: "#2B4030" }}
               />
             </div>
           </div>
 
           {/* Omschrijving */}
           <div>
-            <label className="text-[10px] font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+            <label className="text-[10px] font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
               Omschrijving werkzaamheden *
             </label>
             <textarea
@@ -409,7 +518,21 @@ export default function OffertesMaakPage() {
               placeholder="Bijv. lekkage reparatie keuken inclusief afdichting. Duurt ca. 1,5 uur."
               rows={3}
               className="w-full px-3 py-3 rounded-2xl border outline-none text-sm resize-none"
-              style={{ borderColor: omschrijving ? "var(--teal)" : "var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
+              style={{ borderColor: omschrijving ? "#2B4030" : "#E5DDD0", background: "#FBF7F0", color: "#1A1D1A" }}
+            />
+          </div>
+
+          {/* ETA */}
+          <div>
+            <label className="text-[10px] font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
+              Verwachte uitvoering (optioneel)
+            </label>
+            <input
+              value={eta}
+              onChange={e => setEta(e.target.value)}
+              placeholder="Bijv. binnen 3 dagen"
+              className="w-full px-3 py-2.5 rounded-xl border outline-none text-sm"
+              style={{ borderColor: eta ? "#2B4030" : "#E5DDD0", background: "#FBF7F0", color: "#1A1D1A" }}
             />
           </div>
 
@@ -417,12 +540,12 @@ export default function OffertesMaakPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-semibold text-sm">BTW (21%) toevoegen</p>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Voor zakelijke klanten</p>
+              <p className="text-xs" style={{ color: "#8A8A83" }}>Voor zakelijke klanten</p>
             </div>
             <button
               onClick={() => setBtw(v => !v)}
               className="touch-scale relative w-12 h-6 rounded-full transition-all"
-              style={{ background: btw ? "var(--teal)" : "var(--surface-2)" }}>
+              style={{ background: btw ? "#2B4030" : "#EDE4D2" }}>
               <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all"
                 style={{ left: btw ? "calc(100% - 22px)" : "2px" }} />
             </button>
@@ -456,16 +579,16 @@ export default function OffertesMaakPage() {
                 <button key={opt.id} onClick={() => setKostenType(opt.id)}
                   className="touch-scale flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all"
                   style={{
-                    borderColor: actief ? opt.color : "var(--border)",
-                    background: actief ? opt.bg + "80" : "var(--surface)",
+                    borderColor: actief ? opt.color : "#E5DDD0",
+                    background: actief ? opt.bg + "80" : "#FBF7F0",
                   }}>
                   <span className="text-2xl flex-shrink-0">{opt.icon}</span>
                   <div className="flex-1">
                     <p className="font-bold text-sm">{opt.titel}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{opt.sub}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>{opt.sub}</p>
                   </div>
                   <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                    style={{ borderColor: actief ? opt.color : "var(--border)" }}>
+                    style={{ borderColor: actief ? opt.color : "#E5DDD0" }}>
                     {actief && <div className="w-2.5 h-2.5 rounded-full" style={{ background: opt.color }} />}
                   </div>
                 </button>
@@ -492,20 +615,20 @@ export default function OffertesMaakPage() {
               <div className="flex flex-col gap-2 mb-3">
                 {materialen.map(m => (
                   <div key={m.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl border"
-                    style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                    style={{ borderColor: "#E5DDD0", background: "#FBF7F0" }}>
                     <Package size={14} style={{ color: "#d97706", flexShrink: 0 }} />
                     <p className="flex-1 font-semibold text-sm truncate">{m.naam}</p>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       <button onClick={() => updateAantal(m.id, Math.max(1, m.aantal - 1))}
                         className="touch-scale w-6 h-6 rounded-full flex items-center justify-center font-bold text-sm"
-                        style={{ background: "var(--surface-2)" }}>−</button>
+                        style={{ background: "#EDE4D2" }}>−</button>
                       <span className="text-sm font-bold w-5 text-center">{m.aantal}</span>
                       <button onClick={() => updateAantal(m.id, m.aantal + 1)}
                         className="touch-scale w-6 h-6 rounded-full flex items-center justify-center font-bold text-sm"
-                        style={{ background: "var(--surface-2)" }}>+</button>
+                        style={{ background: "#EDE4D2" }}>+</button>
                     </div>
                     <span className="text-sm font-bold w-16 text-right flex-shrink-0"
-                      style={{ color: "var(--teal)" }}>
+                      style={{ color: "#2B4030" }}>
                       €{fmt(m.aantal * m.prijs)}
                     </span>
                     <button onClick={() => verwijderMat(m.id)} className="touch-scale flex-shrink-0">
@@ -518,14 +641,14 @@ export default function OffertesMaakPage() {
 
             {/* Snelkeuze */}
             <div className="mb-3">
-              <p className="text-xs font-bold uppercase mb-2" style={{ color: "var(--muted)" }}>Snel toevoegen</p>
+              <p className="text-xs font-bold uppercase mb-2" style={{ color: "#8A8A83" }}>Snel toevoegen</p>
               <div className="flex flex-wrap gap-2">
                 {MATERIAAL_SUGGESTIES.map(s => (
                   <button key={s.naam} onClick={() => voegSuggestieToe(s)}
                     className="touch-scale flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
-                    style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+                    style={{ borderColor: "#E5DDD0", background: "#EDE4D2" }}>
                     <Plus size={9} /> {s.naam}
-                    <span style={{ color: "var(--teal)" }}>€{s.prijs}</span>
+                    <span style={{ color: "#2B4030" }}>€{s.prijs}</span>
                   </button>
                 ))}
               </div>
@@ -534,23 +657,23 @@ export default function OffertesMaakPage() {
             {/* Eigen artikel */}
             {showMatForm ? (
               <div className="card p-4 animate-slide-up">
-                <p className="text-xs font-bold uppercase mb-3" style={{ color: "var(--muted)" }}>Eigen artikel</p>
+                <p className="text-xs font-bold uppercase mb-3" style={{ color: "#8A8A83" }}>Eigen artikel</p>
                 <input value={nieuwNaam} onChange={e => setNieuwNaam(e.target.value)}
                   placeholder="Naam artikel (bijv. Mengkraan Grohe)"
                   className="w-full px-3 py-2.5 rounded-xl border outline-none text-sm mb-2"
-                  style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
+                  style={{ borderColor: "#E5DDD0", background: "#FBF7F0", color: "#1A1D1A" }} />
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   <div>
-                    <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "var(--muted)" }}>Aantal</label>
+                    <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "#8A8A83" }}>Aantal</label>
                     <input type="number" value={nieuwAantal} min={1}
                       onChange={e => setNieuwAantal(+e.target.value)}
                       className="w-full px-3 py-2.5 rounded-xl border outline-none text-sm text-center font-bold"
-                      style={{ borderColor: "var(--border)", background: "var(--surface)" }} />
+                      style={{ borderColor: "#E5DDD0", background: "#FBF7F0" }} />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "var(--muted)" }}>Prijs per stuk</label>
+                    <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "#8A8A83" }}>Prijs per stuk</label>
                     <div className="flex items-center gap-1 px-3 py-2.5 rounded-xl border"
-                      style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                      style={{ borderColor: "#E5DDD0", background: "#FBF7F0" }}>
                       <Euro size={12} style={{ color: "#d97706" }} />
                       <input type="number" value={nieuwPrijs}
                         onChange={e => setNieuwPrijs(e.target.value === "" ? "" : +e.target.value)}
@@ -563,13 +686,13 @@ export default function OffertesMaakPage() {
                 <div className="flex gap-2">
                   <button onClick={() => setShowMatForm(false)}
                     className="touch-scale flex-1 py-2.5 rounded-xl text-sm font-semibold border"
-                    style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+                    style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
                     Annuleren
                   </button>
                   <button onClick={voegMatToe}
                     disabled={!nieuwNaam || Number(nieuwPrijs) <= 0}
                     className="touch-scale flex-1 py-2.5 rounded-xl text-sm font-bold text-white"
-                    style={{ background: nieuwNaam && Number(nieuwPrijs) > 0 ? "#d97706" : "var(--muted)" }}>
+                    style={{ background: nieuwNaam && Number(nieuwPrijs) > 0 ? "#d97706" : "#8A8A83" }}>
                     Toevoegen
                   </button>
                 </div>
@@ -587,30 +710,30 @@ export default function OffertesMaakPage() {
         {/* ── Totaal preview ── */}
         {prijs > 0 && (
           <div className="card p-4">
-            <p className="text-xs font-bold uppercase mb-3" style={{ color: "var(--muted)" }}>Overzicht</p>
+            <p className="text-xs font-bold uppercase mb-3" style={{ color: "#8A8A83" }}>Overzicht</p>
             <div className="flex flex-col gap-1.5">
               <div className="flex justify-between text-sm">
-                <span style={{ color: "var(--muted)" }}>Werkzaamheden</span>
+                <span style={{ color: "#8A8A83" }}>Werkzaamheden</span>
                 <span>€{fmt(prijs)}</span>
               </div>
               {kostenType === "plus_materiaal" && matSubtotaal > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: "var(--muted)" }}>Materiaal</span>
+                  <span style={{ color: "#8A8A83" }}>Materiaal</span>
                   <span>€{fmt(matSubtotaal)}</span>
                 </div>
               )}
               {btw && (
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: "var(--muted)" }}>BTW (21%)</span>
+                  <span style={{ color: "#8A8A83" }}>BTW (21%)</span>
                   <span>€{fmt(btwBedrag)}</span>
                 </div>
               )}
               <div className="flex justify-between font-black text-lg pt-2 border-t"
-                style={{ borderColor: "var(--border)", color: "var(--teal)" }}>
+                style={{ borderColor: "#E5DDD0", color: "#2B4030" }}>
                 <span>Totaal</span>
                 <span>€{fmt(totaal)}</span>
               </div>
-              <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+              <p className="text-xs mt-1" style={{ color: "#8A8A83" }}>
                 {kostenType === "alles_inbegrepen"
                   ? "✅ All-in prijs — geen verrassingen voor de klant"
                   : `📦 Arbeid + materiaal (${materialen.length} artikel${materialen.length !== 1 ? "en" : ""})`}
@@ -621,23 +744,35 @@ export default function OffertesMaakPage() {
 
         {/* ── Notities ── */}
         <div>
-          <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+          <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
             Notities (optioneel)
           </label>
           <textarea value={notities} onChange={e => setNotities(e.target.value)}
             placeholder="Bijv. parkeerkosten niet inbegrepen, geldigheidsduur..."
             rows={2} className="w-full px-4 py-3 rounded-2xl border outline-none text-sm resize-none"
-            style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
+            style={{ borderColor: "#E5DDD0", background: "#FBF7F0", color: "#1A1D1A" }} />
         </div>
 
         <button
           onClick={() => kanVersturen && setFase("preview")}
           disabled={!kanVersturen}
           className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-          style={{ background: kanVersturen ? "var(--teal)" : "var(--muted)" }}>
+          style={{ background: kanVersturen ? "#2B4030" : "#8A8A83" }}>
           <Eye size={18} /> Preview & versturen
         </button>
       </div>
     </div>
+  );
+}
+
+export default function OffertesMaakPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-dvh" style={{ background: "#F5EFE5" }}>
+        <p style={{ color: "#8A8A83", fontSize: 14 }}>Laden…</p>
+      </div>
+    }>
+      <OffertesMaakInner />
+    </Suspense>
   );
 }

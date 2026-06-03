@@ -45,23 +45,23 @@ export default function VoorwaardenPage() {
   return (
     <div className="flex flex-col min-h-full pb-10 animate-fade-in">
       <div className="px-5 pt-12 pb-5 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <div className="flex items-center gap-3">
           <Link href="/instellingen"
             className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: "var(--surface-2)" }}>
+            style={{ background: "#EDE4D2" }}>
             <ArrowLeft size={18} />
           </Link>
           <div>
             <h1 className="font-black text-xl">Gebruikersvoorwaarden</h1>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>Versie 1.0 · Geldig vanaf 1 januari 2026</p>
+            <p className="text-xs" style={{ color: "#8A8A83" }}>Versie 1.0 · Geldig vanaf 1 januari 2026</p>
           </div>
         </div>
       </div>
 
       <div className="px-5 pt-5 flex flex-col gap-6">
-        <div className="p-4 rounded-2xl" style={{ background: "var(--teal)" + "10" }}>
-          <p className="text-sm leading-relaxed" style={{ color: "var(--teal)" }}>
+        <div className="p-4 rounded-2xl" style={{ background: "#2B4030" + "10" }}>
+          <p className="text-sm leading-relaxed" style={{ color: "#2B4030" }}>
             <strong>Samenvatting:</strong> Servr verbindt klanten met vakmensen. Je betaalt veilig via Stripe. Vakmensen ontvangen 92% van hun tarief (8% commissie). Klanten betalen 5% service fee bovenop het tarief.
           </p>
         </div>
@@ -69,13 +69,13 @@ export default function VoorwaardenPage() {
         {SECTIONS.map((s) => (
           <div key={s.titel}>
             <h2 className="font-black text-base mb-2">{s.titel}</h2>
-            <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: "var(--muted)" }}>
+            <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: "#8A8A83" }}>
               {s.tekst}
             </p>
           </div>
         ))}
 
-        <div className="text-xs text-center pb-4" style={{ color: "var(--muted)" }}>
+        <div className="text-xs text-center pb-4" style={{ color: "#8A8A83" }}>
           © 2026 Servr BV · support@servr.app
         </div>
       </div>

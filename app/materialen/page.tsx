@@ -3,10 +3,9 @@
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChevronLeft, Plus, Search, Package, AlertTriangle,
-  TrendingDown, Euro, X, Check, Trash2, Edit3,
-  ChevronDown, Filter, ShoppingCart, BarChart2,
-  ArrowUpRight, ArrowDownRight, Boxes,
+  ArrowLeft, Plus, Search, Package, AlertTriangle,
+  Euro, X, Check, Trash2,
+  ShoppingCart, ArrowUpRight, ArrowDownRight, Boxes,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -19,12 +18,12 @@ type Materiaal = {
   categorie: Categorie;
   eenheid: Eenheid;
   voorraad: number;
-  minVoorraad: number;     // alert below this
-  inkoopprijs: number;     // € per eenheid
+  minVoorraad: number;
+  inkoopprijs: number;
   verkoopprijs?: number;
   leverancier?: string;
   leverancierUrl?: string;
-  locatie?: string;        // bijv. "Witte bus", "Magazijn rek 3"
+  locatie?: string;
   artikelnummer?: string;
   notitie?: string;
 };
@@ -34,9 +33,9 @@ type Mutatie = {
   materiaalId: string;
   datum: string;
   type: "inkoop" | "gebruik" | "correctie";
-  aantal: number;         // positive = add, negative = remove
+  aantal: number;
   klusNaam?: string;
-  prijs?: number;         // total price for inkoop
+  prijs?: number;
   notitie?: string;
 };
 
@@ -45,27 +44,27 @@ const CAT_CFG: Record<Categorie, { label: string; icon: string; color: string; b
   sanitair:    { label: "Sanitair",    icon: "🔧", color: "#0EA5E9", bg: "#F0F9FF" },
   elektra:     { label: "Elektra",     icon: "⚡", color: "#F59E0B", bg: "#FFFBEB" },
   verf:        { label: "Verf",        icon: "🖌️", color: "#8B5CF6", bg: "#F5F3FF" },
-  gereedschap: { label: "Gereedschap", icon: "🔨", color: "#6366F1", bg: "#EEF2FF" },
-  isolatie:    { label: "Isolatie",    icon: "🧱", color: "#10B981", bg: "#ECFDF5" },
-  overig:      { label: "Overig",      icon: "📦", color: "#64748b", bg: "#F8FAFC" },
+  gereedschap: { label: "Gereedschap", icon: "🔨", color: "#C97A4D", bg: "#F9EDE3" },
+  isolatie:    { label: "Isolatie",    icon: "🧱", color: "#2B4030", bg: "#E8F0EA" },
+  overig:      { label: "Overig",      icon: "📦", color: "#5C5C56", bg: "#EFEFEC" },
 };
 
 const EENHEDEN: Eenheid[] = ["stuks", "m", "m²", "liter", "kg", "rol", "doos"];
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 const INIT_MATERIALEN: Materiaal[] = [
-  { id: "m1", naam: "PVC afvoerbuis 40mm", categorie: "sanitair",    eenheid: "m",     voorraad: 8,   minVoorraad: 5,  inkoopprijs: 3.20,  leverancier: "Rexel", artikelnummer: "PVC40-2M",   locatie: "Witte bus" },
-  { id: "m2", naam: "Teflon tape",          categorie: "sanitair",    eenheid: "rol",   voorraad: 12,  minVoorraad: 4,  inkoopprijs: 1.10,  leverancier: "Gamma", locatie: "Witte bus" },
-  { id: "m3", naam: "Rubber O-ringen set",  categorie: "sanitair",    eenheid: "doos",  voorraad: 2,   minVoorraad: 3,  inkoopprijs: 6.50,  leverancier: "Rexel", notitie: "Bestellen!" },
-  { id: "m4", naam: "Aardedraad 2.5mm²",   categorie: "elektra",     eenheid: "m",     voorraad: 45,  minVoorraad: 20, inkoopprijs: 0.95,  leverancier: "Technische Unie", locatie: "Magazijn" },
-  { id: "m5", naam: "Wandcontactdoos wit",  categorie: "elektra",     eenheid: "stuks", voorraad: 7,   minVoorraad: 5,  inkoopprijs: 4.20,  verkoopprijs: 8.50, leverancier: "Technische Unie" },
-  { id: "m6", naam: "Zekeringen 16A",       categorie: "elektra",     eenheid: "stuks", voorraad: 3,   minVoorraad: 10, inkoopprijs: 2.80,  leverancier: "Technische Unie", notitie: "Bijna op!" },
-  { id: "m7", naam: "Muurverf wit 10L",     categorie: "verf",        eenheid: "stuks", voorraad: 4,   minVoorraad: 2,  inkoopprijs: 38.00, verkoopprijs: 52.00, leverancier: "Gamma" },
-  { id: "m8", naam: "Primer universeel",    categorie: "verf",        eenheid: "liter", voorraad: 6,   minVoorraad: 3,  inkoopprijs: 9.50,  leverancier: "Gamma", locatie: "Bestelbus" },
-  { id: "m9", naam: "Schildersrol 23cm",    categorie: "verf",        eenheid: "stuks", voorraad: 15,  minVoorraad: 5,  inkoopprijs: 3.80,  leverancier: "Gamma" },
-  { id: "m10",naam: "Rockwool platen 100mm",categorie: "isolatie",    eenheid: "m²",    voorraad: 22,  minVoorraad: 10, inkoopprijs: 12.50, leverancier: "Bouwmaat", locatie: "Magazijn rek 2" },
-  { id: "m11",naam: "Boormachine SDS",      categorie: "gereedschap", eenheid: "stuks", voorraad: 1,   minVoorraad: 1,  inkoopprijs: 189.00,leverancier: "Eigen" },
-  { id: "m12",naam: "Siliconekit sanitair", categorie: "sanitair",    eenheid: "stuks", voorraad: 0,   minVoorraad: 4,  inkoopprijs: 5.60,  leverancier: "Gamma", notitie: "UITVERKOCHT" },
+  { id: "m1",  naam: "PVC afvoerbuis 40mm",  categorie: "sanitair",    eenheid: "m",     voorraad: 8,   minVoorraad: 5,  inkoopprijs: 3.20,   leverancier: "Rexel",             artikelnummer: "PVC40-2M", locatie: "Witte bus" },
+  { id: "m2",  naam: "Teflon tape",           categorie: "sanitair",    eenheid: "rol",   voorraad: 12,  minVoorraad: 4,  inkoopprijs: 1.10,   leverancier: "Gamma",             locatie: "Witte bus" },
+  { id: "m3",  naam: "Rubber O-ringen set",   categorie: "sanitair",    eenheid: "doos",  voorraad: 2,   minVoorraad: 3,  inkoopprijs: 6.50,   leverancier: "Rexel",             notitie: "Bestellen!" },
+  { id: "m4",  naam: "Aardedraad 2.5mm²",    categorie: "elektra",     eenheid: "m",     voorraad: 45,  minVoorraad: 20, inkoopprijs: 0.95,   leverancier: "Technische Unie",   locatie: "Magazijn" },
+  { id: "m5",  naam: "Wandcontactdoos wit",   categorie: "elektra",     eenheid: "stuks", voorraad: 7,   minVoorraad: 5,  inkoopprijs: 4.20,   verkoopprijs: 8.50, leverancier: "Technische Unie" },
+  { id: "m6",  naam: "Zekeringen 16A",        categorie: "elektra",     eenheid: "stuks", voorraad: 3,   minVoorraad: 10, inkoopprijs: 2.80,   leverancier: "Technische Unie",   notitie: "Bijna op!" },
+  { id: "m7",  naam: "Muurverf wit 10L",      categorie: "verf",        eenheid: "stuks", voorraad: 4,   minVoorraad: 2,  inkoopprijs: 38.00,  verkoopprijs: 52.00, leverancier: "Gamma" },
+  { id: "m8",  naam: "Primer universeel",     categorie: "verf",        eenheid: "liter", voorraad: 6,   minVoorraad: 3,  inkoopprijs: 9.50,   leverancier: "Gamma",             locatie: "Bestelbus" },
+  { id: "m9",  naam: "Schildersrol 23cm",     categorie: "verf",        eenheid: "stuks", voorraad: 15,  minVoorraad: 5,  inkoopprijs: 3.80,   leverancier: "Gamma" },
+  { id: "m10", naam: "Rockwool platen 100mm", categorie: "isolatie",    eenheid: "m²",    voorraad: 22,  minVoorraad: 10, inkoopprijs: 12.50,  leverancier: "Bouwmaat",          locatie: "Magazijn rek 2" },
+  { id: "m11", naam: "Boormachine SDS",       categorie: "gereedschap", eenheid: "stuks", voorraad: 1,   minVoorraad: 1,  inkoopprijs: 189.00, leverancier: "Eigen" },
+  { id: "m12", naam: "Siliconekit sanitair",  categorie: "sanitair",    eenheid: "stuks", voorraad: 0,   minVoorraad: 4,  inkoopprijs: 5.60,   leverancier: "Gamma",             notitie: "UITVERKOCHT" },
 ];
 
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -74,7 +73,7 @@ const YESTERDAY = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 const INIT_MUTATIES: Mutatie[] = [
   { id: "mut1", materiaalId: "m7", datum: TODAY,     type: "gebruik",   aantal: -2, klusNaam: "Woonkamer schilderen" },
   { id: "mut2", materiaalId: "m1", datum: TODAY,     type: "gebruik",   aantal: -3, klusNaam: "Lekkende kraan reparatie" },
-  { id: "mut3", materiaalId: "m4", datum: YESTERDAY, type: "inkoop",    aantal: 20, prijs: 19.00, leverancier: "Technische Unie" } as Mutatie & { leverancier: string },
+  { id: "mut3", materiaalId: "m4", datum: YESTERDAY, type: "inkoop",    aantal: 20, prijs: 19.00 } as Mutatie,
   { id: "mut4", materiaalId: "m6", datum: YESTERDAY, type: "gebruik",   aantal: -5, klusNaam: "Elektra renovatie" },
   { id: "mut5", materiaalId: "m8", datum: YESTERDAY, type: "correctie", aantal: -2, notitie: "Defect aangetroffen" },
 ];
@@ -92,7 +91,7 @@ function stockPct(m: Materiaal) {
 function stockColor(m: Materiaal) {
   if (m.voorraad === 0) return "#EF4444";
   if (m.voorraad < m.minVoorraad) return "#F59E0B";
-  return "#10B981";
+  return "#2B4030";
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -109,12 +108,10 @@ export default function MaterialenPage() {
   const [showMutatie, setShowMutatie] = useState<Materiaal | null>(null);
   const [showAlerts, setShowAlerts] = useState(false);
 
-  // New materiaal form
   const [form, setForm] = useState<Partial<Materiaal>>({
     categorie: "overig", eenheid: "stuks", voorraad: 0, minVoorraad: 2, inkoopprijs: 0,
   });
 
-  // Mutatie form
   const [mutForm, setMutForm] = useState<{ type: "inkoop" | "gebruik" | "correctie"; aantal: number; klus: string; prijs: number; notitie: string }>({
     type: "gebruik", aantal: 1, klus: "", prijs: 0, notitie: "",
   });
@@ -203,35 +200,34 @@ export default function MaterialenPage() {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen" style={{ background: "#F1F4FA" }}>
+    <div className="min-h-screen" style={{ background: "#F5EFE5", fontFamily: "'Inter', sans-serif" }}>
       {/* Header */}
-      <div className="sticky top-0 z-30 px-4 pt-12 pb-3"
-        style={{ background: "rgba(241,244,250,0.96)", backdropFilter: "blur(12px)" }}>
+      <div className="px-5 pt-14 pb-4" style={{ background: "rgba(245,239,229,0.97)" }}>
         <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => router.back()}
+          <button onClick={() => router.push('/profile')}
             className="touch-scale w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.10)" }}>
-            <ChevronLeft size={20} style={{ color: "#0f172a" }} />
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+            <ArrowLeft size={18} style={{ color: "#2B4030" }} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black" style={{ color: "#0f172a" }}>Materialen</h1>
-            <p className="text-xs whitespace-nowrap" style={{ color: "#64748b" }}>Voorraad & inkoop</p>
+            <h1 className="text-xl font-bold" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>Materialen</h1>
+            <p className="text-xs" style={{ color: "#8A8A83" }}>Voorraad & inkoop</p>
           </div>
           <div className="flex gap-2 flex-shrink-0">
             {alerts.length > 0 && (
               <button onClick={() => setShowAlerts(true)}
                 className="touch-scale relative w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ background: "#FEF2F2" }}>
+                style={{ background: "#FEF2F2", border: "0.5px solid #FECACA" }}>
                 <AlertTriangle size={18} style={{ color: "#EF4444" }} />
-                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-white text-xs font-bold flex items-center justify-center"
-                  style={{ background: "#EF4444", fontSize: 10 }}>
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-white flex items-center justify-center"
+                  style={{ background: "#EF4444", fontSize: 10, fontWeight: 700 }}>
                   {alerts.length}
                 </span>
               </button>
             )}
             <button onClick={() => setShowNieuw(true)}
-              className="touch-scale flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-sm text-white"
-              style={{ background: "#4F46E5" }}>
+              className="touch-scale flex items-center gap-1.5 px-4 py-2 rounded-full font-medium text-sm"
+              style={{ background: "#2B4030", color: "#F5EFE5", border: "none" }}>
               <Plus size={16} />
               Nieuw
             </button>
@@ -239,24 +235,24 @@ export default function MaterialenPage() {
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-2 rounded-2xl px-4 py-2.5 mb-3"
-          style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-          <Search size={16} style={{ color: "#94a3b8" }} />
+        <div className="flex items-center gap-2 px-4 py-2.5 mb-3"
+          style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8 }}>
+          <Search size={16} style={{ color: "#8A8A83" }} />
           <input value={zoek} onChange={(e) => setZoek(e.target.value)}
             placeholder="Zoek materiaal of leverancier…"
             className="flex-1 text-sm bg-transparent"
-            style={{ color: "#0f172a", outline: "none" }} />
+            style={{ color: "#1A1D1A", outline: "none", fontSize: 14 }} />
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#E2E8F0" }}>
+        <div className="flex gap-1 p-1 rounded-full" style={{ background: "#E5DDD0" }}>
           {(["voorraad", "bewegingen", "statistieken"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              className="flex-1 py-2 rounded-xl text-xs font-bold capitalize"
+              className="flex-1 py-2 rounded-full text-xs font-medium capitalize"
               style={{
-                background: tab === t ? "#fff" : "transparent",
-                color: tab === t ? "#4F46E5" : "#64748b",
-                boxShadow: tab === t ? "0 1px 3px rgba(0,0,0,0.10)" : "none",
+                background: tab === t ? "#FBF7F0" : "transparent",
+                color: tab === t ? "#2B4030" : "#8A8A83",
+                boxShadow: tab === t ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
               }}>
               {t}
             </button>
@@ -264,45 +260,42 @@ export default function MaterialenPage() {
         </div>
       </div>
 
-      <div className="px-4 pb-28 mt-4">
+      <div className="px-5 pb-28 mt-4">
         {/* ── VOORRAAD TAB ─────────────────────────────────────────────────────── */}
         {tab === "voorraad" && (
           <div className="flex flex-col gap-4">
             {/* Quick stats */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-2xl p-3 flex flex-col items-center gap-0.5"
-                style={{ background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-                <Boxes size={16} style={{ color: "#4F46E5" }} />
-                <p className="font-black text-lg leading-tight" style={{ color: "#0f172a" }}>{materialen.length}</p>
-                <p className="text-xs text-center" style={{ color: "#94a3b8" }}>Producten</p>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="flex flex-col items-center gap-1 py-3"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+                <p className="font-bold text-xl" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>{materialen.length}</p>
+                <p className="text-xs text-center" style={{ color: "#8A8A83" }}>Producten</p>
               </div>
-              <div className="rounded-2xl p-3 flex flex-col items-center gap-0.5"
-                style={{ background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-                <Euro size={16} style={{ color: "#10B981" }} />
-                <p className="font-black text-lg leading-tight" style={{ color: "#0f172a" }}>
-                  {fmtEur(totalWaarde).replace("€ ", "€")}
+              <div className="flex flex-col items-center gap-1 py-3"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+                <p className="font-bold text-base" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+                  {fmtEur(totalWaarde).replace("€ ", "€")}
                 </p>
-                <p className="text-xs text-center" style={{ color: "#94a3b8" }}>Totaal waarde</p>
+                <p className="text-xs text-center" style={{ color: "#8A8A83" }}>Totaal waarde</p>
               </div>
-              <div className="rounded-2xl p-3 flex flex-col items-center gap-0.5"
-                style={{ background: alerts.length > 0 ? "#FEF2F2" : "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-                <AlertTriangle size={16} style={{ color: alerts.length > 0 ? "#EF4444" : "#94a3b8" }} />
-                <p className="font-black text-lg leading-tight"
-                  style={{ color: alerts.length > 0 ? "#EF4444" : "#0f172a" }}>
+              <div className="flex flex-col items-center gap-1 py-3"
+                style={{ background: alerts.length > 0 ? "#FEF2F2" : "#FBF7F0", border: `0.5px solid ${alerts.length > 0 ? "#FECACA" : "#E5DDD0"}`, borderRadius: 14 }}>
+                <p className="font-bold text-xl"
+                  style={{ color: alerts.length > 0 ? "#EF4444" : "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
                   {alerts.length}
                 </p>
-                <p className="text-xs text-center" style={{ color: "#94a3b8" }}>Lage voorraad</p>
+                <p className="text-xs text-center" style={{ color: "#8A8A83" }}>Lage voorraad</p>
               </div>
             </div>
 
             {/* Category filter chips */}
             <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
               <button onClick={() => setCatFilter("alle")}
-                className="flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold"
+                className="flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium"
                 style={{
-                  background: catFilter === "alle" ? "#4F46E5" : "#fff",
-                  color: catFilter === "alle" ? "#fff" : "#64748b",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                  background: catFilter === "alle" ? "#2B4030" : "#FBF7F0",
+                  color: catFilter === "alle" ? "#F5EFE5" : "#5C5C56",
+                  border: catFilter === "alle" ? "none" : "0.5px solid #E5DDD0",
                 }}>
                 Alles
               </button>
@@ -311,11 +304,11 @@ export default function MaterialenPage() {
                 const active = catFilter === cat;
                 return (
                   <button key={cat} onClick={() => setCatFilter(cat)}
-                    className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold"
+                    className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium"
                     style={{
-                      background: active ? cfg.color : "#fff",
-                      color: active ? "#fff" : "#64748b",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                      background: active ? "#2B4030" : "#FBF7F0",
+                      color: active ? "#F5EFE5" : "#5C5C56",
+                      border: active ? "none" : "0.5px solid #E5DDD0",
                     }}>
                     {cfg.icon} {cfg.label}
                   </button>
@@ -325,11 +318,11 @@ export default function MaterialenPage() {
 
             {/* Materiaal list */}
             {filtered.length === 0 ? (
-              <div className="rounded-3xl p-8 text-center"
-                style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+              <div className="p-8 text-center"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                 <p className="text-3xl mb-2">📦</p>
-                <p className="font-bold" style={{ color: "#0f172a" }}>Geen materialen gevonden</p>
-                <p className="text-sm mt-1" style={{ color: "#64748b" }}>Pas de zoekfilter aan of voeg een nieuw materiaal toe</p>
+                <p className="font-medium" style={{ color: "#1A1D1A" }}>Geen materialen gevonden</p>
+                <p className="text-sm mt-1" style={{ color: "#8A8A83" }}>Pas de zoekfilter aan of voeg een nieuw materiaal toe</p>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
@@ -340,8 +333,8 @@ export default function MaterialenPage() {
                   const sc = stockColor(m);
                   return (
                     <button key={m.id} onClick={() => setShowDetail(m)}
-                      className="touch-scale w-full rounded-2xl p-4 text-left"
-                      style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }}>
+                      className="touch-scale w-full text-left p-4"
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                       <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                           style={{ background: cfg.bg }}>
@@ -349,25 +342,25 @@ export default function MaterialenPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-bold leading-tight truncate" style={{ color: "#0f172a" }}>
+                            <p className="text-sm font-medium leading-tight truncate" style={{ color: "#1A1D1A" }}>
                               {m.naam}
                             </p>
                             {isLow && (
-                              <span className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full"
+                              <span className="flex-shrink-0 text-xs font-medium px-2 py-0.5 rounded-full"
                                 style={{ background: m.voorraad === 0 ? "#FEE2E2" : "#FEF3C7", color: m.voorraad === 0 ? "#EF4444" : "#D97706" }}>
                                 {m.voorraad === 0 ? "Uitverkocht" : "Laag"}
                               </span>
                             )}
                           </div>
-                          <p className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>
+                          <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>
                             {m.leverancier ?? "—"} · {fmtEur(m.inkoopprijs)}/{m.eenheid}
                           </p>
                           <div className="mt-2 flex items-center gap-2">
-                            <div className="flex-1 h-1.5 rounded-full" style={{ background: "#F1F5F9" }}>
+                            <div className="flex-1 h-1.5 rounded-full" style={{ background: "#E5DDD0" }}>
                               <div className="h-1.5 rounded-full transition-all"
                                 style={{ width: `${pct}%`, background: sc }} />
                             </div>
-                            <p className="text-xs font-bold" style={{ color: sc }}>
+                            <p className="text-xs font-medium" style={{ color: sc }}>
                               {m.voorraad} {m.eenheid}
                             </p>
                           </div>
@@ -384,21 +377,21 @@ export default function MaterialenPage() {
         {/* ── BEWEGINGEN TAB ────────────────────────────────────────────────────── */}
         {tab === "bewegingen" && (
           <div className="flex flex-col gap-3">
-            <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "#94a3b8" }}>
+            <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "#8A8A83" }}>
               Recente mutaties ({mutaties.length})
             </p>
             {mutaties.length === 0 ? (
-              <div className="rounded-3xl p-8 text-center"
-                style={{ background: "#fff" }}>
+              <div className="p-8 text-center"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                 <p className="text-3xl mb-2">📋</p>
-                <p className="font-bold" style={{ color: "#0f172a" }}>Geen mutaties</p>
+                <p className="font-medium" style={{ color: "#1A1D1A" }}>Geen mutaties</p>
               </div>
             ) : mutaties.map((mut) => {
               const mat = materialen.find((m) => m.id === mut.materiaalId);
               const isPos = mut.aantal > 0;
               return (
-                <div key={mut.id} className="rounded-2xl p-4 flex items-center gap-3"
-                  style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }}>
+                <div key={mut.id} className="p-4 flex items-center gap-3"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                     style={{ background: isPos ? "#ECFDF5" : "#FEF2F2" }}>
                     {isPos
@@ -407,24 +400,24 @@ export default function MaterialenPage() {
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold truncate" style={{ color: "#0f172a" }}>
+                    <p className="text-sm font-medium truncate" style={{ color: "#1A1D1A" }}>
                       {mat?.naam ?? "Onbekend materiaal"}
                     </p>
-                    <p className="text-xs" style={{ color: "#94a3b8" }}>
+                    <p className="text-xs" style={{ color: "#8A8A83" }}>
                       {mut.datum} · {mut.type === "inkoop" ? "Inkoop" : mut.type === "gebruik" ? "Gebruikt" : "Correctie"}
                       {mut.klusNaam ? ` · ${mut.klusNaam}` : ""}
                     </p>
                     {mut.notitie && (
-                      <p className="text-xs italic mt-0.5" style={{ color: "#94a3b8" }}>"{mut.notitie}"</p>
+                      <p className="text-xs italic mt-0.5" style={{ color: "#8A8A83" }}>"{mut.notitie}"</p>
                     )}
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold"
+                    <p className="text-sm font-medium"
                       style={{ color: isPos ? "#10B981" : "#EF4444" }}>
                       {isPos ? "+" : ""}{mut.aantal} {mat?.eenheid ?? ""}
                     </p>
                     {mut.prijs && (
-                      <p className="text-xs font-semibold" style={{ color: "#64748b" }}>{fmtEur(mut.prijs)}</p>
+                      <p className="text-xs" style={{ color: "#5C5C56" }}>{fmtEur(mut.prijs)}</p>
                     )}
                   </div>
                 </div>
@@ -437,8 +430,8 @@ export default function MaterialenPage() {
         {tab === "statistieken" && (
           <div className="flex flex-col gap-4">
             {/* Waarde per categorie */}
-            <div className="rounded-3xl p-5" style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-              <p className="font-bold text-sm mb-4" style={{ color: "#0f172a" }}>Voorraadwaarde per categorie</p>
+            <div className="p-5" style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+              <p className="font-medium text-sm mb-4" style={{ color: "#1A1D1A" }}>Voorraadwaarde per categorie</p>
               {catStats.map(({ cat, items, waarde, laag }) => {
                 const cfg = CAT_CFG[cat];
                 const pct = Math.round((waarde / Math.max(totalWaarde, 1)) * 100);
@@ -447,22 +440,22 @@ export default function MaterialenPage() {
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <span>{cfg.icon}</span>
-                        <p className="text-sm font-semibold" style={{ color: "#0f172a" }}>{cfg.label}</p>
+                        <p className="text-sm font-medium" style={{ color: "#1A1D1A" }}>{cfg.label}</p>
                         {laag > 0 && (
-                          <span className="text-xs font-bold px-1.5 py-0.5 rounded-full"
+                          <span className="text-xs font-medium px-1.5 py-0.5 rounded-full"
                             style={{ background: "#FEF3C7", color: "#D97706" }}>
                             {laag} laag
                           </span>
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold" style={{ color: "#0f172a" }}>{fmtEur(waarde)}</p>
-                        <p className="text-xs" style={{ color: "#94a3b8" }}>{items} producten</p>
+                        <p className="text-sm font-medium" style={{ color: "#1A1D1A" }}>{fmtEur(waarde)}</p>
+                        <p className="text-xs" style={{ color: "#8A8A83" }}>{items} producten</p>
                       </div>
                     </div>
-                    <div className="h-2 rounded-full" style={{ background: "#F1F5F9" }}>
+                    <div className="h-2 rounded-full" style={{ background: "#E5DDD0" }}>
                       <div className="h-2 rounded-full"
-                        style={{ width: `${pct}%`, background: cfg.color }} />
+                        style={{ width: `${pct}%`, background: "#2B4030" }} />
                     </div>
                   </div>
                 );
@@ -470,21 +463,21 @@ export default function MaterialenPage() {
             </div>
 
             {/* Top waarde items */}
-            <div className="rounded-3xl p-5" style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-              <p className="font-bold text-sm mb-4" style={{ color: "#0f172a" }}>Hoogste voorraadwaarde</p>
+            <div className="p-5" style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+              <p className="font-medium text-sm mb-4" style={{ color: "#1A1D1A" }}>Hoogste voorraadwaarde</p>
               {[...materialen]
                 .sort((a, b) => b.voorraad * b.inkoopprijs - a.voorraad * a.inkoopprijs)
                 .slice(0, 5)
-                .map((m, i) => (
+                .map((m) => (
                   <div key={m.id} className="flex items-center gap-3 mb-3">
                     <span className="text-lg w-6 text-center">{CAT_CFG[m.categorie].icon}</span>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold" style={{ color: "#0f172a" }}>{m.naam}</p>
-                      <p className="text-xs" style={{ color: "#94a3b8" }}>
+                      <p className="text-sm font-medium" style={{ color: "#1A1D1A" }}>{m.naam}</p>
+                      <p className="text-xs" style={{ color: "#8A8A83" }}>
                         {m.voorraad} {m.eenheid} × {fmtEur(m.inkoopprijs)}
                       </p>
                     </div>
-                    <p className="text-sm font-bold" style={{ color: "#4F46E5" }}>
+                    <p className="text-sm font-medium" style={{ color: "#C97A4D" }}>
                       {fmtEur(m.voorraad * m.inkoopprijs)}
                     </p>
                   </div>
@@ -493,22 +486,22 @@ export default function MaterialenPage() {
 
             {/* Bestellijst */}
             {alerts.length > 0 && (
-              <div className="rounded-3xl p-5" style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <div className="p-5" style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                 <div className="flex items-center gap-2 mb-4">
                   <ShoppingCart size={18} style={{ color: "#EF4444" }} />
-                  <p className="font-bold text-sm" style={{ color: "#0f172a" }}>Bestellijst ({alerts.length})</p>
+                  <p className="font-medium text-sm" style={{ color: "#1A1D1A" }}>Bestellijst ({alerts.length})</p>
                 </div>
                 {alerts.map((m) => (
                   <div key={m.id} className="flex items-center gap-3 mb-2 p-3 rounded-xl"
-                    style={{ background: "#FEF2F2" }}>
+                    style={{ background: "#FEF2F2", border: "0.5px solid #FECACA" }}>
                     <AlertTriangle size={14} style={{ color: "#EF4444" }} />
                     <div className="flex-1">
-                      <p className="text-sm font-semibold" style={{ color: "#0f172a" }}>{m.naam}</p>
+                      <p className="text-sm font-medium" style={{ color: "#1A1D1A" }}>{m.naam}</p>
                       <p className="text-xs" style={{ color: "#EF4444" }}>
                         Huidig: {m.voorraad} {m.eenheid} · Min: {m.minVoorraad} {m.eenheid}
                       </p>
                     </div>
-                    <p className="text-xs font-bold" style={{ color: "#64748b" }}>
+                    <p className="text-xs font-medium" style={{ color: "#5C5C56" }}>
                       Bestel {Math.max(0, m.minVoorraad * 2 - m.voorraad)} {m.eenheid}
                     </p>
                   </div>
@@ -521,24 +514,24 @@ export default function MaterialenPage() {
 
       {/* ── Alerts sheet ────────────────────────────────────────────────────── */}
       {showAlerts && (
-        <BottomSheet onClose={() => setShowAlerts(false)} title={`⚠️ Lage voorraad (${alerts.length})`}>
+        <BottomSheet onClose={() => setShowAlerts(false)} title={`Lage voorraad (${alerts.length})`}>
           <div className="flex flex-col gap-2 pb-2">
             {alerts.map((m) => {
               const cfg = CAT_CFG[m.categorie];
               return (
-                <div key={m.id} className="rounded-2xl p-4 flex items-center gap-3"
-                  style={{ background: m.voorraad === 0 ? "#FEF2F2" : "#FFFBEB", border: `1px solid ${m.voorraad === 0 ? "#FECACA" : "#FDE68A"}` }}>
+                <div key={m.id} className="p-4 flex items-center gap-3"
+                  style={{ background: m.voorraad === 0 ? "#FEF2F2" : "#FFFBEB", border: `0.5px solid ${m.voorraad === 0 ? "#FECACA" : "#FDE68A"}`, borderRadius: 14 }}>
                   <span className="text-xl">{cfg.icon}</span>
                   <div className="flex-1">
-                    <p className="text-sm font-bold" style={{ color: "#0f172a" }}>{m.naam}</p>
-                    <p className="text-xs" style={{ color: "#64748b" }}>
+                    <p className="text-sm font-medium" style={{ color: "#1A1D1A" }}>{m.naam}</p>
+                    <p className="text-xs" style={{ color: "#5C5C56" }}>
                       {m.voorraad === 0 ? "Uitverkocht" : `Nog ${m.voorraad} ${m.eenheid}`}
                       {m.leverancier ? ` · ${m.leverancier}` : ""}
                     </p>
                   </div>
                   <button onClick={() => { setShowAlerts(false); setShowMutatie(m); setMutForm({ type: "inkoop", aantal: m.minVoorraad * 2 - m.voorraad, klus: "", prijs: 0, notitie: "" }); }}
-                    className="touch-scale px-3 py-1.5 rounded-xl text-xs font-bold text-white"
-                    style={{ background: "#4F46E5" }}>
+                    className="touch-scale px-3 py-1.5 rounded-full text-xs font-medium"
+                    style={{ background: "#2B4030", color: "#F5EFE5", border: "none" }}>
                     Inkoop
                   </button>
                 </div>
@@ -553,23 +546,23 @@ export default function MaterialenPage() {
         <BottomSheet onClose={() => setShowDetail(null)} title={showDetail.naam}>
           <div className="flex flex-col gap-4 pb-2">
             {/* Stock bar */}
-            <div className="rounded-2xl p-4" style={{ background: "#F8FAFC" }}>
+            <div className="p-4" style={{ background: "#F5EFE5", borderRadius: 10, border: "0.5px solid #E5DDD0" }}>
               <div className="flex justify-between items-center mb-2">
-                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "#94a3b8" }}>Voorraad</p>
-                <p className="font-black text-2xl" style={{ color: stockColor(showDetail) }}>
-                  {showDetail.voorraad} <span className="text-sm font-semibold">{showDetail.eenheid}</span>
+                <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "#8A8A83" }}>Voorraad</p>
+                <p className="font-bold text-2xl" style={{ color: stockColor(showDetail), fontFamily: "'Source Serif 4', Georgia, serif" }}>
+                  {showDetail.voorraad} <span className="text-sm font-normal">{showDetail.eenheid}</span>
                 </p>
               </div>
-              <div className="h-2 rounded-full" style={{ background: "#E2E8F0" }}>
+              <div className="h-2 rounded-full" style={{ background: "#E5DDD0" }}>
                 <div className="h-2 rounded-full" style={{ width: `${stockPct(showDetail)}%`, background: stockColor(showDetail) }} />
               </div>
-              <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>Minimum: {showDetail.minVoorraad} {showDetail.eenheid}</p>
+              <p className="text-xs mt-1" style={{ color: "#8A8A83" }}>Minimum: {showDetail.minVoorraad} {showDetail.eenheid}</p>
             </div>
 
             {/* Details grid */}
             <div className="grid grid-cols-2 gap-2">
               <InfoField label="Inkoopprijs" value={`${fmtEur(showDetail.inkoopprijs)} / ${showDetail.eenheid}`} />
-              {showDetail.verkoopprijs && <InfoField label="Verkoopprijs" value={`${fmtEur(showDetail.verkoopprijs)} / ${showDetail.eenheid}`} accent="#10B981" />}
+              {showDetail.verkoopprijs && <InfoField label="Verkoopprijs" value={`${fmtEur(showDetail.verkoopprijs)} / ${showDetail.eenheid}`} accent="#2B4030" />}
               {showDetail.leverancier && <InfoField label="Leverancier" value={showDetail.leverancier} />}
               {showDetail.locatie && <InfoField label="Locatie" value={showDetail.locatie} />}
               {showDetail.artikelnummer && <InfoField label="Artikelnummer" value={showDetail.artikelnummer} />}
@@ -577,17 +570,17 @@ export default function MaterialenPage() {
             </div>
 
             {showDetail.notitie && (
-              <div className="rounded-2xl p-3" style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}>
-                <p className="text-xs font-bold mb-0.5" style={{ color: "#D97706" }}>Notitie</p>
-                <p className="text-sm" style={{ color: "#374151" }}>{showDetail.notitie}</p>
+              <div className="p-3" style={{ background: "#FFFBEB", border: "0.5px solid #FDE68A", borderRadius: 10 }}>
+                <p className="text-xs font-medium mb-0.5" style={{ color: "#D97706" }}>Notitie</p>
+                <p className="text-sm" style={{ color: "#1A1D1A" }}>{showDetail.notitie}</p>
               </div>
             )}
 
             {/* Waarde */}
-            <div className="rounded-2xl p-3 flex justify-between items-center"
-              style={{ background: "#EEF2FF" }}>
-              <p className="text-sm font-semibold" style={{ color: "#4F46E5" }}>Totale waarde in voorraad</p>
-              <p className="font-black text-lg" style={{ color: "#4F46E5" }}>
+            <div className="p-3 flex justify-between items-center"
+              style={{ background: "#E8F0EA", borderRadius: 10 }}>
+              <p className="text-sm font-medium" style={{ color: "#2B4030" }}>Totale waarde in voorraad</p>
+              <p className="font-bold text-lg" style={{ color: "#2B4030", fontFamily: "'Source Serif 4', Georgia, serif" }}>
                 {fmtEur(showDetail.voorraad * showDetail.inkoopprijs)}
               </p>
             </div>
@@ -595,20 +588,20 @@ export default function MaterialenPage() {
             {/* Actions */}
             <div className="flex gap-2">
               <button onClick={() => { setShowDetail(null); setShowMutatie(showDetail); setMutForm({ type: "inkoop", aantal: 1, klus: "", prijs: 0, notitie: "" }); }}
-                className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-                style={{ background: "#ECFDF5", color: "#10B981" }}>
+                className="touch-scale flex-1 py-3.5 rounded-full font-medium text-sm flex items-center justify-center gap-2"
+                style={{ background: "#2B4030", color: "#F5EFE5", border: "none" }}>
                 <ArrowUpRight size={16} />
                 Inkoop
               </button>
               <button onClick={() => { setShowDetail(null); setShowMutatie(showDetail); setMutForm({ type: "gebruik", aantal: 1, klus: "", prijs: 0, notitie: "" }); }}
-                className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-                style={{ background: "#FEF2F2", color: "#EF4444" }}>
+                className="touch-scale flex-1 py-3.5 rounded-full font-medium text-sm flex items-center justify-center gap-2"
+                style={{ background: "transparent", border: "0.5px solid #E5DDD0", color: "#5C5C56" }}>
                 <ArrowDownRight size={16} />
                 Gebruik
               </button>
               <button onClick={() => deleteMateriaal(showDetail.id)}
-                className="touch-scale w-12 py-3.5 rounded-2xl flex items-center justify-center"
-                style={{ background: "#F3F4F6", color: "#9CA3AF" }}>
+                className="touch-scale w-12 py-3.5 rounded-full flex items-center justify-center"
+                style={{ background: "transparent", border: "0.5px solid #E5DDD0", color: "#8A8A83" }}>
                 <Trash2 size={16} />
               </button>
             </div>
@@ -619,16 +612,17 @@ export default function MaterialenPage() {
       {/* ── Mutatie sheet ────────────────────────────────────────────────────── */}
       {showMutatie && (
         <BottomSheet onClose={() => setShowMutatie(null)}
-          title={`${mutForm.type === "inkoop" ? "📦 Inkoop" : mutForm.type === "gebruik" ? "🔧 Gebruik" : "✏️ Correctie"}: ${showMutatie.naam}`}>
+          title={`${mutForm.type === "inkoop" ? "Inkoop" : mutForm.type === "gebruik" ? "Gebruik" : "Correctie"}: ${showMutatie.naam}`}>
           <div className="flex flex-col gap-4 pb-2">
             {/* Type */}
             <div className="flex gap-2">
               {(["inkoop", "gebruik", "correctie"] as const).map((t) => (
                 <button key={t} onClick={() => setMutForm((f) => ({ ...f, type: t }))}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-bold capitalize"
+                  className="flex-1 py-2.5 rounded-full text-xs font-medium capitalize"
                   style={{
-                    background: mutForm.type === t ? "#4F46E5" : "#F3F4F6",
-                    color: mutForm.type === t ? "#fff" : "#64748b",
+                    background: mutForm.type === t ? "#2B4030" : "transparent",
+                    color: mutForm.type === t ? "#F5EFE5" : "#5C5C56",
+                    border: mutForm.type === t ? "none" : "0.5px solid #E5DDD0",
                   }}>
                   {t}
                 </button>
@@ -637,67 +631,67 @@ export default function MaterialenPage() {
 
             {/* Aantal */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
+              <label className="text-xs font-medium uppercase tracking-wide mb-2 block" style={{ color: "#5C5C56" }}>
                 Aantal ({showMutatie.eenheid})
               </label>
               <div className="flex items-center gap-3">
                 <button onClick={() => setMutForm((f) => ({ ...f, aantal: Math.max(1, f.aantal - 1) }))}
-                  className="w-11 h-11 rounded-xl font-bold text-xl flex items-center justify-center"
-                  style={{ background: "#F3F4F6", color: "#374151" }}>−</button>
+                  className="w-11 h-11 rounded-full font-bold text-xl flex items-center justify-center"
+                  style={{ background: "transparent", border: "0.5px solid #E5DDD0", color: "#1A1D1A" }}>−</button>
                 <input type="number" value={mutForm.aantal}
                   onChange={(e) => setMutForm((f) => ({ ...f, aantal: Math.max(0, Number(e.target.value)) }))}
-                  className="flex-1 text-center rounded-2xl py-3 text-xl font-black"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                  className="flex-1 text-center py-3 text-xl font-bold"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }} />
                 <button onClick={() => setMutForm((f) => ({ ...f, aantal: f.aantal + 1 }))}
-                  className="w-11 h-11 rounded-xl font-bold text-xl flex items-center justify-center"
-                  style={{ background: "#4F46E5", color: "#fff" }}>+</button>
+                  className="w-11 h-11 rounded-full font-bold text-xl flex items-center justify-center"
+                  style={{ background: "#2B4030", color: "#F5EFE5", border: "none" }}>+</button>
               </div>
             </div>
 
             {/* Klus (gebruik only) */}
             {mutForm.type === "gebruik" && (
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
+                <label className="text-xs font-medium uppercase tracking-wide mb-2 block" style={{ color: "#5C5C56" }}>
                   Klus (optioneel)
                 </label>
                 <input value={mutForm.klus} onChange={(e) => setMutForm((f) => ({ ...f, klus: e.target.value }))}
                   placeholder="Naam van de klus…"
-                  className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                  className="w-full"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A" }} />
               </div>
             )}
 
             {/* Prijs (inkoop only) */}
             {mutForm.type === "inkoop" && (
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
+                <label className="text-xs font-medium uppercase tracking-wide mb-2 block" style={{ color: "#5C5C56" }}>
                   Aankoopprijs (€ totaal)
                 </label>
-                <div className="flex items-center gap-2 rounded-2xl px-4 py-3"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0" }}>
-                  <Euro size={16} style={{ color: "#94a3b8" }} />
+                <div className="flex items-center gap-2"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px" }}>
+                  <Euro size={16} style={{ color: "#8A8A83" }} />
                   <input type="number" value={mutForm.prijs}
                     onChange={(e) => setMutForm((f) => ({ ...f, prijs: Number(e.target.value) }))}
-                    className="flex-1 bg-transparent text-sm font-bold"
-                    style={{ color: "#0f172a", outline: "none" }} />
+                    className="flex-1 bg-transparent text-sm font-medium"
+                    style={{ color: "#1A1D1A", outline: "none", fontSize: 14 }} />
                 </div>
               </div>
             )}
 
             {/* Notitie */}
             <div>
-              <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
+              <label className="text-xs font-medium uppercase tracking-wide mb-2 block" style={{ color: "#5C5C56" }}>
                 Notitie (optioneel)
               </label>
               <input value={mutForm.notitie} onChange={(e) => setMutForm((f) => ({ ...f, notitie: e.target.value }))}
                 placeholder="Opmerking…"
-                className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                className="w-full"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A" }} />
             </div>
 
             <button onClick={saveMutatie}
-              className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-              style={{ background: "#4F46E5" }}>
+              className="touch-scale w-full py-4 rounded-full font-medium flex items-center justify-center gap-2"
+              style={{ background: "#2B4030", color: "#F5EFE5", border: "none" }}>
               <Check size={18} />
               Opslaan
             </button>
@@ -713,8 +707,8 @@ export default function MaterialenPage() {
             <FormField label="Naam" required>
               <input value={form.naam ?? ""} onChange={(e) => setForm((f) => ({ ...f, naam: e.target.value }))}
                 placeholder="Bijv. PVC buis 32mm…"
-                className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                className="w-full"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A" }} />
             </FormField>
 
             {/* Categorie */}
@@ -724,10 +718,11 @@ export default function MaterialenPage() {
                   const cfg = CAT_CFG[cat];
                   return (
                     <button key={cat} onClick={() => setForm((f) => ({ ...f, categorie: cat }))}
-                      className="py-2.5 rounded-xl text-xs font-bold"
+                      className="py-2.5 rounded-full text-xs font-medium"
                       style={{
-                        background: form.categorie === cat ? cfg.color : "#F3F4F6",
-                        color: form.categorie === cat ? "#fff" : "#64748b",
+                        background: form.categorie === cat ? "#2B4030" : "transparent",
+                        color: form.categorie === cat ? "#F5EFE5" : "#5C5C56",
+                        border: form.categorie === cat ? "none" : "0.5px solid #E5DDD0",
                       }}>
                       {cfg.icon} {cfg.label}
                     </button>
@@ -741,10 +736,11 @@ export default function MaterialenPage() {
               <div className="flex gap-2 flex-wrap">
                 {EENHEDEN.map((e) => (
                   <button key={e} onClick={() => setForm((f) => ({ ...f, eenheid: e }))}
-                    className="px-3 py-2 rounded-xl text-xs font-bold"
+                    className="px-3 py-2 rounded-full text-xs font-medium"
                     style={{
-                      background: form.eenheid === e ? "#4F46E5" : "#F3F4F6",
-                      color: form.eenheid === e ? "#fff" : "#64748b",
+                      background: form.eenheid === e ? "#2B4030" : "transparent",
+                      color: form.eenheid === e ? "#F5EFE5" : "#5C5C56",
+                      border: form.eenheid === e ? "none" : "0.5px solid #E5DDD0",
                     }}>
                     {e}
                   </button>
@@ -757,14 +753,14 @@ export default function MaterialenPage() {
               <FormField label="Beginvoorraad">
                 <input type="number" value={form.voorraad ?? 0}
                   onChange={(e) => setForm((f) => ({ ...f, voorraad: Number(e.target.value) }))}
-                  className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                  className="w-full"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A" }} />
               </FormField>
               <FormField label="Min. voorraad">
                 <input type="number" value={form.minVoorraad ?? 2}
                   onChange={(e) => setForm((f) => ({ ...f, minVoorraad: Number(e.target.value) }))}
-                  className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                  className="w-full"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A" }} />
               </FormField>
             </div>
 
@@ -773,15 +769,15 @@ export default function MaterialenPage() {
               <FormField label="Inkoopprijs (€)">
                 <input type="number" value={form.inkoopprijs ?? 0}
                   onChange={(e) => setForm((f) => ({ ...f, inkoopprijs: Number(e.target.value) }))}
-                  className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                  className="w-full"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A" }} />
               </FormField>
               <FormField label="Verkoopprijs (€)">
                 <input type="number" value={form.verkoopprijs ?? ""}
                   onChange={(e) => setForm((f) => ({ ...f, verkoopprijs: e.target.value ? Number(e.target.value) : undefined }))}
                   placeholder="Optioneel"
-                  className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                  className="w-full"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A" }} />
               </FormField>
             </div>
 
@@ -790,20 +786,20 @@ export default function MaterialenPage() {
               <FormField label="Leverancier">
                 <input value={form.leverancier ?? ""} onChange={(e) => setForm((f) => ({ ...f, leverancier: e.target.value }))}
                   placeholder="Gamma, Rexel…"
-                  className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                  className="w-full"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A" }} />
               </FormField>
               <FormField label="Locatie">
                 <input value={form.locatie ?? ""} onChange={(e) => setForm((f) => ({ ...f, locatie: e.target.value }))}
                   placeholder="Witte bus…"
-                  className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                  className="w-full"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A" }} />
               </FormField>
             </div>
 
             <button onClick={saveNieuw} disabled={!form.naam}
-              className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2 disabled:opacity-40"
-              style={{ background: "#4F46E5" }}>
+              className="touch-scale w-full py-4 rounded-full font-medium flex items-center justify-center gap-2 disabled:opacity-40"
+              style={{ background: "#2B4030", color: "#F5EFE5", border: "none" }}>
               <Plus size={18} />
               Materiaal opslaan
             </button>
@@ -818,19 +814,20 @@ export default function MaterialenPage() {
 function BottomSheet({ onClose, title, children }: { onClose: () => void; title: string; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end"
-      style={{ background: "rgba(0,0,0,0.5)" }}
+      style={{ background: "rgba(0,0,0,0.4)" }}
       onClick={onClose}>
       <div className="w-full max-w-[480px] mx-auto rounded-t-[32px] overflow-hidden max-h-[88dvh] overflow-y-auto"
-        style={{ background: "#fff" }}
+        style={{ background: "#F5EFE5", fontFamily: "'Inter', sans-serif" }}
         onClick={(e) => e.stopPropagation()}>
         <div className="p-5 pb-3">
-          <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5E7EB" }} />
+          <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5DDD0" }} />
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-black text-base leading-tight pr-4" style={{ color: "#0f172a" }}>{title}</h2>
+            <h2 className="font-bold text-base leading-tight pr-4"
+              style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>{title}</h2>
             <button onClick={onClose}
               className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: "#F3F4F6" }}>
-              <X size={16} style={{ color: "#6B7280" }} />
+              style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+              <X size={16} style={{ color: "#5C5C56" }} />
             </button>
           </div>
           {children}
@@ -842,9 +839,9 @@ function BottomSheet({ onClose, title, children }: { onClose: () => void; title:
 
 function InfoField({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="rounded-2xl p-3" style={{ background: "#F8FAFC" }}>
-      <p className="text-xs font-semibold mb-0.5" style={{ color: "#94a3b8" }}>{label}</p>
-      <p className="text-sm font-bold" style={{ color: accent ?? "#0f172a" }}>{value}</p>
+    <div className="p-3" style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 10 }}>
+      <p className="text-xs font-medium mb-0.5" style={{ color: "#8A8A83" }}>{label}</p>
+      <p className="text-sm font-medium" style={{ color: accent ?? "#1A1D1A" }}>{value}</p>
     </div>
   );
 }
@@ -852,7 +849,7 @@ function InfoField({ label, value, accent }: { label: string; value: string; acc
 function FormField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
+      <label className="text-xs font-medium uppercase tracking-wide mb-2 block" style={{ color: "#5C5C56" }}>
         {label}{required && <span style={{ color: "#EF4444" }}> *</span>}
       </label>
       {children}

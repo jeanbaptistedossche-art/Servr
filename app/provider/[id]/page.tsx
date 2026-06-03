@@ -42,145 +42,281 @@ export default function ProviderPage({ params }: { params: Promise<{ id: string 
   };
 
   return (
-    <div className="flex flex-col min-h-full pb-8 animate-fade-in">
+    <div style={{ minHeight: "100%", background: "#F5EFE5", display: "flex", flexDirection: "column" }}>
+
       {/* Hero foto */}
-      <div className="relative overflow-hidden" style={{ height: 280, background: "var(--surface-2)" }}>
+      <div className="relative overflow-hidden" style={{ height: 280, background: "#EDE4D2" }}>
         <img src={provider.photos[0]} alt={provider.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 40%, rgba(0,0,0,0.6) 100%)" }} />
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 45%, rgba(0,0,0,0.65) 100%)" }}
+        />
 
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12">
-          <button onClick={() => router.back()} className="touch-scale w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-            <ArrowLeft size={18} color="white" />
+          <button
+            onClick={() => router.back()}
+            className="touch-scale"
+            style={{
+              width: 36, height: 36, borderRadius: 99,
+              background: "rgba(0,0,0,0.45)",
+              backdropFilter: "blur(6px)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              border: "none", cursor: "pointer",
+            }}
+          >
+            <ArrowLeft size={18} color="#F5EFE5" />
           </button>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setLiked(l => !l)}
-              className="touch-scale w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <Heart size={18} color="white" fill={liked ? "white" : "none"} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() => setLiked(l => !l)}
+              className="touch-scale"
+              style={{
+                width: 36, height: 36, borderRadius: 99,
+                background: "rgba(0,0,0,0.45)",
+                backdropFilter: "blur(6px)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                border: "none", cursor: "pointer",
+              }}
+            >
+              <Heart size={18} color="#F5EFE5" fill={liked ? "#F5EFE5" : "none"} />
             </button>
-            <button className="touch-scale w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <Share2 size={18} color="white" />
+            <button
+              className="touch-scale"
+              style={{
+                width: 36, height: 36, borderRadius: 99,
+                background: "rgba(0,0,0,0.45)",
+                backdropFilter: "blur(6px)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                border: "none", cursor: "pointer",
+              }}
+            >
+              <Share2 size={18} color="#F5EFE5" />
             </button>
           </div>
         </div>
 
         {/* Beschikbaarheidsdot */}
-        <div className="absolute top-14 right-4 flex items-center gap-1.5 px-2 py-1 rounded-full"
-          style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}>
-          <span className={`w-2 h-2 rounded-full ${provider.available ? "bg-green-400 animate-dot" : "bg-gray-400"}`} />
-          <span className="text-white text-xs font-medium">
+        <div
+          className="absolute"
+          style={{
+            top: 56, right: 16,
+            display: "flex", alignItems: "center", gap: 6,
+            padding: "4px 10px", borderRadius: 99,
+            background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)",
+          }}
+        >
+          <span
+            style={{
+              width: 8, height: 8, borderRadius: 99,
+              background: provider.available ? "#2B4030" : "#8A8A83",
+              display: "inline-block",
+            }}
+          />
+          <span style={{ color: "#F5EFE5", fontSize: 12, fontWeight: 600 }}>
             {provider.available ? "Beschikbaar" : "Bezet"}
           </span>
         </div>
       </div>
 
       {/* Profiel info */}
-      <div className="px-5 -mt-8 relative z-10">
+      <div className="px-5" style={{ marginTop: -32, position: "relative", zIndex: 10 }}>
+
         {/* Hoofd profiel card */}
-        <div style={{ background: "#fff", borderRadius: 28, padding: 20, boxShadow: "0 12px 40px rgba(0,0,0,0.12)" }}>
-          <div className="flex items-start gap-4">
-            <div className="relative flex-shrink-0">
-              <img src={provider.avatar} alt={provider.name}
-                className="object-cover" style={{ width: 72, height: 72, borderRadius: 20, border: "3px solid white", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }} />
+        <div style={{
+          background: "#FBF7F0",
+          border: "0.5px solid #E5DDD0",
+          borderRadius: 20,
+          padding: 20,
+          boxShadow: "0 8px 32px rgba(43,64,48,0.10)",
+        }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <img
+                src={provider.avatar}
+                alt={provider.name}
+                className="object-cover"
+                style={{ width: 72, height: 72, borderRadius: 18, border: "3px solid #FBF7F0", boxShadow: "0 4px 12px rgba(0,0,0,0.12)" }}
+              />
               {/* Servr Score */}
-              <div className="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black"
+              <div
+                style={{
+                  position: "absolute", bottom: -6, right: -6,
+                  width: 30, height: 30, borderRadius: 99,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10, fontWeight: 900,
+                  background: "#2B4030", color: "#F5EFE5",
+                  border: "2.5px solid #FBF7F0",
+                  boxShadow: "0 2px 8px rgba(43,64,48,0.35)",
+                }}
                 title={`Servr Score ${provider.servrScore}/100`}
-                style={{ background: "var(--teal)", color: "white", border: "2.5px solid white", boxShadow: "0 2px 8px rgba(79,70,229,0.4)" }}>
+              >
                 {provider.servrScore}
               </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="font-black leading-tight" style={{ fontSize: 20, color: "#0f172a" }}>{provider.name}</h1>
-              <p className="text-sm mt-0.5" style={{ color: "#64748b" }}>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h1
+                style={{
+                  fontFamily: "'Source Serif 4', Georgia, serif",
+                  fontSize: 20, fontWeight: 900,
+                  color: "#1A1D1A", lineHeight: 1.2, margin: 0,
+                }}
+              >
+                {provider.name}
+              </h1>
+              <p style={{ fontSize: 13, color: "#5C5C56", marginTop: 2 }}>
                 {provider.categoryIcon} {provider.category}
               </p>
-              <div className="flex items-center gap-3 mt-2">
-                <div className="flex items-center gap-1">
-                  {[1,2,3,4,5].map(s => (
-                    <Star key={s} size={12} className={s <= Math.round(provider.rating) ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"} />
-                  ))}
-                  <span className="text-xs font-bold ml-1" style={{ color: "#0f172a" }}>{provider.rating}</span>
-                  <span className="text-xs" style={{ color: "#94a3b8" }}>({provider.reviewCount})</span>
-                </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Star
+                    key={s}
+                    size={12}
+                    color={s <= Math.round(provider.rating) ? "#C97A4D" : "#E5DDD0"}
+                    fill={s <= Math.round(provider.rating) ? "#C97A4D" : "#E5DDD0"}
+                  />
+                ))}
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#1A1D1A", marginLeft: 4 }}>{provider.rating}</span>
+                <span style={{ fontSize: 12, color: "#8A8A83" }}>({provider.reviewCount})</span>
               </div>
             </div>
-            <div className="text-right flex-shrink-0">
-              <p className="font-black" style={{ fontSize: 22, color: "var(--teal)", lineHeight: 1 }}>
+
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <p style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: 22, fontWeight: 900, color: "#2B4030", lineHeight: 1, margin: 0 }}>
                 €{provider.priceMin}
               </p>
-              <p className="text-[11px] font-medium mt-0.5" style={{ color: "#94a3b8" }}>/uur</p>
-              <div className="flex items-center gap-1 mt-1 justify-end" style={{ color: "#94a3b8" }}>
-                <MapPin size={11} />
-                <span className="text-[11px]">{provider.distance}</span>
+              <p style={{ fontSize: 11, fontWeight: 500, color: "#8A8A83", marginTop: 2 }}>/uur</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 4, justifyContent: "flex-end", color: "#8A8A83" }}>
+                <MapPin size={11} color="#8A8A83" />
+                <span style={{ fontSize: 11, color: "#8A8A83" }}>{provider.distance}</span>
               </div>
             </div>
           </div>
 
           {/* Badges */}
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
             {provider.badges.map(badge => (
-              <span key={badge} className="flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-full"
-                style={{ background: "#EEF2FF", color: "var(--teal)" }}>
-                <CheckCircle size={11} />
+              <span
+                key={badge}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  fontSize: 11, fontWeight: 700,
+                  padding: "5px 12px", borderRadius: 99,
+                  background: "#EDE4D2", color: "#2B4030",
+                  border: "0.5px solid #E5DDD0",
+                }}
+              >
+                <CheckCircle size={11} color="#2B4030" />
                 {badge}
               </span>
             ))}
           </div>
 
           {/* Bio */}
-          <p className="text-sm mt-3.5 leading-relaxed" style={{ color: "#64748b" }}>
+          <p style={{ fontSize: 14, color: "#5C5C56", marginTop: 14, lineHeight: 1.6 }}>
             {provider.bio}
           </p>
         </div>
 
         {/* Acties */}
-        <div className="flex gap-3 mt-4">
-          <Link href={`/chat/${provider.id}`}
-            className="touch-scale flex-1 flex items-center justify-center gap-2 font-bold text-sm"
-            style={{ height: 54, borderRadius: 18, border: "2px solid var(--teal)", color: "var(--teal)", background: "#F8F8FF" }}>
-            <MessageCircle size={17} />
+        <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+          <Link
+            href={`/chat/${provider.id}`}
+            className="touch-scale"
+            style={{
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              height: 52, borderRadius: 99,
+              border: "1.5px solid #2B4030",
+              color: "#2B4030", background: "#FBF7F0",
+              fontWeight: 700, fontSize: 14, textDecoration: "none",
+            }}
+          >
+            <MessageCircle size={17} color="#2B4030" />
             Stuur bericht
           </Link>
-          <Link href={`/agenda/boeken/${provider.id}`}
-            className="touch-scale flex-1 flex items-center justify-center gap-2 font-bold text-sm text-white"
-            style={{ height: 54, borderRadius: 18, background: "linear-gradient(135deg, var(--teal), var(--teal-light))", boxShadow: "0 6px 20px rgba(79,70,229,0.4)" }}>
-            <CalendarDays size={15} /> Boek nu
+          <Link
+            href={`/agenda/boeken/${provider.id}`}
+            className="touch-scale"
+            style={{
+              flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              height: 52, borderRadius: 99,
+              background: "#2B4030", color: "#F5EFE5",
+              fontWeight: 700, fontSize: 14, textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(43,64,48,0.30)",
+            }}
+          >
+            <CalendarDays size={15} color="#F5EFE5" />
+            Boek nu
           </Link>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mt-5 p-1.5 rounded-2xl" style={{ background: "#F1F5F9" }}>
+        <div
+          style={{
+            display: "flex", gap: 6, marginTop: 20,
+            padding: 5, borderRadius: 18,
+            background: "#EDE4D2",
+          }}
+        >
           {(["diensten", "reviews", "fotos"] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className="touch-scale flex-1 py-2.5 rounded-xl font-semibold text-sm capitalize transition-all"
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className="touch-scale"
               style={{
-                background: tab === t ? "white" : "transparent",
-                color: tab === t ? "var(--foreground)" : "var(--muted)",
-                boxShadow: tab === t ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-              }}>
+                flex: 1, padding: "9px 0", borderRadius: 13,
+                fontWeight: 600, fontSize: 14,
+                textTransform: "capitalize",
+                border: tab === t ? "none" : "0.5px solid #E5DDD0",
+                background: tab === t ? "#1A1D1A" : "transparent",
+                color: tab === t ? "#F5EFE5" : "#5C5C56",
+                cursor: "pointer",
+                transition: "background 0.15s, color 0.15s",
+              }}
+            >
               {t}
             </button>
           ))}
         </div>
 
         {/* Tab content */}
-        <div className="mt-4">
+        <div className="px-5 pb-28" style={{ paddingLeft: 0, paddingRight: 0, paddingBottom: 112, marginTop: 16 }}>
+
           {tab === "diensten" && (
-            <div className="flex flex-col gap-3">
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {provider.services.map(s => (
-                <div key={s.name} className="card p-4 flex items-center justify-between touch-scale">
+                <div
+                  key={s.name}
+                  className="touch-scale"
+                  style={{
+                    background: "#FBF7F0",
+                    border: "0.5px solid #E5DDD0",
+                    borderRadius: 14, padding: 16,
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                  }}
+                >
                   <div>
-                    <p className="font-semibold text-sm">{s.name}</p>
-                    <div className="flex items-center gap-1 mt-1" style={{ color: "var(--muted)" }}>
-                      <Clock size={12} />
-                      <span className="text-xs">{s.duration}</span>
+                    <p style={{ fontWeight: 600, fontSize: 14, color: "#1A1D1A", margin: 0 }}>{s.name}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, color: "#8A8A83" }}>
+                      <Clock size={12} color="#8A8A83" />
+                      <span style={{ fontSize: 12, color: "#8A8A83" }}>{s.duration}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-black" style={{ color: "var(--teal)" }}>€{s.price}</span>
-                    <button className="touch-scale w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ background: "var(--teal)", color: "white" }}>
-                      <ChevronRight size={16} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontWeight: 900, color: "#2B4030", fontFamily: "'Source Serif 4', Georgia, serif", fontSize: 16 }}>
+                      €{s.price}
+                    </span>
+                    <button
+                      className="touch-scale"
+                      style={{
+                        width: 32, height: 32, borderRadius: 99,
+                        background: "#2B4030", color: "#F5EFE5",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        border: "none", cursor: "pointer",
+                      }}
+                    >
+                      <ChevronRight size={16} color="#F5EFE5" />
                     </button>
                   </div>
                 </div>
@@ -189,27 +325,41 @@ export default function ProviderPage({ params }: { params: Promise<{ id: string 
           )}
 
           {tab === "reviews" && (
-            <div className="flex flex-col gap-3">
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {/* Gemiddelde score strip */}
-              <div className="card p-4 flex items-center gap-4">
-                <div className="text-center">
-                  <p className="font-black text-4xl" style={{ color: "var(--teal)" }}>{provider.rating}</p>
-                  <div className="flex items-center gap-0.5 justify-center mt-1">
+              <div style={{
+                background: "#FBF7F0", border: "0.5px solid #E5DDD0",
+                borderRadius: 14, padding: 16,
+                display: "flex", alignItems: "center", gap: 16,
+              }}>
+                <div style={{ textAlign: "center" }}>
+                  <p style={{
+                    fontFamily: "'Source Serif 4', Georgia, serif",
+                    fontWeight: 900, fontSize: 40, color: "#2B4030", lineHeight: 1, margin: 0,
+                  }}>
+                    {provider.rating}
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 2, justifyContent: "center", marginTop: 4 }}>
                     {Array.from({ length: 5 }).map((_, j) => (
-                      <Star key={j} size={11} className={j < Math.round(provider.rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-200"} />
+                      <Star
+                        key={j}
+                        size={11}
+                        color={j < Math.round(provider.rating) ? "#C97A4D" : "#E5DDD0"}
+                        fill={j < Math.round(provider.rating) ? "#C97A4D" : "#E5DDD0"}
+                      />
                     ))}
                   </div>
-                  <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>{allReviews.length} reviews</p>
+                  <p style={{ fontSize: 10, color: "#8A8A83", marginTop: 4 }}>{allReviews.length} reviews</p>
                 </div>
-                <div className="flex-1 flex flex-col gap-1.5">
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
                   {[5, 4, 3, 2, 1].map(n => {
                     const cnt = allReviews.filter(r => r.rating === n).length;
                     const pct = allReviews.length ? (cnt / allReviews.length) * 100 : 0;
                     return (
-                      <div key={n} className="flex items-center gap-2">
-                        <span className="text-[11px] font-semibold w-3" style={{ color: "var(--muted)" }}>{n}</span>
-                        <div className="flex-1 h-1.5 rounded-full" style={{ background: "var(--surface-2)" }}>
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: "var(--teal)" }} />
+                      <div key={n} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, width: 12, color: "#8A8A83" }}>{n}</span>
+                        <div style={{ flex: 1, height: 6, borderRadius: 99, background: "#EDE4D2" }}>
+                          <div style={{ height: "100%", borderRadius: 99, width: `${pct}%`, background: "#2B4030" }} />
                         </div>
                       </div>
                     );
@@ -219,32 +369,60 @@ export default function ProviderPage({ params }: { params: Promise<{ id: string 
 
               {/* Review schrijven knop */}
               {reviewVerstuurd ? (
-                <div className="card p-3 flex items-center gap-2">
-                  <CheckCircle size={16} style={{ color: "#10B981" }} />
-                  <p className="text-sm font-semibold" style={{ color: "#10B981" }}>Review verstuurd — bedankt!</p>
+                <div style={{
+                  background: "#FBF7F0", border: "0.5px solid #E5DDD0",
+                  borderRadius: 14, padding: 12,
+                  display: "flex", alignItems: "center", gap: 8,
+                }}>
+                  <CheckCircle size={16} color="#2B4030" />
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#2B4030", margin: 0 }}>Review verstuurd — bedankt!</p>
                 </div>
               ) : (
-                <button onClick={() => setShowReviewForm(v => !v)}
-                  className="touch-scale card p-3.5 flex items-center gap-2 w-full text-left"
-                  style={{ borderColor: showReviewForm ? "var(--teal)" : "transparent" }}>
-                  <Star size={16} style={{ color: "var(--teal)" }} />
-                  <span className="font-semibold text-sm" style={{ color: "var(--teal)" }}>Schrijf een review</span>
+                <button
+                  onClick={() => setShowReviewForm(v => !v)}
+                  className="touch-scale"
+                  style={{
+                    background: "#FBF7F0",
+                    border: showReviewForm ? "1px solid #2B4030" : "0.5px solid #E5DDD0",
+                    borderRadius: 14, padding: "12px 16px",
+                    display: "flex", alignItems: "center", gap: 8,
+                    width: "100%", textAlign: "left", cursor: "pointer",
+                  }}
+                >
+                  <Star size={16} color="#C97A4D" fill="#C97A4D" />
+                  <span style={{ fontWeight: 600, fontSize: 14, color: "#2B4030" }}>Schrijf een review</span>
                 </button>
               )}
 
               {/* Review form */}
               {showReviewForm && (
-                <div className="card p-4 flex flex-col gap-3 animate-slide-up">
-                  <div className="flex items-center justify-between">
-                    <p className="font-bold text-sm">Jouw beoordeling</p>
-                    <button onClick={() => setShowReviewForm(false)}>
-                      <X size={16} style={{ color: "var(--muted)" }} />
+                <div
+                  className="animate-slide-up"
+                  style={{
+                    background: "#FBF7F0", border: "0.5px solid #E5DDD0",
+                    borderRadius: 14, padding: 16,
+                    display: "flex", flexDirection: "column", gap: 12,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <p style={{ fontWeight: 700, fontSize: 14, color: "#1A1D1A", margin: 0 }}>Jouw beoordeling</p>
+                    <button onClick={() => setShowReviewForm(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                      <X size={16} color="#8A8A83" />
                     </button>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {[1, 2, 3, 4, 5].map(n => (
-                      <button key={n} onClick={() => setReviewRating(n)} className="touch-scale">
-                        <Star size={28} className={n <= reviewRating ? "fill-amber-400 text-amber-400" : "text-gray-200 fill-gray-100"} />
+                      <button
+                        key={n}
+                        onClick={() => setReviewRating(n)}
+                        className="touch-scale"
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                      >
+                        <Star
+                          size={28}
+                          color={n <= reviewRating ? "#C97A4D" : "#E5DDD0"}
+                          fill={n <= reviewRating ? "#C97A4D" : "#E5DDD0"}
+                        />
                       </button>
                     ))}
                   </div>
@@ -253,45 +431,76 @@ export default function ProviderPage({ params }: { params: Promise<{ id: string 
                     onChange={e => setReviewTekst(e.target.value)}
                     placeholder={`Hoe was je ervaring met ${provider.name.split(" ")[0]}?`}
                     rows={3}
-                    className="w-full px-4 py-3 rounded-2xl border outline-none text-sm resize-none"
-                    style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }}
+                    style={{
+                      width: "100%", padding: "12px 16px",
+                      borderRadius: 12, border: "0.5px solid #E5DDD0",
+                      outline: "none", fontSize: 14, resize: "none",
+                      background: "#F5EFE5", color: "#1A1D1A",
+                      fontFamily: "inherit", boxSizing: "border-box",
+                    }}
                   />
-                  <button onClick={verstuurReview}
+                  <button
+                    onClick={verstuurReview}
                     disabled={!reviewTekst.trim()}
-                    className="touch-scale py-3 rounded-2xl font-bold text-white text-sm flex items-center justify-center gap-2"
-                    style={{ background: reviewTekst.trim() ? "var(--teal)" : "var(--muted)" }}>
-                    <Send size={14} /> Verstuur review
+                    className="touch-scale"
+                    style={{
+                      padding: "12px 0", borderRadius: 99,
+                      fontWeight: 700, fontSize: 14,
+                      color: "#F5EFE5",
+                      background: reviewTekst.trim() ? "#2B4030" : "#8A8A83",
+                      border: "none", cursor: reviewTekst.trim() ? "pointer" : "not-allowed",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    }}
+                  >
+                    <Send size={14} color="#F5EFE5" />
+                    Verstuur review
                   </button>
                 </div>
               )}
 
               {/* Reviews lijst */}
               {allReviews.map((r, i) => (
-                <div key={i} className="card p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-semibold text-sm">{r.author}</p>
-                    <div className="flex gap-0.5">
+                <div
+                  key={i}
+                  style={{
+                    background: "#FBF7F0", border: "0.5px solid #E5DDD0",
+                    borderRadius: 14, padding: 16,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                    <p style={{ fontWeight: 600, fontSize: 14, color: "#1A1D1A", margin: 0 }}>{r.author}</p>
+                    <div style={{ display: "flex", gap: 2 }}>
                       {Array.from({ length: 5 }).map((_, j) => (
-                        <Star key={j} size={12} className={j < r.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200 fill-gray-100"} />
+                        <Star
+                          key={j}
+                          size={12}
+                          color={j < r.rating ? "#C97A4D" : "#E5DDD0"}
+                          fill={j < r.rating ? "#C97A4D" : "#E5DDD0"}
+                        />
                       ))}
                     </div>
                   </div>
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{r.text}</p>
-                  <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>{r.date}</p>
+                  <p style={{ fontSize: 14, color: "#5C5C56", lineHeight: 1.55, margin: 0 }}>{r.text}</p>
+                  <p style={{ fontSize: 12, color: "#8A8A83", marginTop: 8, marginBottom: 0 }}>{r.date}</p>
                 </div>
               ))}
             </div>
           )}
 
           {tab === "fotos" && (
-            <div className="grid grid-cols-2 gap-2">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {provider.photos.concat(provider.photos).map((photo, i) => (
-                <div key={i} className="aspect-square rounded-2xl overflow-hidden touch-scale">
-                  <img src={photo} alt="" className="w-full h-full object-cover" />
+                <div
+                  key={i}
+                  className="touch-scale"
+                  style={{ aspectRatio: "1", borderRadius: 14, overflow: "hidden" }}
+                >
+                  <img src={photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 </div>
               ))}
             </div>
           )}
+
         </div>
       </div>
     </div>

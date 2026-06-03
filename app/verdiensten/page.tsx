@@ -1,18 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, TrendingDown, Euro, Download, X } from "lucide-react";
+import { supabase, supabaseReady } from "@/lib/supabase";
+import { useUserStore } from "@/lib/store";
 
 type Periode = "dag" | "week" | "maand" | "6maanden" | "jaar" | "alletijd";
 
-const DATA: Record<Periode, {
-  bruto: number; servr: number; netto: number; klussen: number;
-  bars: number[]; labels: string[];
-  detail: { label: string; klussen: number; bruto: number }[];
-}> = {
+// ── Static chart/detail data (visual decoration) ─────────────
+const CHART_DATA: Record<Periode, { bars: number[]; labels: string[]; detail: { label: string; klussen: number; bruto: number }[] }> = {
   dag: {
-    bruto: 195, servr: 15.6, netto: 179.4, klussen: 2,
     bars: [0, 0, 65, 130, 0, 0, 0, 0, 130, 65],
     labels: ["8u","9u","10u","11u","12u","13u","14u","15u","16u","17u"],
     detail: [
@@ -21,7 +19,6 @@ const DATA: Record<Periode, {
     ],
   },
   week: {
-    bruto: 842, servr: 67.36, netto: 774.64, klussen: 11,
     bars: [45, 120, 85, 200, 160, 140, 92],
     labels: ["Ma","Di","Wo","Do","Vr","Za","Zo"],
     detail: [
@@ -35,7 +32,6 @@ const DATA: Record<Periode, {
     ],
   },
   maand: {
-    bruto: 3240, servr: 259.2, netto: 2980.8, klussen: 43,
     bars: [620, 780, 850, 990],
     labels: ["Week 1","Week 2","Week 3","Week 4"],
     detail: [
@@ -46,7 +42,6 @@ const DATA: Record<Periode, {
     ],
   },
   "6maanden": {
-    bruto: 18650, servr: 1492, netto: 17158, klussen: 248,
     bars: [2800, 3100, 3400, 2900, 3250, 3200],
     labels: ["Dec","Jan","Feb","Mrt","Apr","Mei"],
     detail: [
@@ -59,7 +54,6 @@ const DATA: Record<Periode, {
     ],
   },
   jaar: {
-    bruto: 36800, servr: 2944, netto: 33856, klussen: 489,
     bars: [2800,3100,2600,3200,3400,2900,3100,3300,3200,3000,3000,3200],
     labels: ["J","F","M","A","M","J","J","A","S","O","N","D"],
     detail: [
@@ -78,7 +72,6 @@ const DATA: Record<Periode, {
     ],
   },
   alletijd: {
-    bruto: 94200, servr: 7536, netto: 86664, klussen: 1247,
     bars: [12000, 18000, 22000, 25000, 17200],
     labels: ["2022","2023","2024","2025","2026"],
     detail: [
@@ -96,22 +89,64 @@ const PERIODE_LABELS: Record<Periode, string> = {
   "6maanden": "6 maanden", jaar: "Dit jaar", alletijd: "Alles",
 };
 
-const RECENTE_KLUSSEN = [
-  { naam: "Lekkage reparatie — Lisa de Vries", datum: "19 mei", bruto: 102, fee: 8.16 },
-  { naam: "Toilet installatie — Ahmed Mansour", datum: "19 mei", bruto: 236, fee: 18.88 },
-  { naam: "CV ketel inspectie — Petra Jansen", datum: "19 mei", bruto: 99, fee: 7.92 },
-  { naam: "Kraan vervangen — Sandra Hoek", datum: "18 mei", bruto: 65, fee: 5.2 },
-  { naam: "Lekkage reparatie — Daan Roos", datum: "17 mei", bruto: 85, fee: 6.8 },
-];
+// ── Booking shape from Supabase ───────────────────────────────
+type Boeking = {
+  id: string;
+  klant_id: string;
+  vakman_id: string;
+  status: string;
+  start_tijd: string;
+  bedrag: number;
+  notities?: string;
+};
 
 function fmt(n: number) {
   return n.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function downloadPDF(periode: Periode) {
-  const d = DATA[periode];
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
+}
+
+// ── Derived stats from bookings ───────────────────────────────
+function calcStats(boekingen: Boeking[]) {
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const thisMonth = now.getMonth();
+  const prevMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+  const prevMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+
+  let totalBruto = 0;
+  let thisMaandBruto = 0;
+  let vorigeMaandBruto = 0;
+
+  for (const b of boekingen) {
+    const euros = (b.bedrag ?? 0) / 100;
+    totalBruto += euros;
+    const d = new Date(b.start_tijd);
+    if (d.getFullYear() === thisYear && d.getMonth() === thisMonth) {
+      thisMaandBruto += euros;
+    }
+    if (d.getFullYear() === prevMonthYear && d.getMonth() === prevMonth) {
+      vorigeMaandBruto += euros;
+    }
+  }
+
+  const servr = totalBruto * 0.08;
+  const netto = totalBruto - servr;
+  const klussen = boekingen.length;
+
+  return { totalBruto, netto, servr, klussen, thisMaandBruto, vorigeMaandBruto };
+}
+
+function downloadPDF(
+  periode: Periode,
+  stats: ReturnType<typeof calcStats>,
+  boekingen: Boeking[],
+) {
   const periodeLabel = PERIODE_LABELS[periode];
   const datum = new Date().toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+  const d = CHART_DATA[periode];
 
   const html = `<!DOCTYPE html>
 <html lang="nl">
@@ -145,7 +180,7 @@ function downloadPDF(periode: Periode) {
 </head>
 <body>
 <div class="header">
-  <h1>💰 Verdiensten Overzicht</h1>
+  <h1>Verdiensten Overzicht</h1>
   <p>Gegenereerd op ${datum}</p>
   <div class="periode">${periodeLabel}</div>
 </div>
@@ -153,17 +188,17 @@ function downloadPDF(periode: Periode) {
 <div class="stats">
   <div class="stat netto">
     <div class="label">Netto ontvangen</div>
-    <div class="value">€${fmt(d.netto)}</div>
+    <div class="value">€${fmt(stats.netto)}</div>
     <div class="sub">Na 8% Servr commissie</div>
   </div>
   <div class="stat">
     <div class="label">Bruto omzet</div>
-    <div class="value">€${fmt(d.bruto)}</div>
-    <div class="sub">${d.klussen} klussen</div>
+    <div class="value">€${fmt(stats.totalBruto)}</div>
+    <div class="sub">${stats.klussen} klussen</div>
   </div>
   <div class="stat fee">
     <div class="label">Servr commissie (8%)</div>
-    <div class="value">€${fmt(d.servr)}</div>
+    <div class="value">€${fmt(stats.servr)}</div>
     <div class="sub">Platform fee</div>
   </div>
 </div>
@@ -195,21 +230,24 @@ function downloadPDF(periode: Periode) {
       <tr><th>Klus</th><th>Datum</th><th>Bruto</th><th>Fee (8%)</th><th>Netto</th></tr>
     </thead>
     <tbody>
-      ${RECENTE_KLUSSEN.map(k => `
+      ${boekingen.slice(0, 10).map(k => {
+        const bruto = (k.bedrag ?? 0) / 100;
+        const fee = bruto * 0.08;
+        return `
         <tr>
-          <td>${k.naam}</td>
-          <td>${k.datum}</td>
-          <td>€${fmt(k.bruto)}</td>
-          <td style="color:#dc2626">€${fmt(k.fee)}</td>
-          <td class="td-netto">€${fmt(k.bruto - k.fee)}</td>
-        </tr>
-      `).join("")}
+          <td>Klus #${k.id.slice(0, 8)}</td>
+          <td>${fmtDate(k.start_tijd)}</td>
+          <td>€${fmt(bruto)}</td>
+          <td style="color:#dc2626">€${fmt(fee)}</td>
+          <td class="td-netto">€${fmt(bruto - fee)}</td>
+        </tr>`;
+      }).join("")}
     </tbody>
   </table>
 </div>
 
 <div class="footer">
-  Servr BV · Automatisch gegenereerd rapport · <span class="badge">✓ Officieel document</span><br/>
+  Servr BV · Automatisch gegenereerd rapport · <span class="badge">Officieel document</span><br/>
   Bewaar dit document voor je boekhouding.
 </div>
 </body>
@@ -225,107 +263,188 @@ function downloadPDF(periode: Periode) {
 }
 
 export default function VerdiennstenPage() {
+  const router = useRouter();
   const [periode, setPeriode] = useState<Periode>("week");
   const [activeBar, setActiveBar] = useState<number | null>(null);
-  const d = DATA[periode];
-  const maxBar = Math.max(...d.bars, 1);
-  const activeDetail = activeBar !== null ? d.detail[activeBar] : null;
+
+  // Real data state
+  const { userId: storeUserId } = useUserStore();
+  const [userId, setUserId] = useState(storeUserId);
+  const [boekingen, setBoekingen] = useState<Boeking[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Resolve userId
+  useEffect(() => {
+    if (storeUserId) { setUserId(storeUserId); return; }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setUserId(session.user.id);
+    });
+  }, [storeUserId]);
+
+  // Load bookings
+  useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      try {
+        await supabaseReady;
+        const { data, error } = await (supabase.from("boekingen") as any)
+          .select("*")
+          .eq("vakman_id", userId)
+          .in("status", ["afgerond", "betaald"])
+          .order("start_tijd", { ascending: false });
+
+        if (!cancelled && !error && data) {
+          setBoekingen(data);
+        }
+      } catch {
+        // silently ignore — show zeros
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const stats = calcStats(boekingen);
+  const chart = CHART_DATA[periode];
+  const maxBar = Math.max(...chart.bars, 1);
+  const activeDetail = activeBar !== null ? chart.detail[activeBar] : null;
 
   return (
-    <div className="flex flex-col min-h-full pb-10 animate-fade-in">
-      {/* Header */}
-      <div className="px-5 pt-12 pb-5"
-        style={{ background: "linear-gradient(135deg, #d85a30 0%, #b84820 100%)" }}>
-        <div className="flex items-center gap-3 mb-5">
-          <Link href="/dashboard"
-            className="touch-scale w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-            <ArrowLeft size={18} color="white" />
-          </Link>
-          <h1 className="text-white font-black text-xl flex-1">Verdiensten</h1>
-          <button
-            onClick={() => downloadPDF(periode)}
-            className="touch-scale w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-            <Download size={16} color="white" />
+    <div className="flex flex-col min-h-full animate-fade-in" style={{ background: "#F5EFE5" }}>
+
+      {/* Sticky Header */}
+      <div className="px-5 pt-14 pb-4" style={{ background: "rgba(245,239,229,0.97)" }}>
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push('/profile')}
+            className="touch-scale w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+            <ArrowLeft size={18} style={{ color: "#1A1D1A" }} />
           </button>
-        </div>
-
-        {/* Hoofdcijfers */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-white/15 rounded-2xl p-4">
-            <p className="text-white/60 text-xs mb-1">Netto ontvangen</p>
-            <p className="text-white font-black text-2xl">€{fmt(d.netto)}</p>
-            <p className="text-white/60 text-xs mt-1">Na 8% Servr commissie</p>
-          </div>
-          <div className="bg-white/15 rounded-2xl p-4">
-            <p className="text-white/60 text-xs mb-1">Bruto omzet</p>
-            <p className="text-white font-black text-2xl">€{fmt(d.bruto)}</p>
-            <p className="text-white/60 text-xs mt-1">{d.klussen} klus{d.klussen !== 1 ? "sen" : ""}</p>
-          </div>
-        </div>
-
-        <div className="bg-white/10 rounded-2xl px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingDown size={16} color="rgba(255,255,255,0.7)" />
-            <span className="text-white/70 text-sm">Servr commissie (8%)</span>
-          </div>
-          <span className="text-white font-bold">- €{fmt(d.servr)}</span>
+          <h1 className="flex-1 text-xl font-bold" style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: "#1A1D1A" }}>
+            Verdiensten
+          </h1>
+          <button
+            onClick={() => downloadPDF(periode, stats, boekingen)}
+            className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+            <Download size={16} style={{ color: "#2B4030" }} />
+          </button>
         </div>
       </div>
 
-      <div className="px-5 pt-5 flex flex-col gap-5">
+      <div className="px-5 pb-28 flex flex-col gap-5">
+
+        {/* Hoofdcijfers — real data */}
+        <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="col-span-2">
+              <p className="text-xs mb-1" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>Netto ontvangen</p>
+              <p className="font-bold" style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: 28, color: "#2B4030" }}>
+                {loading ? "…" : `€${fmt(stats.netto)}`}
+              </p>
+              <p className="text-xs mt-1" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>Na 8% Servr commissie</p>
+            </div>
+            <div>
+              <p className="text-xs mb-1" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>Bruto</p>
+              <p className="font-bold text-lg" style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: "#1A1D1A" }}>
+                {loading ? "…" : `€${fmt(stats.totalBruto)}`}
+              </p>
+              <p className="text-xs mt-1" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
+                {loading ? "" : `${stats.klussen} klus${stats.klussen !== 1 ? "sen" : ""}`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between px-3 py-2 rounded-xl"
+            style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0" }}>
+            <div className="flex items-center gap-2">
+              <TrendingDown size={14} style={{ color: "#8A8A83" }} />
+              <span className="text-sm" style={{ color: "#5C5C56", fontFamily: "'Inter', sans-serif" }}>Servr commissie (8%)</span>
+            </div>
+            <span className="text-sm font-semibold" style={{ color: "#C97A4D", fontFamily: "'Inter', sans-serif" }}>
+              {loading ? "…" : `- €${fmt(stats.servr)}`}
+            </span>
+          </div>
+        </div>
+
+        {/* Stats grid — deze maand / vorige maand */}
+        <div className="grid grid-cols-2 gap-3">
+          <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+            <p className="text-xs mb-1" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>Deze maand</p>
+            <p className="font-bold" style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: 20, color: "#2B4030" }}>
+              {loading ? "…" : `€${fmt(stats.thisMaandBruto * 0.92)}`}
+            </p>
+            <p className="text-xs mt-1" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>netto</p>
+          </div>
+          <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+            <p className="text-xs mb-1" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>Vorige maand</p>
+            <p className="font-bold" style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: 20, color: "#1A1D1A" }}>
+              {loading ? "…" : `€${fmt(stats.vorigeMaandBruto * 0.92)}`}
+            </p>
+            <p className="text-xs mt-1" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>netto</p>
+          </div>
+        </div>
+
         {/* Periode selector */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-5 px-5">
           {(Object.keys(PERIODE_LABELS) as Periode[]).map(p => (
             <button key={p} onClick={() => { setPeriode(p); setActiveBar(null); }}
-              className="touch-scale flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold border-2 transition-all"
+              className="touch-scale flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all"
               style={{
-                borderColor: periode === p ? "#d85a30" : "var(--border)",
-                background: periode === p ? "#d85a30" : "transparent",
-                color: periode === p ? "white" : "var(--muted)",
+                fontFamily: "'Inter', sans-serif",
+                background: periode === p ? "#2B4030" : "#FBF7F0",
+                color: periode === p ? "#F5EFE5" : "#5C5C56",
+                border: "0.5px solid #E5DDD0",
               }}>
               {PERIODE_LABELS[p]}
             </button>
           ))}
         </div>
 
-        {/* Klikbaar staafdiagram */}
-        <div className="card p-5">
+        {/* Klikbaar staafdiagram (visual decoration) */}
+        <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
           <div className="flex items-center justify-between mb-4">
-            <p className="font-bold text-sm">Netto verdiensten</p>
+            <p className="font-semibold text-sm" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+              Netto verdiensten
+            </p>
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
-              style={{ background: "#d85a30" + "15", color: "#d85a30" }}>
+              style={{ background: "#2B403015", color: "#2B4030", fontFamily: "'Inter', sans-serif" }}>
               {PERIODE_LABELS[periode]}
             </span>
           </div>
 
-          {/* Detail popup */}
           {activeDetail && (
-            <div className="mb-4 p-3 rounded-2xl flex items-center justify-between animate-slide-up"
-              style={{ background: "#d85a30" + "12" }}>
+            <div className="mb-4 p-3 rounded-xl flex items-center justify-between"
+              style={{ background: "#2B403010", border: "0.5px solid #E5DDD0" }}>
               <div>
-                <p className="font-bold text-sm">{activeDetail.label}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                <p className="font-semibold text-sm" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+                  {activeDetail.label}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
                   {activeDetail.klussen} klus{activeDetail.klussen !== 1 ? "sen" : ""} · bruto €{fmt(activeDetail.bruto)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-black text-base" style={{ color: "#d85a30" }}>
+                <p className="font-bold text-base" style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: "#2B4030" }}>
                   €{fmt(activeDetail.bruto * 0.92)}
                 </p>
-                <p className="text-[10px]" style={{ color: "var(--muted)" }}>netto</p>
+                <p className="text-[10px]" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>netto</p>
               </div>
               <button onClick={() => setActiveBar(null)} className="ml-2 touch-scale">
-                <X size={14} style={{ color: "var(--muted)" }} />
+                <X size={14} style={{ color: "#8A8A83" }} />
               </button>
             </div>
           )}
 
           <div className="flex items-end gap-1.5 h-28">
-            {d.bars.map((v, i) => {
+            {chart.bars.map((v, i) => {
               const netto = v * 0.92;
               const h = v === 0 ? 4 : Math.max((netto / (maxBar * 0.92)) * 88, 8);
               const isActive = activeBar === i;
-              const isHighest = d.bars.indexOf(Math.max(...d.bars)) === i;
+              const isHighest = chart.bars.indexOf(Math.max(...chart.bars)) === i;
               return (
                 <button key={i}
                   onClick={() => setActiveBar(isActive ? null : i)}
@@ -333,77 +452,113 @@ export default function VerdiennstenPage() {
                   <div className="w-full rounded-t-lg transition-all"
                     style={{
                       height: `${h}px`,
-                      background: v === 0 ? "var(--surface-2)" :
-                        isActive ? "#d85a30" :
-                        isHighest ? "#d85a30" + "aa" :
-                        "var(--surface-2)",
-                      outline: isActive ? "2px solid #d85a30" : "none",
+                      background: v === 0 ? "#E5DDD0" :
+                        isActive ? "#2B4030" :
+                        isHighest ? "#2B403080" :
+                        "#E5DDD0",
+                      outline: isActive ? `2px solid #2B4030` : "none",
                       outlineOffset: "2px",
                     }} />
-                  <span className="text-[9px]" style={{ color: isActive ? "#d85a30" : "var(--muted)" }}>
-                    {d.labels[i]}
+                  <span className="text-[9px]" style={{ color: isActive ? "#2B4030" : "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
+                    {chart.labels[i]}
                   </span>
                 </button>
               );
             })}
           </div>
-          <p className="text-[10px] text-center mt-3" style={{ color: "var(--muted)" }}>
+          <p className="text-[10px] text-center mt-3" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
             Tik op een balk voor details
           </p>
         </div>
 
-        {/* Fee breakdown */}
-        <div className="card p-5">
-          <p className="font-bold text-sm mb-4">Breakdown {PERIODE_LABELS[periode]}</p>
+        {/* Fee breakdown — real totals */}
+        <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+          <p className="font-semibold text-sm mb-4" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+            Totaal overzicht
+          </p>
           <div className="space-y-3">
             {[
-              { label: "Bruto omzet", value: d.bruto, color: "var(--foreground)", bold: false },
-              { label: "Servr commissie (8%)", value: -d.servr, color: "#dc2626", bold: false },
-              { label: "Netto ontvangen", value: d.netto, color: "#d85a30", bold: true },
+              { label: "Bruto omzet", value: stats.totalBruto, color: "#1A1D1A", bold: false },
+              { label: "Servr commissie (8%)", value: -stats.servr, color: "#C97A4D", bold: false },
+              { label: "Netto ontvangen", value: stats.netto, color: "#2B4030", bold: true },
             ].map(row => (
-              <div key={row.label} className={`flex justify-between items-center ${row.bold ? "pt-2 border-t" : ""}`}
-                style={row.bold ? { borderColor: "var(--border)" } : {}}>
-                <span className={`text-sm ${row.bold ? "font-black" : ""}`}
-                  style={{ color: row.bold ? "var(--foreground)" : "var(--muted)" }}>
+              <div key={row.label}
+                className={`flex justify-between items-center ${row.bold ? "pt-2" : ""}`}
+                style={row.bold ? { borderTop: "0.5px solid #E5DDD0" } : {}}>
+                <span className="text-sm" style={{
+                  color: row.bold ? "#1A1D1A" : "#5C5C56",
+                  fontWeight: row.bold ? 700 : 400,
+                  fontFamily: "'Inter', sans-serif",
+                }}>
                   {row.label}
                 </span>
-                <span className={`${row.bold ? "font-black text-base" : "font-semibold text-sm"}`}
-                  style={{ color: row.color }}>
-                  {row.value >= 0 ? "" : "- "}€{fmt(Math.abs(row.value))}
+                <span style={{
+                  color: row.color,
+                  fontFamily: row.bold ? "'Source Serif 4', Georgia, serif" : "'Inter', sans-serif",
+                  fontWeight: row.bold ? 700 : 600,
+                  fontSize: row.bold ? 16 : 14,
+                }}>
+                  {loading ? "…" : `${row.value >= 0 ? "" : "- "}€${fmt(Math.abs(row.value))}`}
                 </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Recente klussen */}
+        {/* Recente klussen — real bookings */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <p className="font-black text-sm">Recente uitbetalingen</p>
-            <button onClick={() => downloadPDF(periode)}
-              className="touch-scale flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
-              style={{ background: "#d85a30" + "15", color: "#d85a30" }}>
+            <p className="font-semibold text-sm" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+              Recente uitbetalingen
+            </p>
+            <button onClick={() => downloadPDF(periode, stats, boekingen)}
+              className="touch-scale flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full"
+              style={{ background: "transparent", border: "0.5px solid #E5DDD0", color: "#5C5C56", fontFamily: "'Inter', sans-serif" }}>
               <Download size={12} /> PDF
             </button>
           </div>
-          <div className="flex flex-col gap-2">
-            {RECENTE_KLUSSEN.map((k, i) => (
-              <div key={i} className="card p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: "#d85a30" + "12" }}>
-                  <Euro size={16} style={{ color: "#d85a30" }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{k.naam}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{k.datum}</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="font-black text-sm" style={{ color: "#d85a30" }}>€{fmt(k.bruto - k.fee)}</p>
-                  <p className="text-[10px]" style={{ color: "var(--muted)" }}>-€{fmt(k.fee)} fee</p>
-                </div>
-              </div>
-            ))}
-          </div>
+
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "24px 0" }}>
+              <p style={{ fontSize: 13, color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>Laden…</p>
+            </div>
+          ) : boekingen.length === 0 ? (
+            <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 24, textAlign: "center" }}>
+              <p style={{ fontSize: 13, color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
+                Nog geen uitbetalingen
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {boekingen.slice(0, 10).map((k) => {
+                const bruto = (k.bedrag ?? 0) / 100;
+                const fee = bruto * 0.08;
+                return (
+                  <div key={k.id} style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}
+                    className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: "#2B403015" }}>
+                      <Euro size={16} style={{ color: "#2B4030" }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+                        {k.notities ? k.notities.slice(0, 40) : `Klus #${k.id.slice(0, 8)}`}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
+                        {fmtDate(k.start_tijd)}
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-bold text-sm" style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: "#2B4030" }}>
+                        €{fmt(bruto - fee)}
+                      </p>
+                      <p className="text-[10px]" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>-€{fmt(fee)} fee</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

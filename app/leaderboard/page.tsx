@@ -84,7 +84,7 @@ function TrendIcon({ trend, val }: { trend: string; val: number }) {
       <TrendingDown size={11} /> -{val}
     </span>
   );
-  return <Minus size={12} style={{ color: "var(--muted)" }} />;
+  return <Minus size={12} style={{ color: "#8A8A83" }} />;
 }
 
 export default function LeaderboardPage() {
@@ -103,7 +103,7 @@ export default function LeaderboardPage() {
       <div className="px-5 pt-12 pb-6"
         style={{ background: "linear-gradient(160deg, #7c3aed 0%, #4f46e5 100%)" }}>
         <div className="flex items-center gap-3 mb-5">
-          <Link href="/dashboard"
+          <Link href="/profile"
             className="touch-scale w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
             <ArrowLeft size={18} color="white" />
           </Link>
@@ -136,9 +136,9 @@ export default function LeaderboardPage() {
           <button onClick={() => setCatFilter("alle")}
             className="touch-scale flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold border-2 transition-all"
             style={{
-              borderColor: catFilter === "alle" ? "#7c3aed" : "var(--border)",
+              borderColor: catFilter === "alle" ? "#7c3aed" : "#E5DDD0",
               background: catFilter === "alle" ? "#7c3aed10" : "transparent",
-              color: catFilter === "alle" ? "#7c3aed" : "var(--muted)",
+              color: catFilter === "alle" ? "#7c3aed" : "#8A8A83",
             }}>
             🏆 Alles
           </button>
@@ -146,9 +146,9 @@ export default function LeaderboardPage() {
             <button key={c.id} onClick={() => setCatFilter(c.id)}
               className="touch-scale flex-shrink-0 px-3 py-2 rounded-full text-xs font-semibold border-2 transition-all"
               style={{
-                borderColor: catFilter === c.id ? c.color : "var(--border)",
+                borderColor: catFilter === c.id ? c.color : "#E5DDD0",
                 background: catFilter === c.id ? c.color + "15" : "transparent",
-                color: catFilter === c.id ? c.color : "var(--muted)",
+                color: catFilter === c.id ? c.color : "#8A8A83",
               }}>
               {c.icon} {c.label}
             </button>
@@ -203,7 +203,7 @@ export default function LeaderboardPage() {
               <div className="w-8 text-center flex-shrink-0">
                 {p.rank <= 3
                   ? <span className="text-lg">{["🥇", "🥈", "🥉"][p.rank - 1]}</span>
-                  : <span className="font-black text-sm" style={{ color: "var(--muted)" }}>#{p.rank}</span>}
+                  : <span className="font-black text-sm" style={{ color: "#8A8A83" }}>#{p.rank}</span>}
               </div>
 
               {/* Avatar */}
@@ -230,13 +230,13 @@ export default function LeaderboardPage() {
                     <Star size={10} className="fill-yellow-400 text-yellow-400" />
                     <span className="text-xs font-semibold">{p.rating}</span>
                   </div>
-                  <span className="text-xs" style={{ color: "var(--muted)" }}>{p.klussen} klussen</span>
+                  <span className="text-xs" style={{ color: "#8A8A83" }}>{p.klussen} klussen</span>
                 </div>
               </div>
 
               {/* Score + trend */}
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                <span className="font-black text-lg" style={{ color: p.isJij ? "#7c3aed" : "var(--foreground)" }}>
+                <span className="font-black text-lg" style={{ color: p.isJij ? "#7c3aed" : "#1A1D1A" }}>
                   {p.score}
                 </span>
                 <TrendIcon trend={p.trend} val={p.trendVal} />
@@ -257,7 +257,7 @@ export default function LeaderboardPage() {
             ].map(f => (
               <div key={f.label} className="flex items-center gap-3">
                 <span className="text-xs flex-1">{f.label}</span>
-                <div className="w-24 h-2 rounded-full" style={{ background: "var(--surface-2)" }}>
+                <div className="w-24 h-2 rounded-full" style={{ background: "#EDE4D2" }}>
                   <div className="h-full rounded-full" style={{ width: f.pct, background: "#7c3aed" }} />
                 </div>
                 <span className="text-xs font-bold w-8 text-right" style={{ color: "#7c3aed" }}>{f.pct}</span>

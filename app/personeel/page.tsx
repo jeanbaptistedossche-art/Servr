@@ -3,9 +3,9 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChevronLeft, Plus, Users, Phone, Mail, MapPin,
-  Clock, Euro, CheckCircle2, X, Star, Wrench, ChevronRight,
-  Calendar, TrendingUp, AlertCircle, MoreHorizontal,
+  ArrowLeft, Plus, Users, Phone, Mail,
+  Clock, Euro, X, Star,
+  Calendar,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -38,10 +38,10 @@ const STATUS_CFG: Record<PersoonStatus, { label: string; color: string; bg: stri
 };
 
 const ROL_CFG: Record<Rol, { label: string; color: string; bg: string }> = {
-  monteur:        { label: "Monteur",        color: "#4F46E5", bg: "#EEF2FF" },
-  leerling:       { label: "Leerling",       color: "#10B981", bg: "#ECFDF5" },
-  assistent:      { label: "Assistent",      color: "#0EA5E9", bg: "#F0F9FF" },
-  onderaannemer:  { label: "Onderaannemer",  color: "#8B5CF6", bg: "#F5F3FF" },
+  monteur:        { label: "Monteur",        color: "#2B4030", bg: "#E8F0EA" },
+  leerling:       { label: "Leerling",       color: "#C97A4D", bg: "#F9EDE3" },
+  assistent:      { label: "Assistent",      color: "#5C5C56", bg: "#EFEFEC" },
+  onderaannemer:  { label: "Onderaannemer",  color: "#2B4030", bg: "#E8F0EA" },
 };
 
 const INIT_PERSONEEL: Persoon[] = [
@@ -102,39 +102,43 @@ export default function PersoneelPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-full pb-28 animate-fade-in" style={{ background: "#F1F4FA" }}>
+    <div className="flex flex-col min-h-full animate-fade-in" style={{ background: "#F5EFE5" }}>
 
       {/* Header */}
-      <div className="px-5 pt-14 pb-4 flex items-center gap-3">
-        <button onClick={() => router.back()}
-          className="touch-scale w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-          <ChevronLeft size={20} style={{ color: "#475569" }} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-black truncate" style={{ color: "#0f172a" }}>Personeel</h1>
-          <p className="text-xs truncate" style={{ color: "#94a3b8" }}>Team & onderaannemers beheren</p>
+      <div className="px-5 pt-14 pb-4" style={{ background: "rgba(245,239,229,0.97)" }}>
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push('/profile')}
+            className="touch-scale w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+            <ArrowLeft size={18} style={{ color: "#2B4030" }} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold truncate"
+              style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>Personeel</h1>
+            <p className="text-xs truncate" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>Team & onderaannemers beheren</p>
+          </div>
+          <button onClick={() => setShowAdd(true)}
+            className="touch-scale w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "#2B4030", border: "none" }}>
+            <Plus size={18} color="#F5EFE5" />
+          </button>
         </div>
-        <button onClick={() => setShowAdd(true)}
-          className="touch-scale w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 text-white"
-          style={{ background: "linear-gradient(135deg, #4F46E5, #818CF8)", boxShadow: "0 4px 12px rgba(79,70,229,0.4)" }}>
-          <Plus size={20} />
-        </button>
       </div>
 
-      <div className="px-5 flex flex-col gap-5">
+      <div className="px-5 pb-28 flex flex-col gap-5" style={{ fontFamily: "'Inter', sans-serif" }}>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
           {[
-            { v: stats.actief,                       l: "Actief",       c: "#10B981", bg: "#ECFDF5" },
-            { v: `${stats.week_uren}u`,               l: "Uren/week",    c: "#4F46E5", bg: "#EEF2FF" },
-            { v: `€${(stats.maand_kosten/1000).toFixed(1)}k`, l: "Maand kosten", c: "#0EA5E9", bg: "#F0F9FF" },
+            { v: stats.actief,                                   l: "Actief" },
+            { v: `${stats.week_uren}u`,                          l: "Uren/week" },
+            { v: `€${(stats.maand_kosten / 1000).toFixed(1)}k`,  l: "Maand kosten" },
           ].map(s => (
-            <div key={s.l} className="rounded-2xl p-4 flex flex-col items-center gap-1"
-              style={{ background: s.bg }}>
-              <span className="font-black text-xl" style={{ color: s.c }}>{s.v}</span>
-              <span className="text-[10px] font-bold" style={{ color: s.c }}>{s.l}</span>
+            <div key={s.l} className="flex flex-col items-center gap-1 py-4"
+              style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+              <span className="font-bold text-2xl"
+                style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>{s.v}</span>
+              <span className="text-[11px]" style={{ color: "#8A8A83" }}>{s.l}</span>
             </div>
           ))}
         </div>
@@ -146,13 +150,13 @@ export default function PersoneelPage() {
             const cfg = key !== "alles" ? STATUS_CFG[key as PersoonStatus] : null;
             return (
               <button key={key} onClick={() => setFilterStatus(key as PersoonStatus | "alles")}
-                className="touch-scale flex-shrink-0 px-4 py-2 rounded-2xl text-xs font-bold"
+                className="touch-scale flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium"
                 style={{
-                  background: active ? (cfg?.color ?? "#4F46E5") : "#fff",
-                  color: active ? "#fff" : "#64748b",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                  background: active ? "#2B4030" : "#FBF7F0",
+                  color: active ? "#F5EFE5" : "#5C5C56",
+                  border: active ? "none" : "0.5px solid #E5DDD0",
                 }}>
-                {cfg && <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5" style={{ background: active ? "rgba(255,255,255,0.8)" : cfg.dot }} />}
+                {cfg && <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5" style={{ background: active ? "rgba(245,239,229,0.7)" : cfg.dot }} />}
                 {label}
               </button>
             );
@@ -166,32 +170,32 @@ export default function PersoneelPage() {
             const rCfg = ROL_CFG[p.rol];
             return (
               <button key={p.id} onClick={() => setSelectedId(p.id)}
-                className="touch-scale w-full rounded-3xl p-4 text-left"
-                style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+                className="touch-scale w-full text-left"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
                 <div className="flex items-center gap-3">
                   <div className="relative flex-shrink-0">
                     <img src={p.avatar} alt={p.naam}
                       className="w-14 h-14 rounded-2xl object-cover" />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white"
-                      style={{ background: sCfg.dot }} />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2"
+                      style={{ background: sCfg.dot, borderColor: "#FBF7F0" }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-bold text-sm truncate" style={{ color: "#0f172a" }}>{p.naam}</p>
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded-lg flex-shrink-0"
+                      <p className="font-semibold text-sm truncate" style={{ color: "#1A1D1A" }}>{p.naam}</p>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0"
                         style={{ background: rCfg.bg, color: rCfg.color }}>{rCfg.label}</span>
                     </div>
-                    <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{p.specialiteit}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>{p.specialiteit}</p>
                     {p.lopende_klus && (
-                      <p className="text-xs mt-1 truncate" style={{ color: "#4F46E5" }}>
+                      <p className="text-xs mt-1 truncate" style={{ color: "#C97A4D" }}>
                         🔧 {p.lopende_klus}
                       </p>
                     )}
                   </div>
                   <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
-                    <span className="text-xs font-black px-2 py-1 rounded-xl"
+                    <span className="text-xs font-medium px-2 py-1 rounded-full"
                       style={{ background: sCfg.bg, color: sCfg.color }}>{sCfg.label}</span>
-                    <span className="text-xs font-semibold" style={{ color: "#94a3b8" }}>€{p.uurtarief}/u</span>
+                    <span className="text-xs" style={{ color: "#8A8A83" }}>€{p.uurtarief}/u</span>
                   </div>
                 </div>
               </button>
@@ -202,36 +206,35 @@ export default function PersoneelPage() {
 
       {/* ── Detail sheet ── */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.4)" }}
           onClick={() => setSelectedId(null)}>
           <div className="w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden max-h-[88dvh] overflow-y-auto"
-            style={{ background: "#F1F4FA" }} onClick={e => e.stopPropagation()}>
-            <div className="px-5 pt-4 pb-3 sticky top-0" style={{ background: "#F1F4FA" }}>
-              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E2E8F0" }} />
+            style={{ background: "#F5EFE5" }} onClick={e => e.stopPropagation()}>
+            <div className="px-5 pt-4 pb-3 sticky top-0" style={{ background: "rgba(245,239,229,0.97)" }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5DDD0" }} />
               <div className="flex items-center justify-between">
-                <h2 className="font-black text-lg" style={{ color: "#0f172a" }}>{selected.naam}</h2>
+                <h2 className="font-bold text-lg" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>{selected.naam}</h2>
                 <button onClick={() => setSelectedId(null)}
-                  className="touch-scale w-9 h-9 rounded-2xl flex items-center justify-center"
-                  style={{ background: "#fff" }}>
-                  <X size={16} style={{ color: "#475569" }} />
+                  className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+                  <X size={16} style={{ color: "#5C5C56" }} />
                 </button>
               </div>
             </div>
-            <div className="px-5 pb-10 flex flex-col gap-4">
+            <div className="px-5 pb-10 flex flex-col gap-4" style={{ fontFamily: "'Inter', sans-serif" }}>
               {/* Profile */}
-              <div className="rounded-3xl p-5 flex flex-col items-center gap-3"
-                style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+              <div className="flex flex-col items-center gap-3 p-5"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                 <img src={selected.avatar} alt={selected.naam}
-                  className="w-20 h-20 rounded-3xl object-cover"
-                  style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.15)" }} />
+                  className="w-20 h-20 rounded-3xl object-cover" />
                 <div className="text-center">
-                  <p className="font-black text-lg" style={{ color: "#0f172a" }}>{selected.naam}</p>
+                  <p className="font-bold text-lg" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>{selected.naam}</p>
                   <div className="flex items-center justify-center gap-2 mt-1">
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-xl"
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full"
                       style={{ background: ROL_CFG[selected.rol].bg, color: ROL_CFG[selected.rol].color }}>
                       {ROL_CFG[selected.rol].label}
                     </span>
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-xl"
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full"
                       style={{ background: STATUS_CFG[selected.status].bg, color: STATUS_CFG[selected.status].color }}>
                       {STATUS_CFG[selected.status].label}
                     </span>
@@ -243,33 +246,33 @@ export default function PersoneelPage() {
                     { v: `${selected.klussen_maand}`, l: "Klussen/mnd" },
                     { v: `${selected.rating}★`, l: "Rating" },
                   ].map(r => (
-                    <div key={r.l} className="rounded-2xl py-3 flex flex-col items-center"
-                      style={{ background: "#F8FAFF" }}>
-                      <p className="font-black text-base" style={{ color: "#4F46E5" }}>{r.v}</p>
-                      <p className="text-[10px] mt-0.5" style={{ color: "#94a3b8" }}>{r.l}</p>
+                    <div key={r.l} className="flex flex-col items-center py-3"
+                      style={{ background: "#F5EFE5", borderRadius: 10, border: "0.5px solid #E5DDD0" }}>
+                      <p className="font-bold text-base" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>{r.v}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: "#8A8A83" }}>{r.l}</p>
                     </div>
                   ))}
                 </div>
               </div>
               {/* Contact */}
-              <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+              <div className="overflow-hidden" style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                 {[
-                  { icon: Phone,   label: "Telefoon",     value: selected.telefoon },
-                  { icon: Mail,    label: "E-mail",        value: selected.email },
-                  { icon: Euro,    label: "Uurtarief",     value: `€${selected.uurtarief}/uur` },
-                  { icon: Calendar, label: "In dienst",    value: `Sinds ${selected.in_dienst_sinds}` },
+                  { icon: Phone,    label: "Telefoon",  value: selected.telefoon },
+                  { icon: Mail,     label: "E-mail",    value: selected.email },
+                  { icon: Euro,     label: "Uurtarief", value: `€${selected.uurtarief}/uur` },
+                  { icon: Calendar, label: "In dienst", value: `Sinds ${selected.in_dienst_sinds}` },
                 ].map((row, i, arr) => {
                   const Icon = row.icon;
                   return (
                     <div key={row.label} className="flex items-center gap-3 px-4 py-3.5"
-                      style={{ borderBottom: i < arr.length - 1 ? "1px solid #F1F5F9" : "none" }}>
+                      style={{ borderBottom: i < arr.length - 1 ? "0.5px solid #E5DDD0" : "none" }}>
                       <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                        style={{ background: "#EEF2FF" }}>
-                        <Icon size={14} style={{ color: "#4F46E5" }} />
+                        style={{ background: "#F5EFE5" }}>
+                        <Icon size={14} style={{ color: "#2B4030" }} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-[10px] font-bold" style={{ color: "#94a3b8" }}>{row.label}</p>
-                        <p className="text-sm font-semibold" style={{ color: "#0f172a" }}>{row.value}</p>
+                        <p className="text-[10px] font-medium" style={{ color: "#8A8A83" }}>{row.label}</p>
+                        <p className="text-sm font-medium" style={{ color: "#1A1D1A" }}>{row.value}</p>
                       </div>
                     </div>
                   );
@@ -277,17 +280,17 @@ export default function PersoneelPage() {
               </div>
               {/* Status change */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: "#94a3b8" }}>Status wijzigen</p>
+                <p className="text-xs font-medium uppercase tracking-widest mb-2" style={{ color: "#8A8A83" }}>Status wijzigen</p>
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.keys(STATUS_CFG) as PersoonStatus[]).map(s => {
                     const cfg = STATUS_CFG[s];
                     return (
                       <button key={s} onClick={() => changeStatus(selected.id, s)}
-                        className="touch-scale py-3 rounded-2xl font-bold text-xs"
+                        className="touch-scale py-3 rounded-full font-medium text-xs"
                         style={{
                           background: selected.status === s ? cfg.color : cfg.bg,
                           color: selected.status === s ? "#fff" : cfg.color,
-                          border: `1.5px solid ${cfg.color}30`,
+                          border: `0.5px solid ${cfg.color}40`,
                         }}>
                         <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5"
                           style={{ background: selected.status === s ? "rgba(255,255,255,0.8)" : cfg.dot }} />
@@ -300,13 +303,13 @@ export default function PersoneelPage() {
               {/* Actions */}
               <div className="flex gap-3">
                 <a href={`tel:${selected.telefoon}`}
-                  className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-                  style={{ background: "#EEF2FF", color: "#4F46E5" }}>
+                  className="touch-scale flex-1 py-3.5 rounded-full font-medium text-sm flex items-center justify-center gap-2"
+                  style={{ background: "#2B4030", color: "#F5EFE5", border: "none" }}>
                   <Phone size={16} /> Bellen
                 </a>
                 <a href={`mailto:${selected.email}`}
-                  className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-                  style={{ background: "#F0F9FF", color: "#0EA5E9" }}>
+                  className="touch-scale flex-1 py-3.5 rounded-full font-medium text-sm flex items-center justify-center gap-2"
+                  style={{ background: "transparent", border: "0.5px solid #E5DDD0", color: "#5C5C56" }}>
                   <Mail size={16} /> E-mail
                 </a>
               </div>
@@ -315,33 +318,33 @@ export default function PersoneelPage() {
         </div>
       )}
 
-      {/* ── Add sheet (simplified) ── */}
+      {/* ── Add sheet ── */}
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.5)" }}
+        <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.4)" }}
           onClick={() => setShowAdd(false)}>
           <div className="w-full max-w-[480px] mx-auto rounded-t-3xl p-6"
-            style={{ background: "#F1F4FA" }} onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: "#E2E8F0" }} />
-            <div className="flex flex-col items-center gap-4 py-4">
+            style={{ background: "#F5EFE5" }} onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full mx-auto mb-6" style={{ background: "#E5DDD0" }} />
+            <div className="flex flex-col items-center gap-4 py-4" style={{ fontFamily: "'Inter', sans-serif" }}>
               <div className="w-16 h-16 rounded-3xl flex items-center justify-center"
-                style={{ background: "#EEF2FF" }}>
-                <Users size={28} style={{ color: "#4F46E5" }} />
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+                <Users size={28} style={{ color: "#2B4030" }} />
               </div>
               <div className="text-center">
-                <h2 className="font-black text-xl" style={{ color: "#0f172a" }}>Teamlid toevoegen</h2>
-                <p className="text-sm mt-2 leading-relaxed" style={{ color: "#64748b" }}>
+                <h2 className="font-bold text-xl" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>Teamlid toevoegen</h2>
+                <p className="text-sm mt-2 leading-relaxed" style={{ color: "#5C5C56" }}>
                   Nodig een collega of onderaannemer uit via WhatsApp of e-mail om deel te nemen aan jouw Servr team.
                 </p>
               </div>
               <div className="w-full flex flex-col gap-3">
                 <button onClick={() => setShowAdd(false)}
-                  className="touch-scale w-full py-4 rounded-2xl font-black text-white flex items-center justify-center gap-2"
-                  style={{ background: "linear-gradient(135deg, #25D366, #128C7E)", boxShadow: "0 8px 24px rgba(37,211,102,0.35)" }}>
+                  className="touch-scale w-full py-4 rounded-full font-medium text-white flex items-center justify-center gap-2"
+                  style={{ background: "#2B4030", border: "none" }}>
                   📱 Uitnodigen via WhatsApp
                 </button>
                 <button onClick={() => setShowAdd(false)}
-                  className="touch-scale w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2"
-                  style={{ background: "#EEF2FF", color: "#4F46E5" }}>
+                  className="touch-scale w-full py-4 rounded-full font-medium flex items-center justify-center gap-2"
+                  style={{ background: "transparent", border: "0.5px solid #E5DDD0", color: "#5C5C56" }}>
                   <Mail size={18} /> Uitnodigen via e-mail
                 </button>
               </div>

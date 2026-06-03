@@ -47,12 +47,12 @@ function ToggleRow({
     <div className="flex items-center justify-between gap-3 py-3.5">
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm">{label}</p>
-        <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{desc}</p>
+        <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>{desc}</p>
       </div>
       <button
         onClick={onChange}
         className="touch-scale relative w-12 h-6 rounded-full flex-shrink-0 transition-all duration-200"
-        style={{ background: active ? "var(--teal)" : "var(--surface-2)" }}>
+        style={{ background: active ? "#2B4030" : "#EDE4D2" }}>
         <span
           className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-200"
           style={{ left: active ? "calc(100% - 22px)" : "2px" }}
@@ -65,7 +65,7 @@ function ToggleRow({
 // ─── betaalmethode icoon ──────────────────────────────────────────────────────
 
 function MethodeIcoon({ type, bankNaam }: { type: BetaalMethodeType; bankNaam?: string }) {
-  if (type === "creditcard") return <CreditCard size={20} style={{ color: "var(--teal)" }} />;
+  if (type === "creditcard") return <CreditCard size={20} style={{ color: "#2B4030" }} />;
   if (type === "ideal") return <span className="text-xl">🏦</span>;
   if (type === "bancontact") return <span className="text-xl">🇧🇪</span>;
   return <span className="text-xl">🏛️</span>;
@@ -164,21 +164,21 @@ function AddMethodeModal({
       <div
         className="w-full rounded-t-3xl p-5 animate-slide-up overflow-y-auto"
         style={{
-          background: "var(--background)",
+          background: "#F5EFE5",
           maxHeight: "calc(100dvh - var(--bottom-nav-height) - 52px)",
           paddingBottom: "calc(var(--bottom-nav-height) + 16px)",
         }}
         onClick={e => e.stopPropagation()}>
 
         {/* Handle */}
-        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "var(--border)" }} />
+        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5DDD0" }} />
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-5">
           {fase === "details" && (
             <button onClick={() => setFase("type")}
               className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
-              style={{ background: "var(--surface-2)" }}>
+              style={{ background: "#EDE4D2" }}>
               <ArrowLeft size={16} />
             </button>
           )}
@@ -187,7 +187,7 @@ function AddMethodeModal({
           </h2>
           <button onClick={onClose}
             className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: "var(--surface-2)" }}>
+            style={{ background: "#EDE4D2" }}>
             <X size={16} />
           </button>
         </div>
@@ -198,13 +198,13 @@ function AddMethodeModal({
             {TYPE_OPTIES.map(opt => (
               <button key={opt.id} onClick={() => { setType(opt.id); setFase("details"); }}
                 className="touch-scale flex items-center gap-4 p-4 rounded-2xl border-2 text-left"
-                style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+                style={{ borderColor: "#E5DDD0", background: "#FBF7F0" }}>
                 <span className="text-2xl flex-shrink-0">{opt.icoon}</span>
                 <div className="flex-1">
                   <p className="font-bold text-sm">{opt.label}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{opt.sub}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>{opt.sub}</p>
                 </div>
-                <ChevronRight size={16} style={{ color: "var(--muted)" }} />
+                <ChevronRight size={16} style={{ color: "#8A8A83" }} />
               </button>
             ))}
           </div>
@@ -252,8 +252,8 @@ function AddMethodeModal({
                     value={cvv} type="tel" maxLength={3}
                     onChange={v => setCvv(v.replace(/\D/g, "").slice(0, 3))} />
                 </div>
-                <p className="text-xs flex items-center gap-1.5" style={{ color: "var(--muted)" }}>
-                  <ShieldCheck size={12} style={{ color: "var(--teal)" }} />
+                <p className="text-xs flex items-center gap-1.5" style={{ color: "#8A8A83" }}>
+                  <ShieldCheck size={12} style={{ color: "#2B4030" }} />
                   {t("cvvInfo")}
                 </p>
               </>
@@ -300,7 +300,7 @@ function AddMethodeModal({
                     value={cvv} type="tel" maxLength={3}
                     onChange={v => setCvv(v.replace(/\D/g, "").slice(0, 3))} />
                 </div>
-                <p className="text-xs flex items-center gap-1.5" style={{ color: "var(--muted)" }}>
+                <p className="text-xs flex items-center gap-1.5" style={{ color: "#8A8A83" }}>
                   <ShieldCheck size={12} style={{ color: "#c0392b" }} />
                   {t("cvvInfo")}
                 </p>
@@ -324,7 +324,7 @@ function AddMethodeModal({
               onClick={handleSave}
               disabled={!kanOpslaan()}
               className="touch-scale w-full py-4 rounded-2xl font-bold text-white mt-1"
-              style={{ background: kanOpslaan() ? "var(--teal)" : "var(--muted)" }}>
+              style={{ background: kanOpslaan() ? "#2B4030" : "#8A8A83" }}>
               {t("toevoegen")}
             </button>
           </div>
@@ -344,7 +344,7 @@ function InputField({
 }) {
   return (
     <div>
-      <label className="text-[10px] font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+      <label className="text-[10px] font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
         {label}
       </label>
       <input
@@ -356,9 +356,9 @@ function InputField({
         placeholder={placeholder}
         className="w-full px-4 py-3 rounded-2xl border outline-none text-sm"
         style={{
-          borderColor: value ? "var(--teal)" : "var(--border)",
-          background: "var(--surface)",
-          color: "var(--foreground)",
+          borderColor: value ? "#2B4030" : "#E5DDD0",
+          background: "#FBF7F0",
+          color: "#1A1D1A",
         }}
       />
     </div>
@@ -370,17 +370,17 @@ function BankKeuze({
 }: { banken: string[]; geselecteerd: string; onSelect: (b: string) => void; label: string }) {
   return (
     <div>
-      <p className="text-xs font-bold uppercase mb-3" style={{ color: "var(--muted)" }}>{label}</p>
+      <p className="text-xs font-bold uppercase mb-3" style={{ color: "#8A8A83" }}>{label}</p>
       <div className="flex flex-col gap-2">
         {banken.map(b => (
           <button key={b} onClick={() => onSelect(b)}
             className="touch-scale flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 text-left transition-all"
             style={{
-              borderColor: geselecteerd === b ? "var(--teal)" : "var(--border)",
-              background: geselecteerd === b ? "var(--teal)" + "12" : "var(--surface)",
+              borderColor: geselecteerd === b ? "#2B4030" : "#E5DDD0",
+              background: geselecteerd === b ? "#2B4030" + "12" : "#FBF7F0",
             }}>
             <span className="font-semibold text-sm">{b}</span>
-            {geselecteerd === b && <Check size={16} style={{ color: "var(--teal)" }} />}
+            {geselecteerd === b && <Check size={16} style={{ color: "#2B4030" }} />}
           </button>
         ))}
       </div>
@@ -404,6 +404,7 @@ export default function InstellingenPage() {
   const [saved, setSaved] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const handleSave = () => {
     setSaved(true);
@@ -443,18 +444,18 @@ export default function InstellingenPage() {
 
         {/* ── Header ── */}
         <div className="px-5 pt-12 pb-4 flex items-center gap-3 sticky top-0 z-10"
-          style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+          style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
           <Link href="/profile"
             className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: "var(--surface-2)" }}>
+            style={{ background: "#EDE4D2" }}>
             <ArrowLeft size={18} />
           </Link>
           <h1 className="font-black text-xl flex-1">{t("instellingen")}</h1>
           <button onClick={handleSave}
             className="touch-scale px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all"
             style={{
-              background: saved ? "#dcfce7" : "var(--teal)" + "15",
-              color: saved ? "#16a34a" : "var(--teal)",
+              background: saved ? "#dcfce7" : "#2B4030" + "15",
+              color: saved ? "#16a34a" : "#2B4030",
             }}>
             {saved ? <><Check size={12} /> {t("opgeslagen")}</> : t("opslaan")}
           </button>
@@ -464,8 +465,8 @@ export default function InstellingenPage() {
 
           {/* ─── NOTIFICATIES ─── */}
           <section>
-            <SectionHeader icon={<Bell size={15} style={{ color: "var(--teal)" }} />}
-              bg="var(--teal)" label={t("notificaties")} />
+            <SectionHeader icon={<Bell size={15} style={{ color: "#2B4030" }} />}
+              bg="#2B4030" label={t("notificaties")} />
             <div className="card px-4 divide-y" style={{}}>
               {NOTIF_ROWS.map(r => (
                 <ToggleRow key={r.key} label={r.label} desc={r.desc}
@@ -496,20 +497,20 @@ export default function InstellingenPage() {
 
               {/* Dark mode toggle */}
               <div className="flex items-center justify-between gap-3 py-3.5 border-b"
-                style={{ borderColor: "var(--border)" }}>
+                style={{ borderColor: "#E5DDD0" }}>
                 <div className="flex items-center gap-3">
                   {darkMode
-                    ? <Moon size={16} style={{ color: "var(--teal)" }} />
+                    ? <Moon size={16} style={{ color: "#2B4030" }} />
                     : <Sun size={16} style={{ color: "#d97706" }} />}
                   <div>
                     <p className="font-semibold text-sm">{t("donkerThema")}</p>
-                    <p className="text-xs" style={{ color: "var(--muted)" }}>{t("donkerThemaSub")}</p>
+                    <p className="text-xs" style={{ color: "#8A8A83" }}>{t("donkerThemaSub")}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setDarkMode(!darkMode)}
                   className="touch-scale relative w-12 h-6 rounded-full transition-all duration-200 flex-shrink-0"
-                  style={{ background: darkMode ? "var(--teal)" : "var(--surface-2)" }}>
+                  style={{ background: darkMode ? "#2B4030" : "#EDE4D2" }}>
                   <span className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-200"
                     style={{ left: darkMode ? "calc(100% - 22px)" : "2px" }} />
                 </button>
@@ -518,7 +519,7 @@ export default function InstellingenPage() {
               {/* Taal */}
               <div className="py-3.5">
                 <div className="flex items-center gap-2 mb-3">
-                  <Globe size={16} style={{ color: "var(--muted)" }} />
+                  <Globe size={16} style={{ color: "#8A8A83" }} />
                   <p className="font-semibold text-sm">{t("taalLabel")}</p>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -529,9 +530,9 @@ export default function InstellingenPage() {
                       <button key={l} onClick={() => setTaal(l)}
                         className="touch-scale py-2.5 rounded-xl text-xs font-bold border-2 transition-all"
                         style={{
-                          borderColor: taal === l ? "var(--teal)" : "var(--border)",
-                          background: taal === l ? "var(--teal)" + "12" : "var(--surface)",
-                          color: taal === l ? "var(--teal)" : "var(--foreground)",
+                          borderColor: taal === l ? "#2B4030" : "#E5DDD0",
+                          background: taal === l ? "#2B4030" + "12" : "#FBF7F0",
+                          color: taal === l ? "#2B4030" : "#1A1D1A",
                         }}>
                         {vlag} {naam}
                       </button>
@@ -549,7 +550,7 @@ export default function InstellingenPage() {
             <div className="card overflow-hidden">
               {betaalmethoden.length === 0 ? (
                 <div className="flex items-center gap-3 px-4 py-4">
-                  <p className="text-sm flex-1" style={{ color: "var(--muted)" }}>
+                  <p className="text-sm flex-1" style={{ color: "#8A8A83" }}>
                     {t("geenBetaalmethoden")}
                   </p>
                 </div>
@@ -557,21 +558,21 @@ export default function InstellingenPage() {
                 betaalmethoden.map((m, i) => (
                   <div key={m.id}
                     className="flex items-center gap-3 px-4 py-3.5 border-b"
-                    style={{ borderColor: "var(--border)" }}>
+                    style={{ borderColor: "#E5DDD0" }}>
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                      style={{ background: "var(--surface-2)" }}>
+                      style={{ background: "#EDE4D2" }}>
                       <MethodeIcoon type={m.type} bankNaam={m.bankNaam} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate">{m.label}</p>
                       {m.kaarthouder && (
-                        <p className="text-xs" style={{ color: "var(--muted)" }}>{m.kaarthouder}</p>
+                        <p className="text-xs" style={{ color: "#8A8A83" }}>{m.kaarthouder}</p>
                       )}
                       {m.vervaldatum && (
-                        <p className="text-xs" style={{ color: "var(--muted)" }}>Verloopt {m.vervaldatum}</p>
+                        <p className="text-xs" style={{ color: "#8A8A83" }}>Verloopt {m.vervaldatum}</p>
                       )}
                       {m.rekeninghouder && (
-                        <p className="text-xs" style={{ color: "var(--muted)" }}>{m.rekeninghouder}</p>
+                        <p className="text-xs" style={{ color: "#8A8A83" }}>{m.rekeninghouder}</p>
                       )}
                     </div>
                     <button
@@ -585,9 +586,9 @@ export default function InstellingenPage() {
               )}
               <button onClick={() => setShowAdd(true)}
                 className="touch-scale flex items-center gap-3 px-4 py-4 w-full text-left"
-                style={{ color: "var(--teal)" }}>
+                style={{ color: "#2B4030" }}>
                 <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-dashed flex-shrink-0"
-                  style={{ borderColor: "var(--teal)" }}>
+                  style={{ borderColor: "#2B4030" }}>
                   <Plus size={14} />
                 </div>
                 <span className="font-semibold text-sm">{t("betaalmethodeToevoegen")}</span>
@@ -597,22 +598,22 @@ export default function InstellingenPage() {
 
           {/* ─── OVER SERVR ─── */}
           <section>
-            <SectionHeader icon={<Info size={15} style={{ color: "var(--muted)" }} />}
-              bg="var(--surface-2)" label={t("overServr")} dark />
+            <SectionHeader icon={<Info size={15} style={{ color: "#8A8A83" }} />}
+              bg="#EDE4D2" label={t("overServr")} dark />
             <div className="card overflow-hidden">
               {OVER_ITEMS.map(item => (
                 item.href
                   ? <Link key={item.label} href={item.href}
                       className="touch-scale flex items-center justify-between px-4 py-3.5 border-b last:border-0"
-                      style={{ borderColor: "var(--border)" }}>
+                      style={{ borderColor: "#E5DDD0" }}>
                       <p className="text-sm font-semibold">{item.label}</p>
-                      <ChevronRight size={15} style={{ color: "var(--muted)" }} />
+                      <ChevronRight size={15} style={{ color: "#8A8A83" }} />
                     </Link>
                   : <div key={item.label}
                       className="flex items-center justify-between px-4 py-3.5 border-b last:border-0"
-                      style={{ borderColor: "var(--border)" }}>
+                      style={{ borderColor: "#E5DDD0" }}>
                       <p className="text-sm font-semibold">{item.label}</p>
-                      <span className="text-xs" style={{ color: "var(--muted)" }}>{item.value}</span>
+                      <span className="text-xs" style={{ color: "#8A8A83" }}>{item.value}</span>
                     </div>
               ))}
             </div>
@@ -636,7 +637,7 @@ export default function InstellingenPage() {
           {/* Uitloggen */}
           <button onClick={handleLogout}
             className="touch-scale flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-sm"
-            style={{ background: "var(--coral)" + "12", color: "var(--coral)" }}>
+            style={{ background: "#C97A4D" + "12", color: "#C97A4D" }}>
             <LogOut size={16} />
             {t("uitloggen")}
           </button>
@@ -661,27 +662,44 @@ export default function InstellingenPage() {
           style={{ background: "rgba(0,0,0,0.55)" }}
           onClick={() => setShowDeleteAccount(false)}>
           <div className="w-full rounded-3xl p-6 animate-bounce-in"
-            style={{ background: "var(--background)" }}
+            style={{ background: "#F5EFE5" }}
             onClick={e => e.stopPropagation()}>
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
               style={{ background: "#fee2e2" }}>
               <AlertTriangle size={24} style={{ color: "#dc2626" }} />
             </div>
             <h2 className="font-black text-xl text-center mb-2">{t("accountVerwijderen")}</h2>
-            <p className="text-sm text-center mb-6" style={{ color: "var(--muted)" }}>
+            <p className="text-sm text-center mb-6" style={{ color: "#8A8A83" }}>
               {t("accountVerwijderenSub")}. Deze actie kan niet ongedaan worden gemaakt.
             </p>
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => { logout(); router.push("/onboarding"); }}
+                disabled={deletingAccount}
+                onClick={async () => {
+                  setDeletingAccount(true);
+                  try {
+                    const { useUserStore } = await import("@/lib/store");
+                    const userId = useUserStore.getState().userId;
+                    if (userId) {
+                      await fetch("/api/delete-account", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ userId }),
+                      });
+                    }
+                    const { logout: authLogout } = await import("@/lib/auth");
+                    await authLogout();
+                  } catch { /* fallback: gewoon uitloggen */ }
+                  router.push("/onboarding");
+                }}
                 className="touch-scale w-full py-3.5 rounded-2xl font-bold text-white"
-                style={{ background: "#dc2626" }}>
-                {t("accountVerwijderen")}
+                style={{ background: deletingAccount ? "#8A8A83" : "#dc2626" }}>
+                {deletingAccount ? "Verwijderen..." : t("accountVerwijderen")}
               </button>
               <button
                 onClick={() => setShowDeleteAccount(false)}
                 className="touch-scale w-full py-3.5 rounded-2xl font-bold border"
-                style={{ borderColor: "var(--border)" }}>
+                style={{ borderColor: "#E5DDD0" }}>
                 {t("annuleren")}
               </button>
             </div>
@@ -700,7 +718,7 @@ function SectionHeader({
   return (
     <div className="flex items-center gap-2 mb-3">
       <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-        style={{ background: dark ? "var(--surface-2)" : bg + "15" }}>
+        style={{ background: dark ? "#EDE4D2" : bg + "15" }}>
         {icon}
       </div>
       <h2 className="font-black text-base">{label}</h2>

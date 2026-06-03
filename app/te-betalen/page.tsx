@@ -45,23 +45,23 @@ function OffertePreview({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col animate-fade-in"
-      style={{ background: "var(--background)" }}>
+      style={{ background: "#F5EFE5" }}>
 
       {/* Sticky header */}
       <div className="flex items-center gap-3 px-5 pt-12 pb-4 flex-shrink-0"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <button onClick={onSluit}
           className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: "var(--surface-2)" }}>
+          style={{ background: "#EDE4D2" }}>
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
           <h1 className="font-black text-lg">Offerte bekijken</h1>
-          <p className="text-xs" style={{ color: "var(--muted)" }}>{offerte.nummer}</p>
+          <p className="text-xs" style={{ color: "#8A8A83" }}>{offerte.nummer}</p>
         </div>
         <Link href={`/chat/${offerte.vakmanChatId}`}
           className="touch-scale flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border"
-          style={{ borderColor: "var(--teal)", color: "var(--teal)" }}>
+          style={{ borderColor: "#2B4030", color: "#2B4030" }}>
           <MessageCircle size={13} /> Chat
         </Link>
       </div>
@@ -71,11 +71,11 @@ function OffertePreview({
 
         {/* Offerte document */}
         <div className="mx-5 mt-5 rounded-3xl overflow-hidden border"
-          style={{ borderColor: "var(--border)" }}>
+          style={{ borderColor: "#E5DDD0" }}>
 
           {/* ── Document header ── */}
           <div className="px-6 py-6"
-            style={{ background: "linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
+            style={{ background: "linear-gradient(135deg, #2B4030 0%, #1A2D22 100%)" }}>
             <div className="flex items-start justify-between mb-5">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -107,16 +107,16 @@ function OffertePreview({
           </div>
 
           {/* ── Van / Aan ── */}
-          <div className="grid grid-cols-2 border-b" style={{ borderColor: "var(--border)" }}>
+          <div className="grid grid-cols-2 border-b" style={{ borderColor: "#E5DDD0" }}>
 
             {/* Van (vakman) */}
-            <div className="px-4 py-4 border-r" style={{ borderColor: "var(--border)" }}>
-              <p className="text-[10px] font-black uppercase mb-2" style={{ color: "var(--muted)" }}>Van</p>
+            <div className="px-4 py-4 border-r" style={{ borderColor: "#E5DDD0" }}>
+              <p className="text-[10px] font-black uppercase mb-2" style={{ color: "#8A8A83" }}>Van</p>
               <div className="flex items-center gap-2 mb-2">
                 <img src={offerte.vakmanAvatar} className="w-9 h-9 rounded-xl object-cover" alt="" />
                 <div className="min-w-0">
                   <p className="font-black text-xs leading-tight truncate">{offerte.vakmanNaam.split(" ")[0]}</p>
-                  <p className="text-[10px] truncate" style={{ color: "var(--muted)" }}>
+                  <p className="text-[10px] truncate" style={{ color: "#8A8A83" }}>
                     {offerte.vakmanNaam.split(" ").slice(1).join(" ")}
                   </p>
                 </div>
@@ -124,48 +124,48 @@ function OffertePreview({
               <div className="flex items-center gap-1">
                 <Star size={10} className="fill-yellow-400 text-yellow-400" />
                 <span className="text-xs font-bold">4.9</span>
-                <span className="text-[10px]" style={{ color: "var(--muted)" }}>(127)</span>
+                <span className="text-[10px]" style={{ color: "#8A8A83" }}>(127)</span>
               </div>
             </div>
 
             {/* Aan (klant) */}
             <div className="px-4 py-4">
-              <p className="text-[10px] font-black uppercase mb-2" style={{ color: "var(--muted)" }}>Aan</p>
+              <p className="text-[10px] font-black uppercase mb-2" style={{ color: "#8A8A83" }}>Aan</p>
               <div className="flex items-center gap-2 mb-2">
                 <img src={offerte.klantAvatar} className="w-9 h-9 rounded-xl object-cover" alt="" />
                 <div className="min-w-0">
                   <p className="font-black text-xs leading-tight truncate">{offerte.klantNaam}</p>
-                  <p className="text-[10px]" style={{ color: "var(--muted)" }}>Klant</p>
+                  <p className="text-[10px]" style={{ color: "#8A8A83" }}>Klant</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full" style={{ background: "#22c55e" }} />
-                <span className="text-[10px]" style={{ color: "var(--muted)" }}>Verified klant</span>
+                <span className="text-[10px]" style={{ color: "#8A8A83" }}>Verified klant</span>
               </div>
             </div>
           </div>
 
           {/* ── Regels / prijsopbouw ── */}
-          <div className="px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
-            <p className="text-[10px] font-black uppercase mb-3" style={{ color: "var(--muted)" }}>
+          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
+            <p className="text-[10px] font-black uppercase mb-3" style={{ color: "#8A8A83" }}>
               Werkzaamheden
             </p>
 
             {/* Header */}
-            <div className="grid grid-cols-12 gap-1 mb-2 pb-1.5 border-b" style={{ borderColor: "var(--border)" }}>
-              <p className="col-span-6 text-[10px] font-bold uppercase" style={{ color: "var(--muted)" }}>Omschrijving</p>
-              <p className="col-span-2 text-[10px] font-bold uppercase text-center" style={{ color: "var(--muted)" }}>Aantal</p>
-              <p className="col-span-2 text-[10px] font-bold uppercase text-right" style={{ color: "var(--muted)" }}>P/stuk</p>
-              <p className="col-span-2 text-[10px] font-bold uppercase text-right" style={{ color: "var(--muted)" }}>Totaal</p>
+            <div className="grid grid-cols-12 gap-1 mb-2 pb-1.5 border-b" style={{ borderColor: "#E5DDD0" }}>
+              <p className="col-span-6 text-[10px] font-bold uppercase" style={{ color: "#8A8A83" }}>Omschrijving</p>
+              <p className="col-span-2 text-[10px] font-bold uppercase text-center" style={{ color: "#8A8A83" }}>Aantal</p>
+              <p className="col-span-2 text-[10px] font-bold uppercase text-right" style={{ color: "#8A8A83" }}>P/stuk</p>
+              <p className="col-span-2 text-[10px] font-bold uppercase text-right" style={{ color: "#8A8A83" }}>Totaal</p>
             </div>
 
             {/* Regels */}
             {offerte.regels.map((r) => (
               <div key={r.id} className="grid grid-cols-12 gap-1 py-2 border-b last:border-0"
-                style={{ borderColor: "var(--border)" + "60" }}>
+                style={{ borderColor: "#E5DDD0" + "60" }}>
                 <div className="col-span-6">
                   <p className="text-xs font-semibold leading-tight">{r.omschrijving}</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: "var(--muted)" }}>{r.eenheid}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: "#8A8A83" }}>{r.eenheid}</p>
                 </div>
                 <p className="col-span-2 text-xs text-center self-center">{r.aantal}</p>
                 <p className="col-span-2 text-xs text-right self-center">€{fmt(r.prijsPerEenheid)}</p>
@@ -177,47 +177,47 @@ function OffertePreview({
           </div>
 
           {/* ── Totalen ── */}
-          <div className="px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
+          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
             <div className="flex flex-col gap-1.5">
               {offerte.subtotaal !== offerte.totaal && (
                 <div className="flex justify-between text-xs">
-                  <span style={{ color: "var(--muted)" }}>Subtotaal</span>
+                  <span style={{ color: "#8A8A83" }}>Subtotaal</span>
                   <span>€{fmt(offerte.subtotaal)}</span>
                 </div>
               )}
               {offerte.totaalBtw > 0 && (
                 <div className="flex justify-between text-xs">
-                  <span style={{ color: "var(--muted)" }}>BTW (21%)</span>
+                  <span style={{ color: "#8A8A83" }}>BTW (21%)</span>
                   <span>€{fmt(offerte.totaalBtw)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm font-bold pt-1.5 border-t mt-0.5"
-                style={{ borderColor: "var(--border)" }}>
+                style={{ borderColor: "#E5DDD0" }}>
                 <span>Klus totaal (vakman tarief)</span>
                 <span>€{fmt(offerte.totaal)}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span style={{ color: "var(--muted)" }}>+ Servr service fee (5%)</span>
-                <span style={{ color: "var(--muted)" }}>€{fmt(serviceFee)}</span>
+                <span style={{ color: "#8A8A83" }}>+ Servr service fee (5%)</span>
+                <span style={{ color: "#8A8A83" }}>€{fmt(serviceFee)}</span>
               </div>
             </div>
 
             {/* Groot totaal */}
             <div className="flex justify-between items-center mt-3 pt-3 border-t"
-              style={{ borderColor: "var(--border)" }}>
+              style={{ borderColor: "#E5DDD0" }}>
               <div>
                 <p className="font-black text-base">Jij betaalt</p>
-                <p className="text-[10px]" style={{ color: "var(--muted)" }}>Incl. Servr service fee</p>
+                <p className="text-[10px]" style={{ color: "#8A8A83" }}>Incl. Servr service fee</p>
               </div>
-              <p className="font-black text-3xl" style={{ color: "var(--teal)" }}>€{fmt(klantTotaal)}</p>
+              <p className="font-black text-3xl" style={{ color: "#2B4030" }}>€{fmt(klantTotaal)}</p>
             </div>
           </div>
 
           {/* ── Notities ── */}
           {offerte.notities && (
-            <div className="px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
-              <p className="text-[10px] font-black uppercase mb-2" style={{ color: "var(--muted)" }}>Notities</p>
-              <p className="text-sm leading-relaxed italic" style={{ color: "var(--foreground)" }}>
+            <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
+              <p className="text-[10px] font-black uppercase mb-2" style={{ color: "#8A8A83" }}>Notities</p>
+              <p className="text-sm leading-relaxed italic" style={{ color: "#1A1D1A" }}>
                 &ldquo;{offerte.notities}&rdquo;
               </p>
             </div>
@@ -233,7 +233,7 @@ function OffertePreview({
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-2.5">
                   <span className="text-sm flex-shrink-0">{item.icon}</span>
-                  <p className="text-xs" style={{ color: "var(--muted)" }}>{item.tekst}</p>
+                  <p className="text-xs" style={{ color: "#8A8A83" }}>{item.tekst}</p>
                 </div>
               ))}
             </div>
@@ -246,17 +246,17 @@ function OffertePreview({
 
       {/* ── Sticky footer met knoppen ── */}
       <div className="flex-shrink-0 px-5 pt-4 pb-8 flex flex-col gap-3"
-        style={{ borderTop: "1px solid var(--border)", background: "var(--background)" }}>
+        style={{ borderTop: "1px solid #E5DDD0", background: "#F5EFE5" }}>
 
         {/* Prijs samenvatting */}
         <div className="flex items-center justify-between px-1">
           <div>
             <p className="font-bold text-sm">Te betalen</p>
-            <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+            <p className="text-[11px]" style={{ color: "#8A8A83" }}>
               €{fmt(offerte.totaal)} klus + €{fmt(serviceFee)} fee
             </p>
           </div>
-          <p className="font-black text-2xl" style={{ color: "var(--teal)" }}>
+          <p className="font-black text-2xl" style={{ color: "#2B4030" }}>
             €{fmt(klantTotaal)}
           </p>
         </div>
@@ -265,12 +265,12 @@ function OffertePreview({
         <div className="flex gap-3">
           <button onClick={onWeiger}
             className="touch-scale w-12 h-12 rounded-2xl flex items-center justify-center border flex-shrink-0"
-            style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+            style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
             <X size={18} />
           </button>
           <button onClick={onBetaal}
             className="touch-scale flex-1 py-3.5 rounded-2xl font-black text-white flex items-center justify-center gap-2"
-            style={{ background: "var(--teal)" }}>
+            style={{ background: "#2B4030" }}>
             <Lock size={18} /> Betaal nu · €{fmt(klantTotaal)}
           </button>
         </div>
@@ -318,31 +318,31 @@ function StripeForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="rounded-2xl p-4 flex flex-col gap-2"
-        style={{ background: "var(--teal)" + "12" }}>
+        style={{ background: "#2B4030" + "12" }}>
         <div className="flex items-center justify-between">
           <div>
             <p className="font-bold text-sm">{offerte.vakmanNaam}</p>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>{offerte.nummer}</p>
+            <p className="text-xs" style={{ color: "#8A8A83" }}>{offerte.nummer}</p>
           </div>
-          <p className="font-black text-2xl" style={{ color: "var(--teal)" }}>
+          <p className="font-black text-2xl" style={{ color: "#2B4030" }}>
             €{fmt(offerte.chargeAmount)}
           </p>
         </div>
         {offerte.serviceFee > 0 && (
           <>
-            <div className="flex justify-between text-xs pt-1 border-t" style={{ borderColor: "var(--teal)" + "30" }}>
-              <span style={{ color: "var(--muted)" }}>Klus</span>
+            <div className="flex justify-between text-xs pt-1 border-t" style={{ borderColor: "#2B4030" + "30" }}>
+              <span style={{ color: "#8A8A83" }}>Klus</span>
               <span>€{fmt(offerte.totaal)}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span style={{ color: "var(--muted)" }}>Service fee (5%)</span>
+              <span style={{ color: "#8A8A83" }}>Service fee (5%)</span>
               <span>€{fmt(offerte.serviceFee)}</span>
             </div>
           </>
         )}
       </div>
 
-      <div className="rounded-2xl overflow-hidden border" style={{ borderColor: "var(--border)" }}>
+      <div className="rounded-2xl overflow-hidden border" style={{ borderColor: "#E5DDD0" }}>
         <PaymentElement
           options={{
             layout: "tabs",
@@ -361,20 +361,20 @@ function StripeForm({
       <div className="flex flex-col gap-2.5">
         <button type="submit" disabled={!stripe || bezig}
           className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-          style={{ background: stripe && !bezig ? "var(--teal)" : "var(--muted)" }}>
+          style={{ background: stripe && !bezig ? "#2B4030" : "#8A8A83" }}>
           {bezig
             ? <><Loader2 size={18} className="animate-spin" /> Even wachten…</>
             : <><Lock size={18} /> Betaling bevestigen · €{fmt(offerte.chargeAmount)}</>}
         </button>
         <button type="button" onClick={onCancel}
           className="touch-scale w-full py-3 rounded-2xl font-semibold text-sm border"
-          style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+          style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
           Terug naar offerte
         </button>
       </div>
 
       <p className="text-center text-xs flex items-center justify-center gap-1"
-        style={{ color: "var(--muted)" }}>
+        style={{ color: "#8A8A83" }}>
         <Lock size={10} /> Beveiligd door Stripe · SSL versleuteld
       </p>
     </form>
@@ -588,16 +588,16 @@ export default function TeBetalenPage() {
 
       {/* ── Header ── */}
       <div className="px-5 pt-12 pb-5"
-        style={{ background: "linear-gradient(160deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
+        style={{ background: "linear-gradient(160deg, #2B4030 0%, #1A2D22 100%)" }}>
         <div className="flex items-center gap-3 mb-4">
-          <Link href="/mijn-opdrachten"
+          <Link href="/profile"
             className="touch-scale w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
             <ArrowLeft size={18} color="white" />
           </Link>
           <h1 className="text-white font-black text-xl flex-1">Te betalen</h1>
           {openstaand.length > 0 && (
             <span className="text-xs font-bold px-3 py-1 rounded-full"
-              style={{ background: "var(--coral)", color: "white" }}>
+              style={{ background: "#C97A4D", color: "white" }}>
               {openstaand.length} openstaand
             </span>
           )}
@@ -626,7 +626,7 @@ export default function TeBetalenPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm truncate">{o.vakmanNaam}</p>
-                <p className="text-xs" style={{ color: "var(--muted)" }}>{o.nummer} · Betaald ✓</p>
+                <p className="text-xs" style={{ color: "#8A8A83" }}>{o.nummer} · Betaald ✓</p>
               </div>
               <span className="font-black text-base flex-shrink-0" style={{ color: "#16a34a" }}>
                 €{fmt(o.totaal)}
@@ -644,7 +644,7 @@ export default function TeBetalenPage() {
                 <img src={o.vakmanAvatar} className="w-12 h-12 rounded-2xl object-cover flex-shrink-0" alt="" />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-sm">{o.vakmanNaam}</p>
-                  <p className="text-xs" style={{ color: "var(--muted)" }}>
+                  <p className="text-xs" style={{ color: "#8A8A83" }}>
                     {o.nummer} · Geldig tot {o.geldigTot}
                   </p>
                   <div className="flex items-center gap-1 mt-0.5">
@@ -653,25 +653,25 @@ export default function TeBetalenPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-2xl" style={{ color: "var(--teal)" }}>
+                  <p className="font-black text-2xl" style={{ color: "#2B4030" }}>
                     €{fmt(o.totaal)}
                   </p>
-                  <p className="text-[10px]" style={{ color: "var(--muted)" }}>
+                  <p className="text-[10px]" style={{ color: "#8A8A83" }}>
                     +€{fmt(Math.round(o.totaal * 0.05 * 100) / 100)} fee
                   </p>
                 </div>
               </div>
 
               {/* Korte preview van regels */}
-              <div className="rounded-xl p-3 mb-3" style={{ background: "var(--surface-2)" }}>
+              <div className="rounded-xl p-3 mb-3" style={{ background: "#EDE4D2" }}>
                 {o.regels.slice(0, 2).map(r => (
                   <div key={r.id} className="flex justify-between text-xs py-0.5">
-                    <span className="truncate pr-2" style={{ color: "var(--muted)" }}>{r.omschrijving}</span>
+                    <span className="truncate pr-2" style={{ color: "#8A8A83" }}>{r.omschrijving}</span>
                     <span className="font-semibold flex-shrink-0">€{fmt(r.aantal * r.prijsPerEenheid)}</span>
                   </div>
                 ))}
                 {o.regels.length > 2 && (
-                  <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>
+                  <p className="text-[10px] mt-1" style={{ color: "#8A8A83" }}>
                     +{o.regels.length - 2} meer...
                   </p>
                 )}
@@ -681,17 +681,17 @@ export default function TeBetalenPage() {
               <div className="flex gap-2">
                 <button onClick={() => weigerOfferte(o.id)}
                   className="touch-scale w-10 h-10 rounded-xl flex items-center justify-center border flex-shrink-0"
-                  style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+                  style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
                   <X size={16} />
                 </button>
                 <Link href={`/chat/${o.vakmanChatId}`}
                   className="touch-scale flex-1 h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 border"
-                  style={{ borderColor: "var(--teal)", color: "var(--teal)" }}>
+                  style={{ borderColor: "#2B4030", color: "#2B4030" }}>
                   <MessageCircle size={14} /> Vraag stellen
                 </Link>
                 <button onClick={() => handleBekijk(o.id)}
                   className="touch-scale flex-1 h-10 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-1"
-                  style={{ background: "var(--teal)" }}>
+                  style={{ background: "#2B4030" }}>
                   Bekijk offerte <ChevronRight size={14} />
                 </button>
               </div>
@@ -707,10 +707,10 @@ export default function TeBetalenPage() {
               <CheckCircle2 size={38} style={{ color: "#16a34a" }} />
             </div>
             <h2 className="font-black text-lg">Alles betaald! 🎉</h2>
-            <p className="text-sm" style={{ color: "var(--muted)" }}>De vakman is op de hoogte en kan aan de slag.</p>
+            <p className="text-sm" style={{ color: "#8A8A83" }}>De vakman is op de hoogte en kan aan de slag.</p>
             <Link href="/mijn-opdrachten"
               className="touch-scale mt-2 px-6 py-3 rounded-2xl font-bold text-white text-sm"
-              style={{ background: "var(--teal)" }}>
+              style={{ background: "#2B4030" }}>
               Terug naar opdrachten
             </Link>
           </div>
@@ -720,12 +720,12 @@ export default function TeBetalenPage() {
           <div className="flex flex-col items-center py-16 gap-3 text-center">
             <span className="text-5xl">✅</span>
             <p className="font-bold text-base">Geen openstaande betalingen</p>
-            <p className="text-sm" style={{ color: "var(--muted)" }}>
+            <p className="text-sm" style={{ color: "#8A8A83" }}>
               Ontvang een offerte van een vakman om hier te betalen.
             </p>
             <Link href="/mijn-opdrachten"
               className="touch-scale mt-2 px-5 py-2.5 rounded-2xl font-bold text-white text-sm"
-              style={{ background: "var(--teal)" }}>
+              style={{ background: "#2B4030" }}>
               Naar mijn opdrachten
             </Link>
           </div>
@@ -749,23 +749,23 @@ export default function TeBetalenPage() {
           onClick={handleAnnuleer}>
           <div className="w-full rounded-t-3xl animate-slide-up overflow-y-auto"
             style={{
-              background: "var(--background)",
+              background: "#F5EFE5",
               maxHeight: "calc(100dvh - var(--bottom-nav-height) - 52px)",
               paddingBottom: "calc(var(--bottom-nav-height) + 20px)",
             }}
             onClick={e => e.stopPropagation()}>
             <div className="px-6 pt-5">
-              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--border)" }} />
+              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "#E5DDD0" }} />
               <h2 className="font-black text-xl mb-0.5">Betaling</h2>
-              <p className="text-sm mb-5" style={{ color: "var(--muted)" }}>
+              <p className="text-sm mb-5" style={{ color: "#8A8A83" }}>
                 {betalende.nummer} · {betalende.vakmanNaam}
               </p>
 
               {(stripeInstance || loadingSecret || stripeError) ? (
                 loadingSecret ? (
                   <div className="flex flex-col items-center py-10 gap-3">
-                    <Loader2 size={28} className="animate-spin" style={{ color: "var(--teal)" }} />
-                    <p className="text-sm" style={{ color: "var(--muted)" }}>Betaalmethoden laden…</p>
+                    <Loader2 size={28} className="animate-spin" style={{ color: "#2B4030" }} />
+                    <p className="text-sm" style={{ color: "#8A8A83" }}>Betaalmethoden laden…</p>
                   </div>
                 ) : stripeError ? (
                   <div className="flex flex-col gap-4">
@@ -802,8 +802,8 @@ export default function TeBetalenPage() {
                   </Elements>
                 ) : (
                   <div className="flex flex-col items-center py-10 gap-3">
-                    <Loader2 size={28} className="animate-spin" style={{ color: "var(--teal)" }} />
-                    <p className="text-sm" style={{ color: "var(--muted)" }}>Verbinden met Stripe…</p>
+                    <Loader2 size={28} className="animate-spin" style={{ color: "#2B4030" }} />
+                    <p className="text-sm" style={{ color: "#8A8A83" }}>Verbinden met Stripe…</p>
                   </div>
                 )
               ) : (
@@ -832,7 +832,7 @@ export default function TeBetalenPage() {
       {/* Mock bank auth */}
       {betalende && betaalFase === "bank_auth" && redirectBank && (
         <div className="fixed inset-0 z-50 flex flex-col animate-fade-in"
-          style={{ background: "var(--background)" }}>
+          style={{ background: "#F5EFE5" }}>
           <div className="px-5 pt-12 pb-6 flex items-center gap-3"
             style={{ background: redirectBank.bg }}>
             <button onClick={handleAnnuleer}
@@ -847,7 +847,7 @@ export default function TeBetalenPage() {
           </div>
           <div className="flex-1 overflow-y-auto px-5 pt-6 pb-4">
             <p className="font-black text-lg mb-1">Betaalopdracht bevestigen</p>
-            <p className="text-sm mb-5" style={{ color: "var(--muted)" }}>
+            <p className="text-sm mb-5" style={{ color: "#8A8A83" }}>
               Controleer de gegevens en autoriseer.
             </p>
             <div className="card p-4 mb-4">
@@ -858,8 +858,8 @@ export default function TeBetalenPage() {
                 ["Vakman", betalende.vakmanNaam],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between py-2.5 border-b last:border-0"
-                  style={{ borderColor: "var(--border)" }}>
-                  <span className="text-xs font-semibold" style={{ color: "var(--muted)" }}>{k}</span>
+                  style={{ borderColor: "#E5DDD0" }}>
+                  <span className="text-xs font-semibold" style={{ color: "#8A8A83" }}>{k}</span>
                   <span className="font-semibold text-sm">{v}</span>
                 </div>
               ))}
@@ -878,7 +878,7 @@ export default function TeBetalenPage() {
               </p>
             </div>
           </div>
-          <div className="px-5 pb-10 pt-4 flex flex-col gap-3 border-t" style={{ borderColor: "var(--border)" }}>
+          <div className="px-5 pb-10 pt-4 flex flex-col gap-3 border-t" style={{ borderColor: "#E5DDD0" }}>
             <button onClick={handleMockBankAutoriseer}
               className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
               style={{ background: redirectBank.bg }}>
@@ -886,7 +886,7 @@ export default function TeBetalenPage() {
             </button>
             <button onClick={handleAnnuleer}
               className="touch-scale w-full py-3.5 rounded-2xl font-semibold text-sm border"
-              style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+              style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
               Annuleren
             </button>
           </div>
@@ -914,29 +914,29 @@ function MockBetaalForm({
       <div className="card p-4 mb-5">
         {betalende.regels.map(r => (
           <div key={r.id} className="flex justify-between text-sm mb-1">
-            <span className="truncate pr-2" style={{ color: "var(--muted)" }}>{r.omschrijving}</span>
+            <span className="truncate pr-2" style={{ color: "#8A8A83" }}>{r.omschrijving}</span>
             <span>€{fmt(r.aantal * r.prijsPerEenheid)}</span>
           </div>
         ))}
         {betalende.totaalBtw > 0 && (
           <div className="flex justify-between text-sm mb-1">
-            <span style={{ color: "var(--muted)" }}>BTW (21%)</span>
+            <span style={{ color: "#8A8A83" }}>BTW (21%)</span>
             <span>€{fmt(betalende.totaalBtw)}</span>
           </div>
         )}
         <div className="flex justify-between text-xs border-t pt-2 mt-1"
-          style={{ borderColor: "var(--border)" }}>
-          <span style={{ color: "var(--muted)" }}>Service fee (5%)</span>
+          style={{ borderColor: "#E5DDD0" }}>
+          <span style={{ color: "#8A8A83" }}>Service fee (5%)</span>
           <span>€{fmt(Math.round(betalende.totaal * 0.05 * 100) / 100)}</span>
         </div>
         <div className="flex justify-between font-black text-lg pt-2 mt-1 border-t"
-          style={{ borderColor: "var(--border)", color: "var(--teal)" }}>
+          style={{ borderColor: "#E5DDD0", color: "#2B4030" }}>
           <span>Te betalen</span>
           <span>€{fmt(Math.round(betalende.totaal * 1.05 * 100) / 100)}</span>
         </div>
       </div>
 
-      <p className="text-xs font-bold uppercase mb-3" style={{ color: "var(--muted)" }}>
+      <p className="text-xs font-bold uppercase mb-3" style={{ color: "#8A8A83" }}>
         Betaalmethode
       </p>
       <div className="flex flex-col gap-2 mb-5">
@@ -944,24 +944,24 @@ function MockBetaalForm({
           <button key={m.naam} onClick={() => setGekozenIdx(i)}
             className="touch-scale flex items-center gap-3 p-3.5 rounded-2xl border-2 text-left"
             style={{
-              borderColor: gekozenIdx === i ? "var(--teal)" : "var(--border)",
-              background:  gekozenIdx === i ? "var(--teal)" + "12" : "var(--surface)",
+              borderColor: gekozenIdx === i ? "#2B4030" : "#E5DDD0",
+              background:  gekozenIdx === i ? "#2B4030" + "12" : "#FBF7F0",
             }}>
             <span className="text-xl">{m.icoon}</span>
             <div className="flex-1">
               <p className="font-bold text-sm">{m.naam}</p>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>{m.sub}</p>
+              <p className="text-xs" style={{ color: "#8A8A83" }}>{m.sub}</p>
             </div>
             <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-              style={{ borderColor: gekozenIdx === i ? "var(--teal)" : "var(--border)" }}>
-              {gekozenIdx === i && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--teal)" }} />}
+              style={{ borderColor: gekozenIdx === i ? "#2B4030" : "#E5DDD0" }}>
+              {gekozenIdx === i && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#2B4030" }} />}
             </div>
           </button>
         ))}
       </div>
       <button onClick={onBevestig}
         className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-        style={{ background: "var(--teal)" }}>
+        style={{ background: "#2B4030" }}>
         <Lock size={18} /> Bevestig betaling · €{fmt(Math.round(betalende.totaal * 1.05 * 100) / 100)}
       </button>
     </>

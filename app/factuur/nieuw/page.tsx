@@ -68,7 +68,7 @@ export default function FactuurNieuwPage() {
       </div>
       <div>
         <h2 className="font-black text-2xl mb-2">Factuur verstuurd!</h2>
-        <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
+        <p className="text-sm leading-relaxed" style={{ color: "#8A8A83" }}>
           Factuur <strong>{nummer}</strong> is verstuurd naar <strong>{klantNaam}</strong>.
           Vervaldatum: <strong>{vervaldatum}</strong>.
         </p>
@@ -76,17 +76,17 @@ export default function FactuurNieuwPage() {
       <div className="card p-4 w-full text-left flex flex-col gap-2">
         {regels.filter(r => r.prijs > 0).map(r => (
           <div key={r.id} className="flex justify-between text-sm">
-            <span style={{ color: "var(--muted)" }}>{r.omschrijving || "Werkzaamheden"}</span>
+            <span style={{ color: "#8A8A83" }}>{r.omschrijving || "Werkzaamheden"}</span>
             <span>€{fmt(r.aantal * r.prijs)}</span>
           </div>
         ))}
         {totaalBtw > 0 && (
           <div className="flex justify-between text-sm">
-            <span style={{ color: "var(--muted)" }}>BTW</span>
+            <span style={{ color: "#8A8A83" }}>BTW</span>
             <span>€{fmt(totaalBtw)}</span>
           </div>
         )}
-        <div className="flex justify-between font-black text-base pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+        <div className="flex justify-between font-black text-base pt-2 border-t" style={{ borderColor: "#E5DDD0" }}>
           <span>Totaal</span>
           <span style={{ color: "#d97706" }}>€{fmt(totaal)}</span>
         </div>
@@ -99,7 +99,7 @@ export default function FactuurNieuwPage() {
         </Link>
         <Link href="/documenten?tab=facturen"
           className="touch-scale py-3 text-center text-sm font-medium"
-          style={{ color: "var(--muted)" }}>
+          style={{ color: "#8A8A83" }}>
           Terug naar overzicht
         </Link>
       </div>
@@ -110,7 +110,7 @@ export default function FactuurNieuwPage() {
   if (fase === "preview") return (
     <div className="flex flex-col min-h-full pb-8 animate-fade-in">
       <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <button onClick={() => setFase("opstellen")}
           className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
           <ArrowLeft size={18} />
@@ -231,7 +231,7 @@ export default function FactuurNieuwPage() {
     <div className="flex flex-col min-h-full pb-8 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <Link href="/documenten?tab=facturen"
           className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
           <ArrowLeft size={18} />
@@ -244,8 +244,8 @@ export default function FactuurNieuwPage() {
           onClick={() => kanVersturen && setFase("preview")}
           className="touch-scale flex items-center gap-1.5 px-4 py-2.5 rounded-2xl font-bold text-sm"
           style={{
-            background: kanVersturen ? "#fef3c7" : "var(--surface-2)",
-            color: kanVersturen ? "#d97706" : "var(--muted)",
+            background: kanVersturen ? "#fef3c7" : "#EDE4D2",
+            color: kanVersturen ? "#d97706" : "#8A8A83",
             border: `1.5px solid ${kanVersturen ? "#d97706" : "transparent"}`,
           }}>
           <Eye size={14} /> Preview
@@ -263,14 +263,14 @@ export default function FactuurNieuwPage() {
             { label: "Adres", value: klantAdres, set: setKlantAdres, placeholder: "Straat 1, 1234 AB Stad" },
           ].map(f => (
             <div key={f.label}>
-              <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "var(--muted)" }}>
+              <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "#8A8A83" }}>
                 {f.label}
               </label>
               <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
                 className="w-full px-3 py-2.5 rounded-xl border outline-none text-sm"
                 style={{
-                  borderColor: f.value ? "#d97706" : "var(--border)",
-                  background: "var(--surface)", color: "var(--foreground)",
+                  borderColor: f.value ? "#d97706" : "#E5DDD0",
+                  background: "#FBF7F0", color: "#1A1D1A",
                 }} />
             </div>
           ))}
@@ -288,7 +288,7 @@ export default function FactuurNieuwPage() {
             {regels.map((r, i) => (
               <div key={r.id} className="card p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold uppercase" style={{ color: "var(--muted)" }}>
+                  <p className="text-xs font-bold uppercase" style={{ color: "#8A8A83" }}>
                     Regel {i + 1}
                   </p>
                   {regels.length > 1 && (
@@ -304,32 +304,32 @@ export default function FactuurNieuwPage() {
                   placeholder="Bijv. Loodgieterswerkzaamheden"
                   className="w-full px-3 py-2.5 rounded-xl border outline-none text-sm"
                   style={{
-                    borderColor: r.omschrijving ? "#d97706" : "var(--border)",
-                    background: "var(--surface)", color: "var(--foreground)",
+                    borderColor: r.omschrijving ? "#d97706" : "#E5DDD0",
+                    background: "#FBF7F0", color: "#1A1D1A",
                   }} />
 
                 {/* Aantal × eenheid × prijs */}
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "var(--muted)" }}>Aantal</label>
+                    <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "#8A8A83" }}>Aantal</label>
                     <input type="number" min={1} value={r.aantal}
                       onChange={e => updateRegel(r.id, "aantal", Number(e.target.value))}
                       className="w-full px-3 py-2.5 rounded-xl border outline-none text-sm text-center font-bold"
-                      style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
+                      style={{ borderColor: "#E5DDD0", background: "#FBF7F0", color: "#1A1D1A" }} />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "var(--muted)" }}>Eenheid</label>
+                    <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "#8A8A83" }}>Eenheid</label>
                     <select value={r.eenheid}
                       onChange={e => updateRegel(r.id, "eenheid", e.target.value)}
                       className="w-full px-2 py-2.5 rounded-xl border outline-none text-sm"
-                      style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }}>
+                      style={{ borderColor: "#E5DDD0", background: "#FBF7F0", color: "#1A1D1A" }}>
                       {EENHEDEN.map(e => <option key={e} value={e}>{e}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "var(--muted)" }}>Prijs/stuk</label>
+                    <label className="text-[10px] font-bold uppercase mb-1 block" style={{ color: "#8A8A83" }}>Prijs/stuk</label>
                     <div className="flex items-center gap-1 px-2 py-2.5 rounded-xl border"
-                      style={{ borderColor: r.prijs ? "#d97706" : "var(--border)", background: "var(--surface)" }}>
+                      style={{ borderColor: r.prijs ? "#d97706" : "#E5DDD0", background: "#FBF7F0" }}>
                       <Euro size={11} style={{ color: "#d97706", flexShrink: 0 }} />
                       <input type="number" min={0} value={r.prijs || ""}
                         onChange={e => updateRegel(r.id, "prijs", Number(e.target.value))}
@@ -342,15 +342,15 @@ export default function FactuurNieuwPage() {
 
                 {/* BTW */}
                 <div className="flex items-center gap-2">
-                  <p className="text-xs flex-1" style={{ color: "var(--muted)" }}>BTW tarief</p>
+                  <p className="text-xs flex-1" style={{ color: "#8A8A83" }}>BTW tarief</p>
                   {[0, 9, 21].map(pct => (
                     <button key={pct}
                       onClick={() => updateRegel(r.id, "btwPercentage", pct)}
                       className="touch-scale px-3 py-1.5 rounded-full text-xs font-bold border transition-all"
                       style={{
-                        borderColor: r.btwPercentage === pct ? "#d97706" : "var(--border)",
-                        background: r.btwPercentage === pct ? "#fef3c7" : "var(--surface)",
-                        color: r.btwPercentage === pct ? "#d97706" : "var(--muted)",
+                        borderColor: r.btwPercentage === pct ? "#d97706" : "#E5DDD0",
+                        background: r.btwPercentage === pct ? "#fef3c7" : "#FBF7F0",
+                        color: r.btwPercentage === pct ? "#d97706" : "#8A8A83",
                       }}>
                       {pct}%
                     </button>
@@ -359,8 +359,8 @@ export default function FactuurNieuwPage() {
 
                 {/* Regeltotaal */}
                 {r.prijs > 0 && (
-                  <div className="flex justify-between text-sm pt-1 border-t" style={{ borderColor: "var(--border)" }}>
-                    <span style={{ color: "var(--muted)" }}>Regeltotaal incl. BTW</span>
+                  <div className="flex justify-between text-sm pt-1 border-t" style={{ borderColor: "#E5DDD0" }}>
+                    <span style={{ color: "#8A8A83" }}>Regeltotaal incl. BTW</span>
                     <span className="font-bold" style={{ color: "#d97706" }}>
                       €{fmt(r.aantal * r.prijs * (1 + r.btwPercentage / 100))}
                     </span>
@@ -380,7 +380,7 @@ export default function FactuurNieuwPage() {
         <section className="card p-4 flex flex-col gap-4">
           <p className="font-black text-sm">💶 Betaalinformatie</p>
           <div>
-            <label className="text-[10px] font-bold uppercase mb-2 block" style={{ color: "var(--muted)" }}>
+            <label className="text-[10px] font-bold uppercase mb-2 block" style={{ color: "#8A8A83" }}>
               Betalingstermijn
             </label>
             <div className="flex gap-2">
@@ -389,20 +389,20 @@ export default function FactuurNieuwPage() {
                   onClick={() => setBetalingstermijn(d)}
                   className="touch-scale flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all"
                   style={{
-                    borderColor: betalingstermijn === d ? "#d97706" : "var(--border)",
-                    background: betalingstermijn === d ? "#fef3c7" : "var(--surface)",
-                    color: betalingstermijn === d ? "#d97706" : "var(--muted)",
+                    borderColor: betalingstermijn === d ? "#d97706" : "#E5DDD0",
+                    background: betalingstermijn === d ? "#fef3c7" : "#FBF7F0",
+                    color: betalingstermijn === d ? "#d97706" : "#8A8A83",
                   }}>
                   {d} dagen
                 </button>
               ))}
             </div>
-            <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
+            <p className="text-xs mt-2" style={{ color: "#8A8A83" }}>
               Vervaldatum: <strong>{vervaldatum}</strong>
             </p>
           </div>
           <div>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>
+            <p className="text-xs" style={{ color: "#8A8A83" }}>
               Betaling op: <strong>{bedrijf.iban}</strong> t.n.v. {bedrijf.naam}
             </p>
           </div>
@@ -411,18 +411,18 @@ export default function FactuurNieuwPage() {
         {/* ── Totaaloverzicht ── */}
         {subtotaal > 0 && (
           <div className="card p-4">
-            <p className="text-xs font-bold uppercase mb-3" style={{ color: "var(--muted)" }}>Totaaloverzicht</p>
+            <p className="text-xs font-bold uppercase mb-3" style={{ color: "#8A8A83" }}>Totaaloverzicht</p>
             <div className="flex flex-col gap-1.5">
               <div className="flex justify-between text-sm">
-                <span style={{ color: "var(--muted)" }}>Subtotaal excl. BTW</span>
+                <span style={{ color: "#8A8A83" }}>Subtotaal excl. BTW</span>
                 <span>€{fmt(subtotaal)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span style={{ color: "var(--muted)" }}>BTW</span>
+                <span style={{ color: "#8A8A83" }}>BTW</span>
                 <span>€{fmt(totaalBtw)}</span>
               </div>
               <div className="flex justify-between font-black text-lg pt-2 border-t"
-                style={{ borderColor: "var(--border)", color: "#d97706" }}>
+                style={{ borderColor: "#E5DDD0", color: "#d97706" }}>
                 <span>Totaal te betalen</span>
                 <span>€{fmt(totaal)}</span>
               </div>
@@ -432,20 +432,20 @@ export default function FactuurNieuwPage() {
 
         {/* ── Notities ── */}
         <div>
-          <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+          <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
             Notities (optioneel)
           </label>
           <textarea value={notities} onChange={e => setNotities(e.target.value)}
             placeholder="Bijv. betalingsreferentie, afspraken over deelbetaling..."
             rows={2} className="w-full px-4 py-3 rounded-2xl border outline-none text-sm resize-none"
-            style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
+            style={{ borderColor: "#E5DDD0", background: "#FBF7F0", color: "#1A1D1A" }} />
         </div>
 
         <button
           onClick={() => kanVersturen && setFase("preview")}
           disabled={!kanVersturen}
           className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-          style={{ background: kanVersturen ? "#d97706" : "var(--muted)" }}>
+          style={{ background: kanVersturen ? "#d97706" : "#8A8A83" }}>
           <Eye size={18} /> Preview & versturen
         </button>
       </div>

@@ -3,6 +3,7 @@ import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import ThemeProvider from "@/components/ThemeProvider";
 import AuthGuard from "@/components/AuthGuard";
+import PushSubscriber from "@/components/PushSubscriber";
 
 export const metadata: Metadata = {
   title: "Servr — De app voor lokale dienstverleners",
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh flex flex-col" style={{ background: "var(--paper)", color: "var(--ink)" }}>
         <ThemeProvider />
         <AuthGuard />
+        <PushSubscriber />
         <main className="flex-1 pb-[var(--bottom-nav-height)]">
           {children}
         </main>

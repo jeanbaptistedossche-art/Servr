@@ -62,10 +62,10 @@ export default function ScanPage() {
         </Link>
         <div>
           <h1 className="font-black text-xl">AI Prijsscanner</h1>
-          <p className="text-xs" style={{ color: "var(--muted)" }}>Foto → direct prijsschatting</p>
+          <p className="text-xs" style={{ color: "#8A8A83" }}>Foto → direct prijsschatting</p>
         </div>
         <span className="ml-auto text-xs font-bold px-2.5 py-1 rounded-full"
-          style={{ background: "var(--teal)", color: "white" }}>
+          style={{ background: "#2B4030", color: "white" }}>
           AI
         </span>
       </div>
@@ -74,14 +74,14 @@ export default function ScanPage() {
       {!preview ? (
         <div
           className="flex flex-col items-center justify-center gap-5 py-16 rounded-3xl border-2 border-dashed"
-          style={{ borderColor: "var(--border)", background: "var(--surface)" }}>
+          style={{ borderColor: "#E5DDD0", background: "#FBF7F0" }}>
           <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
-            style={{ background: "var(--teal)" + "18" }}>
-            <Camera size={40} style={{ color: "var(--teal)" }} />
+            style={{ background: "#2B4030" + "18" }}>
+            <Camera size={40} style={{ color: "#2B4030" }} />
           </div>
           <div className="text-center">
             <p className="font-bold text-base">Foto toevoegen</p>
-            <p className="text-sm mt-1" style={{ color: "var(--muted)" }}>
+            <p className="text-sm mt-1" style={{ color: "#8A8A83" }}>
               Maak een foto of kies uit je galerij<br />en krijg direct een prijsschatting
             </p>
           </div>
@@ -90,14 +90,14 @@ export default function ScanPage() {
             <button
               onClick={() => cameraRef.current?.click()}
               className="touch-scale flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm"
-              style={{ background: "var(--teal)", color: "white" }}>
+              style={{ background: "#2B4030", color: "white" }}>
               <Camera size={15} /> Camera
             </button>
             {/* Galerij knop — opent foto-galerij / bestanden */}
             <button
               onClick={() => galleryRef.current?.click()}
               className="touch-scale flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm border"
-              style={{ borderColor: "var(--border)" }}>
+              style={{ borderColor: "#E5DDD0" }}>
               <Upload size={15} /> Galerij
             </button>
           </div>
@@ -154,7 +154,7 @@ export default function ScanPage() {
             <div className="flex flex-col gap-4 animate-slide-up">
               {/* Prijs banner */}
               <div className="rounded-3xl p-5 text-center"
-                style={{ background: "linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
+                style={{ background: "linear-gradient(135deg, #2B4030 0%, #1A2D22 100%)" }}>
                 <p className="text-white/70 text-sm mb-1">Geschatte prijs</p>
                 <p className="text-white text-4xl font-black">
                   €{result.prijsMin} – €{result.prijsMax}
@@ -165,24 +165,24 @@ export default function ScanPage() {
               {/* Details */}
               <div className="card p-4 flex flex-col gap-4">
                 <div>
-                  <p className="text-xs font-bold uppercase mb-1" style={{ color: "var(--muted)" }}>Probleem</p>
+                  <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>Probleem</p>
                   <p className="text-sm font-medium">{result.beschrijving}</p>
                 </div>
 
                 <div className="flex gap-3">
-                  <div className="flex-1 p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
+                  <div className="flex-1 p-3 rounded-xl" style={{ background: "#EDE4D2" }}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <AlertTriangle size={13} style={{ color: URGENCY_COLOR[result.urgentie] }} />
-                      <p className="text-xs font-bold" style={{ color: "var(--muted)" }}>Urgentie</p>
+                      <p className="text-xs font-bold" style={{ color: "#8A8A83" }}>Urgentie</p>
                     </div>
                     <p className="text-sm font-bold" style={{ color: URGENCY_COLOR[result.urgentie] }}>
                       {URGENCY_LABEL[result.urgentie]}
                     </p>
                   </div>
-                  <div className="flex-1 p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
+                  <div className="flex-1 p-3 rounded-xl" style={{ background: "#EDE4D2" }}>
                     <div className="flex items-center gap-1.5 mb-1">
-                      <Clock size={13} style={{ color: "var(--muted)" }} />
-                      <p className="text-xs font-bold" style={{ color: "var(--muted)" }}>Tijd</p>
+                      <Clock size={13} style={{ color: "#8A8A83" }} />
+                      <p className="text-xs font-bold" style={{ color: "#8A8A83" }}>Tijd</p>
                     </div>
                     <p className="text-sm font-bold">{result.tijdschatting}</p>
                   </div>
@@ -190,12 +190,12 @@ export default function ScanPage() {
 
                 {result.tips?.length > 0 && (
                   <div>
-                    <p className="text-xs font-bold uppercase mb-2" style={{ color: "var(--muted)" }}>Tips</p>
+                    <p className="text-xs font-bold uppercase mb-2" style={{ color: "#8A8A83" }}>Tips</p>
                     <div className="flex flex-col gap-1.5">
                       {result.tips.map((tip, i) => (
                         <div key={i} className="flex items-start gap-2">
-                          <span className="text-sm mt-0.5" style={{ color: "var(--teal)" }}>💡</span>
-                          <p className="text-sm" style={{ color: "var(--muted)" }}>{tip}</p>
+                          <span className="text-sm mt-0.5" style={{ color: "#2B4030" }}>💡</span>
+                          <p className="text-sm" style={{ color: "#8A8A83" }}>{tip}</p>
                         </div>
                       ))}
                     </div>
@@ -207,12 +207,12 @@ export default function ScanPage() {
               <div className="flex flex-col gap-3">
                 <Link href="/panic"
                   className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-center flex items-center justify-center gap-2"
-                  style={{ background: "var(--coral)" }}>
+                  style={{ background: "#C97A4D" }}>
                   <Zap size={18} /> Panic Button — direct vakman
                 </Link>
                 <Link href="/search"
                   className="touch-scale w-full py-4 rounded-2xl font-bold text-center flex items-center justify-center gap-2 border"
-                  style={{ borderColor: "var(--teal)", color: "var(--teal)" }}>
+                  style={{ borderColor: "#2B4030", color: "#2B4030" }}>
                   Zoek vakman <ChevronRight size={16} />
                 </Link>
               </div>
@@ -223,7 +223,7 @@ export default function ScanPage() {
 
       {!preview && (
         <div className="mt-8 flex flex-col gap-3">
-          <p className="text-xs font-bold uppercase" style={{ color: "var(--muted)" }}>Hoe werkt het?</p>
+          <p className="text-xs font-bold uppercase" style={{ color: "#8A8A83" }}>Hoe werkt het?</p>
           {[
             ["📸", "Maak een foto van het probleem"],
             ["🤖", "AI analyseert de situatie"],
@@ -232,7 +232,7 @@ export default function ScanPage() {
           ].map(([icon, text]) => (
             <div key={text} className="flex items-center gap-3">
               <span className="text-xl w-8 flex-shrink-0">{icon}</span>
-              <p className="text-sm" style={{ color: "var(--muted)" }}>{text}</p>
+              <p className="text-sm" style={{ color: "#8A8A83" }}>{text}</p>
             </div>
           ))}
         </div>

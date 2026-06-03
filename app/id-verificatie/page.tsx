@@ -165,7 +165,7 @@ export default function IdVerificatiePage() {
 
         {/* Header */}
         <div className="px-5 pt-14 pb-4 flex items-center gap-3">
-          <button onClick={() => router.back()}
+          <button onClick={() => router.push('/profile')}
             className="touch-scale w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
             style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
             <ChevronLeft size={20} style={{ color: "#475569" }} />

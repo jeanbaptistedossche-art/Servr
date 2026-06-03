@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MapPin, ChevronDown, Search, Zap, ChevronRight } from "lucide-react";
+import { MapPin, ChevronDown, Search, Zap, ChevronRight, Mic, MicOff } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 
 const SERIF = "'Source Serif 4', Georgia, serif";
@@ -46,7 +46,82 @@ export default function KlantHomePage() {
   const [query, setQuery] = useState("");
   const router = useRouter();
 
-  useEffect(() => setMounted(true), []);
+  // Stem-opdracht
+  const [stemStatus, setStemStatus] = useState<"idle" | "luisteren" | "analyseren" | "bevestigen" | "verzonden" | "fout">("idle");
+  const [stemTekst, setStemTekst] = useState("");
+  const [stemResultaat, setStemResultaat] = useState<{ categorie: string; urgentie: string; titel: string } | null>(null);
+  const [stemVersturen, setStemVersturen] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const toggleStem = () => {
+    if (stemStatus === "luisteren") {
+      // Stop opname
+      recognitionRef.current?.stop();
+      setStemStatus("idle");
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setStemStatus("fout");
+      setStemTekst("Spraakherkenning niet beschikbaar in deze browser.");
+      return;
+    }
+
+    const rec = new SpeechRecognition();
+    rec.lang = "nl-NL";
+    rec.continuous = true;   // blijft luisteren tot je zelf stopt
+    rec.interimResults = false;
+    recognitionRef.current = rec;
+
+    rec.onstart = () => setStemStatus("luisteren");
+    rec.onerror = () => { setStemStatus("fout"); setStemTekst("Kon je niet horen, probeer opnieuw."); };
+    rec.onresult = async (e: any) => {
+      // Neem het laatste resultaat
+      const tekst = Array.from(e.results)
+        .map((r: any) => r[0].transcript)
+        .join(" ")
+        .trim();
+      setStemTekst(tekst);
+    };
+    rec.onend = async () => {
+      if (!stemTekst && recognitionRef.current?.stemTekstRef) return;
+      const tekst = stemTekst || (recognitionRef.current as any)._lastTekst;
+      if (!tekst) { setStemStatus("idle"); return; }
+
+      setStemStatus("analyseren");
+      try {
+        const res = await fetch("/api/categorize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beschrijving: tekst }),
+        });
+        const data = await res.json();
+        if (data.categorie) {
+          setStemResultaat(data);
+          setStemStatus("bevestigen");
+        } else {
+          setStemStatus("fout");
+          setStemTekst("AI kon dit niet verwerken. Probeer opnieuw.");
+        }
+      } catch {
+        setStemStatus("fout");
+        setStemTekst("Verbindingsfout, probeer opnieuw.");
+      }
+    };
+    rec.start();
+  };
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Vakman hoort op /agenda, niet hier
+  useEffect(() => {
+    if (mounted && activeView === "vakman") {
+      router.replace("/agenda");
+    }
+  }, [mounted, activeView, router]);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Goedemorgen" : hour < 18 ? "Goedemiddag" : "Goedenavond";
@@ -58,9 +133,8 @@ export default function KlantHomePage() {
   return (
     <div className="flex flex-col min-h-full" style={{ background: "#F5EFE5" }}>
 
-      {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-20 px-5 pt-14 pb-4"
-        style={{ background: "rgba(245,239,229,0.97)" }}>
+      {/* ── Header (scrollt mee) ── */}
+      <div className="px-5 pt-14 pb-4">
 
         {/* Top row: location + role toggle */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
@@ -79,7 +153,7 @@ export default function KlantHomePage() {
           </div>
 
           {hasBoth && (
-            <button className="touch-scale" onClick={() => setActiveView(isKlant ? "vakman" : "klant")}
+            <button className="touch-scale" onClick={() => { const next = isKlant ? "vakman" : "klant"; setActiveView(next); router.push(next === "vakman" ? "/agenda" : "/"); }}
               style={{ display: "flex", padding: 3, background: "#EDE4D2", borderRadius: 99, border: "none", cursor: "pointer" }}>
               <span style={{
                 fontSize: 11, padding: "5px 11px",
@@ -132,6 +206,139 @@ export default function KlantHomePage() {
           Wat heb je<br />
           <span style={{ color: "#8A8A83", fontStyle: "italic" }}>nodig?</span>
         </h1>
+
+        {/* Klus plaatsen CTA */}
+        <Link href="/opdracht/nieuw" style={{ textDecoration: "none", display: "block", marginBottom: 14 }}>
+          <div className="touch-scale" style={{
+            background: "#2B4030", color: "#F5EFE5",
+            borderRadius: 14, padding: "18px 20px",
+            display: "flex", alignItems: "center", gap: 14,
+          }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: "rgba(255,255,255,0.12)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 22, flexShrink: 0,
+            }}>🔧</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontFamily: SERIF, fontSize: 17, margin: "0 0 3px" }}>Klus plaatsen</p>
+              <p style={{ fontSize: 12, color: "rgba(245,239,229,0.65)", margin: 0 }}>
+                Ontvang offertes van vakmensen bij jou in de buurt
+              </p>
+            </div>
+            <ChevronRight size={18} style={{ color: "rgba(245,239,229,0.5)", flexShrink: 0 }} />
+          </div>
+        </Link>
+
+        {/* Stem-opdracht kaart */}
+        <div style={{ marginBottom: 14 }}>
+          <button
+            onClick={toggleStem}
+            style={{
+              width: "100%", padding: "18px 20px",
+              background: stemStatus === "luisteren" ? "#C97A4D" :
+                          stemStatus === "analyseren" ? "#1A1D1A" :
+                          stemStatus === "bevestigen" ? "#2B4030" : "#EDE4D2",
+              borderRadius: 14, border: "none", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 14,
+              transition: "all 0.2s",
+            }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+              background: stemStatus === "idle" ? "#D8D0C4" : "rgba(255,255,255,0.2)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              {stemStatus === "luisteren"
+                ? <MicOff size={20} style={{ color: "#F5EFE5" }} />
+                : <Mic size={20} style={{ color: stemStatus === "idle" ? "#5C5C56" : "#F5EFE5" }} />
+              }
+            </div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <p style={{
+                fontFamily: SERIF, fontSize: 16, margin: "0 0 3px",
+                color: stemStatus === "idle" ? "#1A1D1A" : "#F5EFE5",
+              }}>
+                {stemStatus === "idle" ? "Spreek je klus in" :
+                 stemStatus === "luisteren" ? "Luisteren… laat los om te stoppen" :
+                 stemStatus === "analyseren" ? "AI analyseert…" :
+                 stemStatus === "bevestigen" ? "✓ Klus herkend!" : "Probeer opnieuw"}
+              </p>
+              <p style={{
+                fontSize: 12, margin: 0,
+                color: stemStatus === "idle" ? "#8A8A83" : "rgba(245,239,229,0.65)",
+              }}>
+                {stemStatus === "idle" ? "Klik, spreek je klus in, klik opnieuw"
+                  : stemStatus === "luisteren" ? (stemTekst || "Spreek nu… klik opnieuw om te stoppen")
+                  : stemTekst || "Verwerken…"}
+              </p>
+            </div>
+          </button>
+        </div>
+
+        {/* Bevestigingskaart na stem */}
+        {stemStatus === "bevestigen" && stemResultaat && (
+          <div style={{ background: "#1A1D1A", borderRadius: 14, padding: 18, marginBottom: 14, color: "#F5EFE5" }}>
+            <p style={{ fontSize: 11, color: "#8A8A83", margin: "0 0 8px" }}>AI herkende:</p>
+            <p style={{ fontFamily: SERIF, fontSize: 20, margin: "0 0 4px" }}>{stemResultaat.titel || stemTekst}</p>
+            <p style={{ fontSize: 12, color: "#B8B4A8", margin: "0 0 16px" }}>
+              {stemResultaat.categorie} · {stemResultaat.urgentie === "hoog" ? "🔴 Spoed" : stemResultaat.urgentie === "laag" ? "🟢 Niet urgent" : "🟡 Normaal"}
+            </p>
+            <p style={{ fontSize: 11, color: "#8A8A83", margin: "0 0 14px", fontStyle: "italic" }}>"{stemTekst}"</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                disabled={stemVersturen}
+                onClick={async () => {
+                  setStemVersturen(true);
+                  try {
+                    const { supabase: sb, supabaseReady: ready } = await import("@/lib/supabase");
+                    const { useUserStore: us } = await import("@/lib/store");
+                    let userId = us.getState().userId;
+                    if (!userId && ready) {
+                      const { data: { session } } = await sb.auth.getSession();
+                      userId = session?.user?.id ?? null;
+                    }
+                    if (!userId) { alert("Log eerst in"); setStemVersturen(false); return; }
+                    const { data: opdracht } = await (sb.from("opdrachten") as any).insert({
+                      klant_id: userId,
+                      titel: stemResultaat.titel || stemTekst.slice(0, 60),
+                      beschrijving: stemTekst,
+                      categorie: stemResultaat.categorie,
+                      urgentie: stemResultaat.urgentie ?? "middel",
+                      status: "open",
+                    }).select("id").single();
+
+                    // Stuur push notificatie naar alle vakmensen van die categorie
+                    fetch("/api/push/send", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        categorie: stemResultaat.categorie,
+                        titel: stemResultaat.titel || stemTekst.slice(0, 60),
+                        beschrijving: stemTekst,
+                        opdrachtId: opdracht?.id,
+                      }),
+                    });
+                    setStemStatus("verzonden");
+                    setTimeout(() => { setStemStatus("idle"); setStemTekst(""); setStemResultaat(null); }, 2000);
+                    router.push("/mijn-opdrachten?nieuw=1");
+                  } catch { setStemVersturen(false); }
+                }}
+                style={{ flex: 1, padding: "11px 0", background: stemVersturen ? "#5C5C56" : "#2B4030", color: "#F5EFE5", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                {stemVersturen ? "Versturen…" : "✓ Verstuur naar vakmensen"}
+              </button>
+              <button onClick={() => { setStemStatus("idle"); setStemTekst(""); setStemResultaat(null); setStemVersturen(false); }}
+                style={{ padding: "11px 14px", background: "transparent", border: "0.5px solid #5C5C56", color: "#8A8A83", borderRadius: 10, fontSize: 13, cursor: "pointer" }}>
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {stemStatus === "verzonden" && (
+          <div style={{ background: "#EAF0EC", borderRadius: 14, padding: 16, marginBottom: 14, textAlign: "center" }}>
+            <p style={{ fontSize: 15, fontWeight: 500, color: "#2B4030", margin: 0 }}>✓ Opdracht verstuurd naar alle vakmensen!</p>
+          </div>
+        )}
 
         {/* Spoed focus-card */}
         <Link href="/panic" style={{ textDecoration: "none", display: "block", marginBottom: 22 }}>

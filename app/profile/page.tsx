@@ -4,9 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Bell, Settings, Search, ChevronRight,
-  LayoutDashboard, Calendar, Clock, QrCode,
+  Bell, Settings, Search, ChevronRight, ChevronDown,
+  LayoutDashboard, Calendar, Clock, QrCode, ScanLine,
   Home, Heart, History, FileText, CreditCard, Wallet,
+  Users, Briefcase, Star, TrendingUp, BookOpen, Shield,
+  Package, Navigation, Award, ShieldCheck, Video, Camera, Lock,
+  ClipboardList,
 } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 
@@ -21,27 +24,64 @@ const VANDAAG_TOOLS = [
 ];
 
 const VAKMAN_GROEPEN = [
-  { label: "Klanten & werk", sub: "7 tools  ·  diensten, reviews, offertes" },
-  { label: "Financiën",       sub: "5 tools  ·  uitbetalingen, BTW, escrow" },
-  { label: "Bedrijf & tools", sub: "10 tools  ·  personeel, materialen, GPS" },
+  {
+    label: "Klanten & werk",
+    sub: "6 tools  ·  diensten, reviews, offertes",
+    tools: [
+      { href: "/klanten",        icon: Users,        label: "Klantenbeheer",   sub: "Al jouw klanten" },
+      { href: "/diensten",       icon: Briefcase,    label: "Diensten",        sub: "Beheer je aanbod" },
+      { href: "/reviews",        icon: Star,         label: "Reviews",         sub: "Beoordelingen" },
+      { href: "/offertes",       icon: FileText,     label: "Offertes",        sub: "Verzend & beheer" },
+      { href: "/portfolio",      icon: Camera,       label: "Portfolio",       sub: "Foto's van je werk" },
+      { href: "/mijn-opdrachten",icon: ClipboardList,label: "Opdrachten",      sub: "Lopend & afgerond" },
+    ],
+  },
+  {
+    label: "Financiën",
+    sub: "5 tools  ·  uitbetalingen, BTW, escrow",
+    tools: [
+      { href: "/verdiensten",  icon: TrendingUp,  label: "Verdiensten",     sub: "Omzet & uitbetalingen" },
+      { href: "/boekhouding",  icon: BookOpen,    label: "Boekhouding",     sub: "BTW & jaaroverzicht" },
+      { href: "/betalingen",   icon: CreditCard,  label: "Betaalmethoden",  sub: "Bankrekening & uitbetaling" },
+      { href: "/escrow",       icon: Shield,      label: "Escrow",          sub: "Veilig betalen" },
+      { href: "/betaalplan",   icon: Wallet,      label: "Betaalplan",      sub: "Gespreide betaling" },
+    ],
+  },
+  {
+    label: "Bedrijf & tools",
+    sub: "8 tools  ·  personeel, materialen, GPS",
+    tools: [
+      { href: "/personeel",       icon: Users,        label: "Personeel",      sub: "Team & medewerkers" },
+      { href: "/materialen",      icon: Package,      label: "Materialen",     sub: "Voorraad & kosten" },
+      { href: "/gps-tracking",    icon: Navigation,   label: "GPS tracking",   sub: "Rittenregistratie" },
+      { href: "/licenties",       icon: Award,        label: "Licenties",      sub: "Certificaten & diploma's" },
+      { href: "/garantie-tracker",icon: ShieldCheck,  label: "Garanties",      sub: "Afgeleverd werk" },
+      { href: "/video-bellen",    icon: Video,        label: "Video bellen",   sub: "Klant consult" },
+      { href: "/documenten-kluis",icon: Lock,         label: "Documentenkluis",sub: "Veilige opslag" },
+      { href: "/urenregistratie", icon: Clock,        label: "Urenregistratie",sub: "Timer per klus" },
+    ],
+  },
 ];
 
 // ── Klant tools ───────────────────────────────────────────────
 const MIJN_VAKMEN_TOOLS = [
-  { href: "/favorieten",   icon: Heart,    label: "Favorieten",           sub: "Opgeslagen vakmensen" },
-  { href: "/klussen",      icon: History,  label: "Boekingsgeschiedenis", sub: "Alle afgeronde klussen" },
-  { href: "/documenten",   icon: FileText, label: "Facturen",             sub: "Download & bekijk" },
+  { href: "/opdracht/nieuw", icon: ClipboardList, label: "Klus plaatsen",   sub: "Ontvang offertes van vakmensen" },
+  { href: "/mijn-opdrachten",icon: History,       label: "Mijn opdrachten", sub: "Openstaand & bevestigd" },
+  { href: "/favorieten",     icon: Heart,         label: "Favorieten",      sub: "Opgeslagen vakmensen" },
+  { href: "/klussen",        icon: Clock,         label: "Mijn boekingen",  sub: "Overzicht van jouw klussen" },
+  { href: "/inchecken",      icon: ScanLine,      label: "QR Scannen",      sub: "Controleer betaling bij vakman" },
+  { href: "/documenten",     icon: FileText,      label: "Facturen",        sub: "Download & bekijk" },
 ];
 
 const BETALEN_TOOLS = [
-  { href: "/betalingen",  icon: CreditCard, label: "Betaalmethoden", sub: "iDEAL · Bancontact · Kaart" },
-  { href: "/betaalplan",  icon: Wallet,     label: "Betaalplan",      sub: "Gespreide betaling" },
+  { href: "/te-betalen",  icon: CreditCard, label: "Te betalen",    sub: "Open facturen van vakmensen" },
+  { href: "/betalingen",  icon: Wallet,     label: "Betaalmethoden", sub: "iDEAL · Bancontact · Kaart" },
 ];
 
 // ── Shared header ─────────────────────────────────────────────
 function ProfielHeader() {
   return (
-    <div className="sticky top-0 z-20 px-5 pt-14 pb-4"
+    <div className="px-5 pt-14 pb-4"
       style={{ background: "rgba(245,239,229,0.97)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h2 style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 400, margin: 0, color: "#1A1D1A" }}>
@@ -68,6 +108,52 @@ function ProfielHeader() {
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Uitklapbare groepskaart ───────────────────────────────────
+type Tool = { href: string; icon: React.ElementType; label: string; sub: string; badge?: string };
+type Groep = { label: string; sub: string; tools: Tool[] };
+
+function GroepKaart({ groep }: { groep: Groep }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 12, overflow: "hidden", marginBottom: 8 }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        width: "100%", display: "flex", alignItems: "center", padding: 14,
+        background: "none", border: "none", cursor: "pointer", textAlign: "left",
+      }}>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontFamily: SERIF, fontSize: 15, margin: 0, color: "#1A1D1A" }}>{groep.label}</p>
+          <p style={{ fontSize: 11, color: "#8A8A83", margin: "2px 0 0" }}>{groep.sub}</p>
+        </div>
+        {open
+          ? <ChevronDown size={14} style={{ color: "#8A8A83", flexShrink: 0 }} />
+          : <ChevronRight size={14} style={{ color: "#8A8A83", flexShrink: 0 }} />
+        }
+      </button>
+      {open && (
+        <div style={{ borderTop: "0.5px solid #E5DDD0" }}>
+          {groep.tools.map((tool, i) => {
+            const Icon = tool.icon;
+            return (
+              <Link key={tool.href} href={tool.href} className="touch-scale" style={{
+                display: "flex", alignItems: "center", padding: "12px 14px",
+                borderBottom: i < groep.tools.length - 1 ? "0.5px solid #E5DDD0" : "none",
+                textDecoration: "none",
+              }}>
+                <Icon size={17} style={{ color: "#5C5C56", marginRight: 12, flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 500, margin: 0, color: "#1A1D1A" }}>{tool.label}</p>
+                  <p style={{ fontSize: 11, color: "#8A8A83", margin: "1px 0 0" }}>{tool.sub}</p>
+                </div>
+                <ChevronRight size={13} style={{ color: "#C8C5BC", flexShrink: 0 }} />
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -194,21 +280,8 @@ function VakmanProfiel({ name, role, setActiveView, onLogout }: {
         <ToolGroup tools={VANDAAG_TOOLS} />
       </div>
 
-      {/* Collapsed groups */}
-      {VAKMAN_GROEPEN.map((g, i) => (
-        <div key={g.label} className="touch-scale" style={{
-          background: "#FBF7F0", border: "0.5px solid #E5DDD0",
-          borderRadius: 12, padding: 14,
-          marginBottom: i < VAKMAN_GROEPEN.length - 1 ? 8 : 0,
-          display: "flex", alignItems: "center", cursor: "pointer",
-        }}>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontFamily: SERIF, fontSize: 15, margin: 0, color: "#1A1D1A" }}>{g.label}</p>
-            <p style={{ fontSize: 11, color: "#8A8A83", margin: "2px 0 0" }}>{g.sub}</p>
-          </div>
-          <ChevronRight size={14} style={{ color: "#8A8A83", flexShrink: 0 }} />
-        </div>
-      ))}
+      {/* Uitklapbare groepen */}
+      {VAKMAN_GROEPEN.map(g => <GroepKaart key={g.label} groep={g} />)}
 
       <button className="touch-scale" onClick={onLogout} style={{
         width: "100%", marginTop: 24, padding: "12px 0",
@@ -311,6 +384,30 @@ function KlantProfiel({ name, address, role, setActiveView, onLogout }: {
         <ChevronRight size={14} style={{ color: "#8A8A83", flexShrink: 0 }} />
       </div>
 
+      {/* Te betalen — prominente kaart */}
+      <Link href="/te-betalen" style={{ textDecoration: "none", display: "block", marginBottom: 22 }}>
+        <div style={{
+          background: "#2B4030", color: "#F5EFE5",
+          borderRadius: 14, padding: 18,
+          display: "flex", alignItems: "center", gap: 14,
+        }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10,
+            background: "rgba(255,255,255,0.1)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <CreditCard size={20} style={{ color: "#F5EFE5" }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontFamily: SERIF, fontSize: 17, margin: "0 0 2px" }}>Te betalen</p>
+            <p style={{ fontSize: 12, color: "rgba(245,239,229,0.65)", margin: 0 }}>
+              Open facturen van vakmensen
+            </p>
+          </div>
+          <ChevronRight size={14} style={{ color: "rgba(245,239,229,0.5)", flexShrink: 0 }} />
+        </div>
+      </Link>
+
       {/* Mijn vakmen group */}
       <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: "#1A1D1A", margin: "0 0 10px" }}>
         Mijn vakmen
@@ -346,8 +443,9 @@ export default function ProfielPage() {
   const router = useRouter();
   useEffect(() => setMounted(true), []);
 
-  const isVakman = mounted ? activeView === "vakman" : false;
-  const displayName = (mounted && name) ? name : "Dossche";
+  // Default naar vakman (true) zodat er geen flash is bij terugnavigeren vanuit vakman-subpagina's
+  const isVakman = mounted ? activeView === "vakman" : true;
+  const displayName = (mounted && name) ? name : "";
   const displayAddress = (mounted && address) ? address : "Amsterdam";
 
   function handleLogout() {

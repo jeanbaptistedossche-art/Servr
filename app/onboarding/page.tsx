@@ -2,83 +2,107 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  User, Wrench, ChevronRight, ArrowLeft, Apple,
-  Star, Zap, Shield, Clock, MapPin, CheckCircle,
-  Users, Smartphone,
-} from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, ChevronRight, User, Wrench, Users } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 import type { UserRole } from "@/lib/store";
 import { supabase, supabaseReady } from "@/lib/supabase";
 
-type Stap = "welcome" | "kies" | "login" | "nieuw";
+type Stap = "welcome" | "kies" | "login" | "registreer";
 
-const DEMO_ACCOUNTS = [
-  {
-    role: "klant" as UserRole,
-    name: "Lisa de Vries",
-    address: "Jordaan, Amsterdam",
-    isAdmin: false,
-    label: "Klant",
-    sub: "Amsterdam · Gebruikt app al 3 maanden",
-    color: "#4F46E5",
-    bg: "#EEF2FF",
-    initial: "L",
-  },
-  {
-    role: "vakman" as UserRole,
-    name: "Marco van den Berg",
-    address: "Prinsengracht 263, Amsterdam",
-    isAdmin: true,
-    label: "Vakman + Admin",
-    sub: "Loodgieter · Amsterdam",
-    color: "#DC2626",
-    bg: "#FEF2F2",
-    initial: "M",
-  },
-];
+const SERIF = "'Source Serif 4', Georgia, serif";
 
-const FEATURES = [
-  {
-    icon: Zap,
-    color: "#F59E0B",
-    bg: "#FFFBEB",
-    title: "Binnen 90 seconden",
-    desc: "3 vakmensen sturen direct een bieding op jouw opdracht",
-  },
-  {
-    icon: Shield,
-    color: "#10B981",
-    bg: "#ECFDF5",
-    title: "100% veilig",
-    desc: "Gecertificeerde vakmensen, veilig betalen, altijd verzekerd",
-  },
-  {
-    icon: Star,
-    color: "#4F46E5",
-    bg: "#EEF2FF",
-    title: "Betrouwbaar",
-    desc: "Meer dan 2.400 vakmannen met echte reviews van klanten",
-  },
-  {
-    icon: MapPin,
-    color: "#EF4444",
-    bg: "#FEF2F2",
-    title: "In jouw buurt",
-    desc: "Vakmensen uit jouw regio — snel ter plaatse",
-  },
-];
+// ─── kleine helpers ────────────────────────────────────────────────────────────
+function Input({
+  label, type = "text", value, onChange, placeholder, autoFocus, error,
+}: {
+  label: string; type?: string; value: string;
+  onChange: (v: string) => void; placeholder?: string;
+  autoFocus?: boolean; error?: string;
+}) {
+  const [show, setShow] = useState(false);
+  const isPass = type === "password";
+  return (
+    <div>
+      <label style={{ display: "block", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8A8A83", marginBottom: 8 }}>
+        {label}
+      </label>
+      <div style={{ position: "relative" }}>
+        <input
+          autoFocus={autoFocus}
+          type={isPass && show ? "text" : type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          style={{
+            width: "100%", boxSizing: "border-box",
+            padding: isPass ? "16px 48px 16px 16px" : "16px",
+            borderRadius: 14,
+            border: `0.5px solid ${error ? "#C97A4D" : "#E5DDD0"}`,
+            background: "#FBF7F0",
+            fontSize: 16, color: "#1A1D1A", outline: "none",
+            fontFamily: "Inter, sans-serif",
+          }}
+        />
+        {isPass && (
+          <button type="button" onClick={() => setShow(s => !s)}
+            style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#8A8A83", padding: 0 }}>
+            {show ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
+      </div>
+      {error && <p style={{ fontSize: 12, color: "#C97A4D", marginTop: 6 }}>{error}</p>}
+    </div>
+  );
+}
 
+function Btn({ label, onClick, disabled, variant = "primary" }: {
+  label: string; onClick: () => void; disabled?: boolean; variant?: "primary" | "ghost";
+}) {
+  return (
+    <button onClick={onClick} disabled={disabled}
+      style={{
+        width: "100%", padding: "18px", borderRadius: 14, fontSize: 16, fontWeight: 700,
+        border: variant === "ghost" ? "0.5px solid #E5DDD0" : "none",
+        background: variant === "ghost" ? "transparent" : disabled ? "#E5DDD0" : "#2B4030",
+        color: variant === "ghost" ? "#1A1D1A" : "white",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.6 : 1,
+        transition: "opacity 0.15s",
+      }}>
+      {label}
+    </button>
+  );
+}
+
+// ─── Hoofd component ──────────────────────────────────────────────────────────
 export default function OnboardingPage() {
   const router = useRouter();
   const { login } = useUserStore();
 
   const [stap, setStap] = useState<Stap>("welcome");
-  const [naam, setNaam] = useState("");
   const [rol, setRol] = useState<UserRole>("klant");
-  const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
-  const [oauthError, setOauthError] = useState<string | null>(null);
 
+  // Login velden
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPass, setLoginPass] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  // Registreer velden
+  const [naam, setNaam] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPass, setRegPass] = useState("");
+  const [regPass2, setRegPass2] = useState("");
+  const [stad, setStad] = useState("");
+  const [specialty, setSpecialty] = useState("");
+  const [regLoading, setRegLoading] = useState(false);
+  const [regError, setRegError] = useState("");
+  const [regSuccess, setRegSuccess] = useState(false);
+
+  // OAuth
+  const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
+
+  // Herstel OAuth-redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("oauth") !== "1") return;
@@ -92,556 +116,388 @@ export default function OnboardingPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleDemo = (acc: typeof DEMO_ACCOUNTS[0]) => {
-    login({ role: acc.role, name: acc.name, address: acc.address, isAdmin: acc.isAdmin });
-    router.replace(acc.role === "vakman" ? "/dashboard" : "/");
+  // ── Demo login (als Supabase nog niet klaar is) ──────────────────────────────
+  const handleDemo = (r: UserRole, name: string) => {
+    login({ role: r, name, address: "Amsterdam", isAdmin: r === "vakman" });
+    router.replace(r === "vakman" ? "/agenda" : "/");
   };
 
-  const handleNieuw = () => {
-    if (!naam.trim()) return;
-    login({ role: rol!, name: naam.trim(), address: "Amsterdam", isAdmin: false });
-    router.replace(rol === "vakman" ? "/dashboard" : "/");
-  };
-
-  const handleOAuth = async (provider: "google" | "apple") => {
-    if (!supabaseReady) {
-      setOauthError("Gebruik een van de knoppen hieronder om in te loggen.");
-      return;
+  // ── Echte login ──────────────────────────────────────────────────────────────
+  const handleLogin = async () => {
+    if (!loginEmail || !loginPass) return;
+    setLoginLoading(true); setLoginError("");
+    try {
+      const { login: authLogin } = await import("@/lib/auth");
+      await authLogin(loginEmail, loginPass);
+      const { activeView } = useUserStore.getState();
+      router.replace(activeView === "vakman" ? "/agenda" : "/");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Inloggen mislukt";
+      if (msg.includes("Invalid login")) setLoginError("E-mail of wachtwoord klopt niet.");
+      else if (msg.includes("Email not confirmed")) setLoginError("Bevestig eerst je e-mail.");
+      else setLoginError(msg);
+    } finally {
+      setLoginLoading(false);
     }
+  };
+
+  // ── Echte registratie ────────────────────────────────────────────────────────
+  const handleRegister = async () => {
+    setRegError("");
+    if (!naam.trim()) { setRegError("Vul je naam in."); return; }
+    if (!regEmail.includes("@")) { setRegError("Vul een geldig e-mailadres in."); return; }
+    if (regPass.length < 6) { setRegError("Wachtwoord moet minstens 6 tekens zijn."); return; }
+    if (regPass !== regPass2) { setRegError("Wachtwoorden komen niet overeen."); return; }
+
+    setRegLoading(true);
+    try {
+      const { register } = await import("@/lib/auth");
+      await register({
+        email: regEmail,
+        password: regPass,
+        name: naam.trim(),
+        rol: rol as "klant" | "vakman" | "beide",
+        specialty: specialty.trim() || undefined,
+        city: stad.trim() || undefined,
+      });
+      setRegSuccess(true);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Registratie mislukt";
+      if (msg.includes("already registered")) setRegError("Dit e-mailadres is al in gebruik.");
+      else setRegError(msg);
+    } finally {
+      setRegLoading(false);
+    }
+  };
+
+  // ── OAuth ────────────────────────────────────────────────────────────────────
+  const handleOAuth = async (provider: "google" | "apple") => {
+    if (!supabaseReady) return;
     setOauthLoading(provider);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/onboarding?oauth=1` },
     });
-    if (error) { setOauthError(error.message); setOauthLoading(null); }
+    if (error) setOauthLoading(null);
   };
 
-  /* ══════════════════════════════════════════════════════════════
-     STAP 1 — WELCOME / UITLEG
-  ══════════════════════════════════════════════════════════════ */
+  // ════════════════════════════════════════════════════════════════════════════
+  // STAP 1 — WELCOME
+  // ════════════════════════════════════════════════════════════════════════════
   if (stap === "welcome") return (
-    <div className="flex flex-col min-h-dvh animate-fade-in" style={{ background: "#F1F4FA" }}>
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", background: "#F5EFE5" }}>
 
-      {/* Hero gradient */}
-      <div className="relative overflow-hidden px-6 pt-16 pb-10"
-        style={{ background: "linear-gradient(160deg, #3730A3 0%, #4F46E5 50%, #818CF8 100%)" }}>
-        {/* Blob decorations */}
-        <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-20" style={{ background: "white" }} />
-        <div className="absolute -left-10 bottom-0 w-48 h-48 rounded-full opacity-10" style={{ background: "black" }} />
+      {/* Hero */}
+      <div style={{ background: "#2B4030", padding: "64px 24px 48px", position: "relative", overflow: "hidden" }}>
+        {/* Decoratieve cirkel */}
+        <div style={{ position: "absolute", right: -60, top: -60, width: 240, height: 240, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+        <div style={{ position: "absolute", right: 40, bottom: -80, width: 160, height: 160, borderRadius: "50%", background: "rgba(201,122,77,0.15)" }} />
 
         {/* Logo */}
-        <div className="relative flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-            style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)", border: "1.5px solid rgba(255,255,255,0.3)" }}>
-            <span className="font-black text-white" style={{ fontSize: 22 }}>S</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 40, position: "relative" }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: "#C97A4D", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ color: "white", fontWeight: 900, fontSize: 22, fontFamily: SERIF }}>S</span>
           </div>
-          <span className="font-black text-white tracking-tight" style={{ fontSize: 28 }}>Servr</span>
+          <span style={{ color: "white", fontWeight: 800, fontSize: 26, fontFamily: SERIF }}>Servr</span>
         </div>
 
         {/* Tagline */}
-        <div className="relative">
-          <h1 className="font-black text-white leading-tight mb-3" style={{ fontSize: 34, letterSpacing: "-0.02em" }}>
-            De slimste manier<br />om een vakman<br />te vinden
-          </h1>
-          <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 16, lineHeight: 1.6 }}>
-            Snel, veilig en altijd iemand beschikbaar in jouw buurt.
-          </p>
-        </div>
+        <h1 style={{ fontFamily: SERIF, color: "white", fontSize: 34, lineHeight: 1.2, marginBottom: 12, position: "relative" }}>
+          De vakman<br />die je zoekt,<br />bij jou thuis
+        </h1>
+        <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 16, lineHeight: 1.6, position: "relative" }}>
+          Snel, veilig en altijd iemand beschikbaar in jouw buurt.
+        </p>
 
-        {/* Trust strip */}
-        <div className="relative flex items-center gap-4 mt-6">
+        {/* Stats */}
+        <div style={{ display: "flex", gap: 32, marginTop: 32, position: "relative" }}>
+          {[["2.400+", "vakmensen"], ["4.8 ★", "gemiddeld"], ["90s", "reactietijd"]].map(([v, l]) => (
+            <div key={l}>
+              <div style={{ color: "white", fontWeight: 800, fontSize: 18 }}>{v}</div>
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 }}>{l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hoe werkt het */}
+      <div style={{ padding: "32px 24px 0" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8A8A83", marginBottom: 16 }}>
+          Hoe werkt het?
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0, border: "0.5px solid #E5DDD0", borderRadius: 16, overflow: "hidden", background: "#FBF7F0" }}>
           {[
-            { v: "2.400+", l: "vakmensen" },
-            { v: "4.8⭐", l: "gemiddeld" },
-            { v: "90s", l: "reactietijd" },
+            { n: "1", t: "Beschrijf je klus", d: "Typ of scan je probleem", color: "#2B4030" },
+            { n: "2", t: "Ontvang biedingen", d: "Vakmensen bieden binnen 90 seconden", color: "#C97A4D" },
+            { n: "3", t: "Klus geklaard", d: "Betaal veilig na afloop via de app", color: "#2B4030" },
           ].map((s, i) => (
-            <div key={s.l} className="flex items-center">
-              {i > 0 && <span className="mr-4 opacity-30 text-white">|</span>}
+            <div key={s.n} style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", borderBottom: i < 2 ? "0.5px solid #E5DDD0" : "none" }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: s.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ color: "white", fontSize: 13, fontWeight: 900 }}>{s.n}</span>
+              </div>
               <div>
-                <span className="font-black text-white text-base leading-none block">{s.v}</span>
-                <span className="text-[11px] font-medium block mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>{s.l}</span>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#1A1D1A" }}>{s.t}</div>
+                <div style={{ fontSize: 13, color: "#5C5C56", marginTop: 2 }}>{s.d}</div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Feature cards */}
-      <div className="px-5 pt-6 pb-4">
-        <p className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: "#94a3b8" }}>
-          Waarom Servr?
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          {FEATURES.map(f => {
-            const Icon = f.icon;
-            return (
-              <div key={f.title} className="p-4 rounded-3xl"
-                style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,0.07)" }}>
-                <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-3"
-                  style={{ background: f.bg }}>
-                  <Icon size={20} style={{ color: f.color }} strokeWidth={2} />
-                </div>
-                <p className="font-black text-sm leading-tight mb-1" style={{ color: "#0f172a" }}>{f.title}</p>
-                <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>{f.desc}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* How it works */}
-      <div className="px-5 pb-6">
-        <p className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: "#94a3b8" }}>Hoe werkt het?</p>
-        <div style={{ background: "#fff", borderRadius: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.07)", overflow: "hidden" }}>
-          {[
-            { n: "1", icon: Smartphone, title: "Beschrijf je klus", desc: "Typ of scan je probleem in de app", color: "#4F46E5" },
-            { n: "2", icon: Users, title: "Ontvang biedingen", desc: "Vakmensen bieden binnen 90 seconden", color: "#10B981" },
-            { n: "3", icon: CheckCircle, title: "Klus geklaard", desc: "Betaal veilig na afloop via de app", color: "#F59E0B" },
-          ].map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <div key={s.n} className="flex items-center gap-4 px-5 py-4"
-                style={{ borderBottom: i < 2 ? "1px solid #F8FAFC" : "none" }}>
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: s.color + "15" }}>
-                  <Icon size={18} style={{ color: s.color }} strokeWidth={2} />
-                </div>
-                <div className="flex items-center gap-3 flex-1">
-                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0"
-                    style={{ background: s.color, color: "white" }}>{s.n}</span>
-                  <div>
-                    <p className="font-bold text-sm" style={{ color: "#0f172a" }}>{s.title}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "#94a3b8" }}>{s.desc}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* CTA */}
-      <div className="px-5 pb-12 pt-2 mt-auto">
+      <div style={{ padding: "32px 24px 48px", marginTop: "auto" }}>
         <button onClick={() => setStap("kies")}
-          className="touch-scale w-full flex items-center justify-center gap-2 font-black text-white"
-          style={{
-            padding: "22px",
-            borderRadius: 22,
-            fontSize: 19,
-            background: "linear-gradient(135deg, #4F46E5, #818CF8)",
-            boxShadow: "0 8px 28px rgba(79,70,229,0.45)",
-            border: "none",
-          }}>
-          Aan de slag <ChevronRight size={22} />
+          style={{ width: "100%", padding: "20px", borderRadius: 14, background: "#2B4030", color: "white", fontSize: 17, fontWeight: 700, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          Aan de slag <ChevronRight size={20} />
         </button>
-        <p className="text-center mt-3 text-xs font-medium" style={{ color: "#cbd5e1" }}>
-          Gratis · Geen verplichtingen · Altijd opzegbaar
+        <p style={{ textAlign: "center", marginTop: 12, fontSize: 12, color: "#8A8A83" }}>
+          Gratis · Geen verplichtingen
         </p>
       </div>
     </div>
   );
 
-  /* ══════════════════════════════════════════════════════════════
-     STAP 2 — KIES: AL EEN ACCOUNT OF NIEUW
-  ══════════════════════════════════════════════════════════════ */
+  // ════════════════════════════════════════════════════════════════════════════
+  // STAP 2 — KIES: INLOGGEN OF REGISTREREN
+  // ════════════════════════════════════════════════════════════════════════════
   if (stap === "kies") return (
-    <div className="flex flex-col min-h-dvh animate-slide-up" style={{ background: "#F1F4FA" }}>
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", background: "#F5EFE5" }}>
 
       {/* Header */}
-      <div className="relative overflow-hidden px-5 pt-14 pb-10"
-        style={{ background: "linear-gradient(160deg, #3730A3 0%, #4F46E5 60%, #818CF8 100%)" }}>
-        <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full opacity-15" style={{ background: "white" }} />
-        <button onClick={() => setStap("welcome")}
-          className="touch-scale mb-6 w-12 h-12 rounded-2xl flex items-center justify-center"
-          style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}>
-          <ArrowLeft size={20} color="white" />
+      <div style={{ background: "#2B4030", padding: "56px 24px 40px" }}>
+        <button onClick={() => setStap("welcome")} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginBottom: 24 }}>
+          <ArrowLeft size={18} color="white" />
         </button>
-        <div className="relative">
-          <h1 className="font-black text-white leading-tight" style={{ fontSize: 30, letterSpacing: "-0.02em" }}>
-            Welkom bij Servr
-          </h1>
-          <p className="mt-2" style={{ color: "rgba(255,255,255,0.7)", fontSize: 16 }}>
-            Heb je al een account of maak je een nieuwe aan?
-          </p>
-        </div>
+        <h1 style={{ fontFamily: SERIF, color: "white", fontSize: 30, lineHeight: 1.2 }}>Welkom bij Servr</h1>
+        <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 15, marginTop: 8 }}>Heb je al een account of maak je een nieuwe aan?</p>
       </div>
 
-      <div className="px-5 pt-8 flex flex-col gap-4 flex-1">
+      <div style={{ padding: "32px 24px", display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
 
-        {/* Al een account */}
+        {/* Inloggen */}
         <button onClick={() => setStap("login")}
-          className="touch-scale flex items-center gap-5 text-left rounded-3xl"
-          style={{
-            padding: "24px 22px",
-            background: "#fff",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.09)",
-            border: "2px solid transparent",
-          }}>
-          <div className="w-16 h-16 rounded-3xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #EEF2FF, #E0E7FF)" }}>
-            <User size={28} style={{ color: "#4F46E5" }} strokeWidth={2} />
+          style={{ display: "flex", alignItems: "center", gap: 16, padding: "20px", borderRadius: 16, background: "#FBF7F0", border: "0.5px solid #E5DDD0", cursor: "pointer", textAlign: "left" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#EDE4D2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <User size={22} color="#2B4030" />
           </div>
-          <div className="flex-1">
-            <p className="font-black" style={{ fontSize: 19, color: "#0f172a" }}>Al een account</p>
-            <p className="text-sm mt-1 font-medium" style={{ color: "#94a3b8" }}>
-              Log direct in en ga verder
-            </p>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 16, color: "#1A1D1A" }}>Al een account</div>
+            <div style={{ fontSize: 13, color: "#5C5C56", marginTop: 3 }}>Log direct in en ga verder</div>
           </div>
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #4F46E5, #818CF8)", boxShadow: "0 4px 12px rgba(79,70,229,0.35)" }}>
-            <ChevronRight size={18} color="white" />
-          </div>
+          <ChevronRight size={18} color="#8A8A83" />
         </button>
 
-        {/* Nieuw account */}
-        <button onClick={() => setStap("nieuw")}
-          className="touch-scale flex items-center gap-5 text-left rounded-3xl"
-          style={{
-            padding: "24px 22px",
-            background: "#fff",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.09)",
-            border: "2px solid transparent",
-          }}>
-          <div className="w-16 h-16 rounded-3xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #ECFDF5, #D1FAE5)" }}>
-            <Users size={28} style={{ color: "#10B981" }} strokeWidth={2} />
+        {/* Registreren */}
+        <button onClick={() => setStap("registreer")}
+          style={{ display: "flex", alignItems: "center", gap: 16, padding: "20px", borderRadius: 16, background: "#FBF7F0", border: "0.5px solid #E5DDD0", cursor: "pointer", textAlign: "left" }}>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(201,122,77,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Users size={22} color="#C97A4D" />
           </div>
-          <div className="flex-1">
-            <p className="font-black" style={{ fontSize: 19, color: "#0f172a" }}>Nieuw account</p>
-            <p className="text-sm mt-1 font-medium" style={{ color: "#94a3b8" }}>
-              Klaar in minder dan een minuut
-            </p>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 16, color: "#1A1D1A" }}>Nieuw account</div>
+            <div style={{ fontSize: 13, color: "#5C5C56", marginTop: 3 }}>Klaar in minder dan een minuut</div>
           </div>
-          <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #10B981, #34D399)", boxShadow: "0 4px 12px rgba(16,185,129,0.35)" }}>
-            <ChevronRight size={18} color="white" />
-          </div>
+          <ChevronRight size={18} color="#8A8A83" />
         </button>
 
-        {/* Of via OAuth */}
-        <div className="flex items-center gap-3 mt-2">
-          <div className="flex-1 h-px" style={{ background: "#E5E7EB" }} />
-          <span className="text-xs font-semibold" style={{ color: "#9CA3AF" }}>of direct via</span>
-          <div className="flex-1 h-px" style={{ background: "#E5E7EB" }} />
-        </div>
-        <div className="flex gap-3">
-          <button onClick={() => handleOAuth("google")} disabled={!!oauthLoading}
-            className="touch-scale flex-1 flex items-center justify-center gap-2.5 rounded-2xl font-bold"
-            style={{ padding: "16px", background: "#fff", border: "1.5px solid #E5E7EB", fontSize: 14, color: "#374151", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-            {oauthLoading === "google"
-              ? <span className="w-5 h-5 rounded-full border-2 border-gray-400 border-t-transparent animate-spin" />
-              : <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            }
-            Google
-          </button>
-          <button onClick={() => handleOAuth("apple")} disabled={!!oauthLoading}
-            className="touch-scale flex-1 flex items-center justify-center gap-2.5 rounded-2xl font-bold"
-            style={{ padding: "16px", background: "#000", color: "#fff", fontSize: 14 }}>
-            {oauthLoading === "apple"
-              ? <span className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-              : <Apple size={16} />
-            }
-            Apple
-          </button>
-        </div>
-        {oauthError && (
-          <p className="text-center rounded-2xl px-4 py-3" style={{ background: "#FEF3C7", color: "#92400E", fontSize: 13 }}>
-            {oauthError}
-          </p>
-        )}
-      </div>
-
-      <div className="px-5 pb-10 pt-4">
-        <p className="text-center text-xs font-medium" style={{ color: "#cbd5e1" }}>
-          Door verder te gaan ga je akkoord met onze{" "}
-          <span style={{ color: "#94a3b8", textDecoration: "underline" }}>voorwaarden</span>
-        </p>
-      </div>
-    </div>
-  );
-
-  /* ══════════════════════════════════════════════════════════════
-     STAP 3A — AL EEN ACCOUNT (demo login)
-  ══════════════════════════════════════════════════════════════ */
-  if (stap === "login") return (
-    <div className="flex flex-col min-h-dvh animate-slide-up" style={{ background: "#F1F4FA" }}>
-
-      {/* Header */}
-      <div className="relative overflow-hidden px-5 pt-14 pb-10"
-        style={{ background: "linear-gradient(160deg, #3730A3 0%, #4F46E5 60%, #818CF8 100%)" }}>
-        <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full opacity-15" style={{ background: "white" }} />
-        <button onClick={() => setStap("kies")}
-          className="touch-scale mb-6 w-12 h-12 rounded-2xl flex items-center justify-center"
-          style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}>
-          <ArrowLeft size={20} color="white" />
-        </button>
-        <div className="relative">
-          <h1 className="font-black text-white leading-tight" style={{ fontSize: 30, letterSpacing: "-0.02em" }}>
-            Inloggen
-          </h1>
-          <p className="mt-2" style={{ color: "rgba(255,255,255,0.7)", fontSize: 16 }}>
-            Kies jouw account om door te gaan
-          </p>
-        </div>
-      </div>
-
-      <div className="px-5 pt-6 flex flex-col gap-3 flex-1">
-        <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: "#94a3b8" }}>
-          Demo accounts
-        </p>
-
-        {DEMO_ACCOUNTS.map(acc => (
-          <button key={acc.name} onClick={() => handleDemo(acc)}
-            className="touch-scale flex items-center gap-4 text-left rounded-3xl"
-            style={{
-              padding: "20px 22px",
-              background: "#fff",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
-            }}>
-            {/* Avatar */}
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-white text-xl flex-shrink-0"
-              style={{ background: `linear-gradient(135deg, ${acc.color}, ${acc.color}aa)` }}>
-              {acc.initial}
+        {/* OAuth */}
+        {supabaseReady && (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "4px 0" }}>
+              <div style={{ flex: 1, height: 1, background: "#E5DDD0" }} />
+              <span style={{ fontSize: 12, color: "#8A8A83" }}>of direct via</span>
+              <div style={{ flex: 1, height: 1, background: "#E5DDD0" }} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-black text-base" style={{ color: "#0f172a" }}>{acc.name}</p>
-              <p className="text-xs mt-0.5 font-medium" style={{ color: "#94a3b8" }}>{acc.sub}</p>
-              <span className="inline-block mt-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full"
-                style={{ background: acc.bg, color: acc.color }}>
-                {acc.label}
-              </span>
-            </div>
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-              style={{ background: acc.bg }}>
-              <ChevronRight size={18} style={{ color: acc.color }} />
-            </div>
-          </button>
-        ))}
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 mt-2">
-          <div className="flex-1 h-px" style={{ background: "#E5E7EB" }} />
-          <span className="text-xs font-semibold" style={{ color: "#9CA3AF" }}>of via</span>
-          <div className="flex-1 h-px" style={{ background: "#E5E7EB" }} />
-        </div>
-
-        <div className="flex gap-3">
-          <button onClick={() => handleOAuth("google")} disabled={!!oauthLoading}
-            className="touch-scale flex-1 flex items-center justify-center gap-2.5 rounded-2xl font-bold"
-            style={{ padding: "16px", background: "#fff", border: "1.5px solid #E5E7EB", fontSize: 14, color: "#374151", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-            {oauthLoading === "google"
-              ? <span className="w-5 h-5 rounded-full border-2 border-gray-400 border-t-transparent animate-spin" />
-              : <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            }
-            Google
-          </button>
-          <button onClick={() => handleOAuth("apple")} disabled={!!oauthLoading}
-            className="touch-scale flex-1 flex items-center justify-center gap-2.5 rounded-2xl font-bold"
-            style={{ padding: "16px", background: "#000", color: "#fff", fontSize: 14 }}>
-            {oauthLoading === "apple"
-              ? <span className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-              : <Apple size={16} />
-            }
-            Apple
-          </button>
-        </div>
-        {oauthError && (
-          <p className="text-center rounded-2xl px-4 py-3" style={{ background: "#FEF3C7", color: "#92400E", fontSize: 13 }}>
-            {oauthError}
-          </p>
-        )}
-      </div>
-
-      <div className="px-5 pb-10 pt-4">
-        <p className="text-center text-xs font-medium" style={{ color: "#cbd5e1" }}>
-          Nog geen account?{" "}
-          <button onClick={() => setStap("nieuw")} className="font-bold" style={{ color: "#94a3b8", textDecoration: "underline" }}>
-            Maak er een aan
-          </button>
-        </p>
-      </div>
-    </div>
-  );
-
-  /* ══════════════════════════════════════════════════════════════
-     STAP 3B — NIEUW ACCOUNT
-  ══════════════════════════════════════════════════════════════ */
-  return (
-    <div className="flex flex-col min-h-dvh animate-slide-up" style={{ background: "#F1F4FA" }}>
-
-      {/* Header */}
-      <div className="relative overflow-hidden px-5 pt-14 pb-10"
-        style={{ background: "linear-gradient(160deg, #3730A3 0%, #4F46E5 60%, #818CF8 100%)" }}>
-        <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full opacity-15" style={{ background: "white" }} />
-        <button onClick={() => setStap("kies")}
-          className="touch-scale mb-6 w-12 h-12 rounded-2xl flex items-center justify-center"
-          style={{ background: "rgba(255,255,255,0.2)", backdropFilter: "blur(8px)" }}>
-          <ArrowLeft size={20} color="white" />
-        </button>
-        <div className="relative">
-          <h1 className="font-black text-white leading-tight" style={{ fontSize: 30, letterSpacing: "-0.02em" }}>
-            Account aanmaken
-          </h1>
-          <p className="mt-2" style={{ color: "rgba(255,255,255,0.7)", fontSize: 16 }}>
-            Klaar in minder dan een minuut
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-6 px-5 pt-7 pb-12">
-
-        {/* Naam */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest mb-2.5" style={{ color: "#94a3b8" }}>
-            Jouw naam
-          </label>
-          <input
-            value={naam}
-            onChange={e => setNaam(e.target.value)}
-            placeholder="Voornaam achternaam"
-            autoFocus
-            style={{
-              width: "100%",
-              padding: "18px 20px",
-              borderRadius: 18,
-              border: `2px solid ${naam ? "#4F46E5" : "#E5E7EB"}`,
-              fontSize: 17,
-              fontWeight: 700,
-              color: "#0f172a",
-              background: "#fff",
-              outline: "none",
-              boxShadow: naam ? "0 0 0 4px rgba(79,70,229,0.1)" : "0 2px 8px rgba(0,0,0,0.06)",
-              boxSizing: "border-box",
-              transition: "border-color 0.2s, box-shadow 0.2s",
-            }}
-          />
-        </div>
-
-        {/* Rol kiezen */}
-        <div>
-          <label className="block text-xs font-black uppercase tracking-widest mb-2.5" style={{ color: "#94a3b8" }}>
-            Ik wil...
-          </label>
-          <div className="flex flex-col gap-3">
-            {([
-              {
-                r: "klant" as UserRole,
-                icon: User,
-                label: "Een vakman zoeken",
-                sub: "Boek iemand voor thuis",
-                color: "#4F46E5",
-                bg: "#EEF2FF",
-              },
-              {
-                r: "vakman" as UserRole,
-                icon: Wrench,
-                label: "Klussen aannemen",
-                sub: "Ontvang opdrachten & verdien geld",
-                color: "#DC2626",
-                bg: "#FEF2F2",
-              },
-              {
-                r: "beide" as UserRole,
-                icon: Users,
-                label: "Beide",
-                sub: "Ik zoek én voer klussen uit",
-                color: "#10B981",
-                bg: "#ECFDF5",
-              },
-            ]).map(({ r, icon: Icon, label, sub, color, bg }) => (
-              <button key={r} onClick={() => setRol(r)}
-                className="touch-scale flex items-center gap-4 text-left rounded-2xl"
-                style={{
-                  padding: "18px 20px",
-                  border: `2px solid ${rol === r ? color : "#E5E7EB"}`,
-                  background: rol === r ? bg : "#fff",
-                  boxShadow: rol === r ? `0 4px 16px ${color}25` : "0 2px 8px rgba(0,0,0,0.06)",
-                  transition: "all 0.2s",
-                }}>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: rol === r ? color : "#F3F4F6" }}>
-                  <Icon size={24} style={{ color: rol === r ? "white" : "#9CA3AF" }} strokeWidth={1.8} />
-                </div>
-                <div className="flex-1">
-                  <p className="font-black" style={{ fontSize: 16, color: "#0f172a" }}>{label}</p>
-                  <p className="text-sm mt-0.5" style={{ color: "#94a3b8" }}>{sub}</p>
-                </div>
-                <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
-                  style={{
-                    background: rol === r ? color : "#F3F4F6",
-                    boxShadow: rol === r ? `0 2px 8px ${color}50` : "none",
-                  }}>
-                  {rol === r && <span style={{ color: "white", fontSize: 13, fontWeight: 900 }}>✓</span>}
-                </div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <button onClick={() => handleOAuth("google")} disabled={!!oauthLoading}
+                style={{ flex: 1, padding: "14px", borderRadius: 12, border: "0.5px solid #E5DDD0", background: "#FBF7F0", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 600, color: "#1A1D1A", cursor: "pointer" }}>
+                {oauthLoading === "google"
+                  ? <span style={{ width: 18, height: 18, borderRadius: "50%", border: "2px solid #E5DDD0", borderTopColor: "#2B4030", animation: "spin 0.8s linear infinite", display: "inline-block" }} />
+                  : <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                }
+                Google
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Start knop */}
-        <button
-          onClick={handleNieuw}
-          disabled={!naam.trim()}
-          className="touch-scale flex items-center justify-center gap-2"
-          style={{
-            width: "100%",
-            padding: "22px",
-            borderRadius: 22,
-            background: naam.trim()
-              ? "linear-gradient(135deg, #4F46E5, #818CF8)"
-              : "#D1D5DB",
-            color: "white",
-            fontSize: 19,
-            fontWeight: 900,
-            boxShadow: naam.trim() ? "0 8px 28px rgba(79,70,229,0.45)" : "none",
-            border: "none",
-            cursor: naam.trim() ? "pointer" : "not-allowed",
-            transition: "all 0.2s",
-          }}>
-          Account aanmaken <ChevronRight size={22} />
-        </button>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px" style={{ background: "#E5E7EB" }} />
-          <span className="text-xs font-semibold" style={{ color: "#9CA3AF" }}>of via</span>
-          <div className="flex-1 h-px" style={{ background: "#E5E7EB" }} />
-        </div>
-
-        <div className="flex gap-3">
-          <button onClick={() => handleOAuth("google")} disabled={!!oauthLoading}
-            className="touch-scale flex-1 flex items-center justify-center gap-2.5 rounded-2xl font-bold"
-            style={{ padding: "16px", background: "#fff", border: "1.5px solid #E5E7EB", fontSize: 14, color: "#374151", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-            {oauthLoading === "google"
-              ? <span className="w-5 h-5 rounded-full border-2 border-gray-400 border-t-transparent animate-spin" />
-              : <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.47 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-            }
-            Google
-          </button>
-          <button onClick={() => handleOAuth("apple")} disabled={!!oauthLoading}
-            className="touch-scale flex-1 flex items-center justify-center gap-2.5 rounded-2xl font-bold"
-            style={{ padding: "16px", background: "#000", color: "#fff", fontSize: 14 }}>
-            {oauthLoading === "apple"
-              ? <span className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-              : <Apple size={16} />
-            }
-            Apple
-          </button>
-        </div>
-
-        {oauthError && (
-          <p className="text-center rounded-2xl px-4 py-3" style={{ background: "#FEF3C7", color: "#92400E", fontSize: 13 }}>
-            {oauthError}
-          </p>
+            </div>
+          </>
         )}
 
-        <p className="text-center text-xs font-medium" style={{ color: "#cbd5e1" }}>
-          Al een account?{" "}
-          <button onClick={() => setStap("login")} className="font-bold" style={{ color: "#94a3b8", textDecoration: "underline" }}>
-            Log hier in
-          </button>
-        </p>
+        {/* Demo knoppen (altijd beschikbaar voor testen) */}
+        <div style={{ marginTop: 8, padding: "16px", borderRadius: 14, background: "#EDE4D2", border: "0.5px solid #E5DDD0" }}>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8A8A83", marginBottom: 10 }}>
+            Demo — snel testen
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => handleDemo("klant", "Lisa de Vries")}
+              style={{ flex: 1, padding: "10px", borderRadius: 10, background: "#FBF7F0", border: "0.5px solid #E5DDD0", fontSize: 13, fontWeight: 600, color: "#1A1D1A", cursor: "pointer" }}>
+              Als klant
+            </button>
+            <button onClick={() => handleDemo("vakman", "Marco van den Berg")}
+              style={{ flex: 1, padding: "10px", borderRadius: 10, background: "#2B4030", border: "none", fontSize: 13, fontWeight: 600, color: "white", cursor: "pointer" }}>
+              Als vakman
+            </button>
+          </div>
+        </div>
       </div>
+    </div>
+  );
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // STAP 3A — INLOGGEN
+  // ════════════════════════════════════════════════════════════════════════════
+  if (stap === "login") return (
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", background: "#F5EFE5" }}>
+
+      {/* Header */}
+      <div style={{ background: "#2B4030", padding: "56px 24px 40px" }}>
+        <button onClick={() => setStap("kies")} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginBottom: 24 }}>
+          <ArrowLeft size={18} color="white" />
+        </button>
+        <h1 style={{ fontFamily: SERIF, color: "white", fontSize: 30, lineHeight: 1.2 }}>Inloggen</h1>
+        <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 15, marginTop: 8 }}>Vul je gegevens in om door te gaan</p>
+      </div>
+
+      <div style={{ padding: "32px 24px", display: "flex", flexDirection: "column", gap: 20, flex: 1 }}>
+
+        <Input label="E-mailadres" type="email" value={loginEmail} onChange={setLoginEmail}
+          placeholder="jouw@email.com" autoFocus />
+
+        <Input label="Wachtwoord" type="password" value={loginPass} onChange={setLoginPass}
+          placeholder="Jouw wachtwoord" />
+
+        {loginError && (
+          <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(201,122,77,0.1)", border: "0.5px solid #C97A4D", fontSize: 13, color: "#C97A4D" }}>
+            {loginError}
+          </div>
+        )}
+
+        <Btn label={loginLoading ? "Inloggen..." : "Inloggen"} onClick={handleLogin}
+          disabled={loginLoading || !loginEmail || !loginPass} />
+
+        <div style={{ textAlign: "center", marginTop: "auto" }}>
+          <span style={{ fontSize: 13, color: "#5C5C56" }}>Nog geen account? </span>
+          <button onClick={() => setStap("registreer")} style={{ fontSize: 13, fontWeight: 700, color: "#2B4030", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+            Registreer hier
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // STAP 3B — REGISTREREN
+  // ════════════════════════════════════════════════════════════════════════════
+  return (
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column", background: "#F5EFE5" }}>
+
+      {/* Header */}
+      <div style={{ background: "#2B4030", padding: "56px 24px 40px" }}>
+        <button onClick={() => setStap("kies")} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", marginBottom: 24 }}>
+          <ArrowLeft size={18} color="white" />
+        </button>
+        <h1 style={{ fontFamily: SERIF, color: "white", fontSize: 30, lineHeight: 1.2 }}>Account aanmaken</h1>
+        <p style={{ color: "rgba(255,255,255,0.65)", fontSize: 15, marginTop: 8 }}>Klaar in minder dan een minuut</p>
+      </div>
+
+      {regSuccess ? (
+        /* Bevestigingsscherm */
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px", textAlign: "center" }}>
+          <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#EDE4D2", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 24, fontSize: 32 }}>
+            ✉️
+          </div>
+          <h2 style={{ fontFamily: SERIF, fontSize: 26, color: "#1A1D1A", marginBottom: 12 }}>Check je e-mail</h2>
+          <p style={{ fontSize: 15, color: "#5C5C56", lineHeight: 1.6, maxWidth: 280 }}>
+            We hebben een bevestigingslink gestuurd naar <strong>{regEmail}</strong>. Klik op de link om je account te activeren.
+          </p>
+          <button onClick={() => setStap("login")}
+            style={{ marginTop: 32, padding: "16px 32px", borderRadius: 14, background: "#2B4030", color: "white", fontSize: 15, fontWeight: 700, border: "none", cursor: "pointer" }}>
+            Naar inloggen
+          </button>
+        </div>
+      ) : (
+        <div style={{ padding: "32px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
+
+          <Input label="Volledige naam" value={naam} onChange={setNaam}
+            placeholder="Voornaam achternaam" autoFocus />
+
+          <Input label="E-mailadres" type="email" value={regEmail} onChange={setRegEmail}
+            placeholder="jouw@email.com" />
+
+          <Input label="Wachtwoord" type="password" value={regPass} onChange={setRegPass}
+            placeholder="Minimaal 6 tekens" />
+
+          <Input label="Herhaal wachtwoord" type="password" value={regPass2} onChange={setRegPass2}
+            placeholder="Zelfde wachtwoord"
+            error={regPass2 && regPass !== regPass2 ? "Wachtwoorden komen niet overeen" : undefined} />
+
+          <Input label="Stad / gemeente" value={stad} onChange={setStad}
+            placeholder="bv. Gent, Brussel, Amsterdam" />
+
+          {/* Specialiteit — alleen voor vakman */}
+          {(rol === "vakman" || rol === "beide") && (
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#8A8A83", marginBottom: 8 }}>
+                Specialiteit
+              </label>
+              <select value={specialty} onChange={e => setSpecialty(e.target.value)}
+                style={{ width: "100%", padding: "16px", borderRadius: 14, border: "0.5px solid #E5DDD0", background: "#FBF7F0", fontSize: 16, color: specialty ? "#1A1D1A" : "#8A8A83", outline: "none", fontFamily: "Inter, sans-serif" }}>
+                <option value="">Kies je vakgebied</option>
+                {["Loodgieter","Elektricien","Schilder","Schoonmaak","Timmerman","Tuinman","HVAC","Slotenmaker","Dakdekker","Verhuizen","Algemeen"].map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Rol kiezen */}
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8A8A83", marginBottom: 12 }}>
+              Ik wil...
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {([
+                { r: "klant" as UserRole, icon: User, label: "Een vakman zoeken", sub: "Boek iemand voor thuis" },
+                { r: "vakman" as UserRole, icon: Wrench, label: "Klussen aannemen", sub: "Ontvang opdrachten & verdien geld" },
+                { r: "beide" as UserRole, icon: Users, label: "Beide", sub: "Ik zoek én voer klussen uit" },
+              ]).map(({ r, icon: Icon, label, sub }) => (
+                <button key={r} onClick={() => setRol(r)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
+                    borderRadius: 12, border: `0.5px solid ${rol === r ? "#2B4030" : "#E5DDD0"}`,
+                    background: rol === r ? "rgba(43,64,48,0.06)" : "#FBF7F0",
+                    cursor: "pointer", textAlign: "left", transition: "all 0.15s",
+                  }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: rol === r ? "#2B4030" : "#EDE4D2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.15s" }}>
+                    <Icon size={18} color={rol === r ? "white" : "#2B4030"} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1A1D1A" }}>{label}</div>
+                    <div style={{ fontSize: 12, color: "#5C5C56", marginTop: 2 }}>{sub}</div>
+                  </div>
+                  {rol === r && <div style={{ width: 20, height: 20, borderRadius: "50%", background: "#2B4030", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <span style={{ color: "white", fontSize: 11, fontWeight: 900 }}>✓</span>
+                  </div>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {regError && (
+            <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(201,122,77,0.1)", border: "0.5px solid #C97A4D", fontSize: 13, color: "#C97A4D" }}>
+              {regError}
+            </div>
+          )}
+
+          <Btn label={regLoading ? "Account aanmaken..." : "Account aanmaken"}
+            onClick={handleRegister} disabled={regLoading || !naam || !regEmail || !regPass || regPass !== regPass2} />
+
+          <div style={{ textAlign: "center", paddingBottom: 32 }}>
+            <span style={{ fontSize: 13, color: "#5C5C56" }}>Al een account? </span>
+            <button onClick={() => setStap("login")} style={{ fontSize: 13, fontWeight: 700, color: "#2B4030", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+              Log hier in
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

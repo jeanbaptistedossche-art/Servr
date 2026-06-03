@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChevronLeft, Shield, Lock, CheckCircle2, Clock,
+  ArrowLeft, Shield, Lock, CheckCircle2, Clock,
   AlertCircle, X, ChevronRight, Euro, ArrowRight,
   Unlock, FileText, User, Wrench, Info,
 } from "lucide-react";
@@ -40,12 +40,12 @@ interface Mijlpaal {
 
 // ── Config ─────────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<EscrowStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  wacht_betaling: { label: "Wacht op betaling",  color: "#D97706", bg: "#FFFBEB", icon: Clock },
-  in_bewaring:    { label: "In bewaring",         color: "#4F46E5", bg: "#EEF2FF", icon: Lock },
-  klus_bezig:     { label: "Klus bezig",          color: "#0EA5E9", bg: "#F0F9FF", icon: Wrench },
-  oplevering:     { label: "Oplevering",          color: "#8B5CF6", bg: "#F5F3FF", icon: CheckCircle2 },
-  vrijgegeven:    { label: "Vrijgegeven",         color: "#059669", bg: "#ECFDF5", icon: Unlock },
-  geschil:        { label: "Geschil",             color: "#DC2626", bg: "#FEF2F2", icon: AlertCircle },
+  wacht_betaling: { label: "Wacht op betaling",  color: "#C97A4D", bg: "#C97A4D15", icon: Clock },
+  in_bewaring:    { label: "In bewaring",         color: "#2B4030", bg: "#2B403015", icon: Lock },
+  klus_bezig:     { label: "Klus bezig",          color: "#5C5C56", bg: "#E5DDD0",   icon: Wrench },
+  oplevering:     { label: "Oplevering",          color: "#C97A4D", bg: "#C97A4D15", icon: CheckCircle2 },
+  vrijgegeven:    { label: "Vrijgegeven",         color: "#2B4030", bg: "#2B403020", icon: Unlock },
+  geschil:        { label: "Geschil",             color: "#DC2626", bg: "#FEF2F2",   icon: AlertCircle },
 };
 
 const FLOW_STEPS = [
@@ -120,51 +120,62 @@ export default function EscrowPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-full pb-28 animate-fade-in" style={{ background: "#F1F4FA" }}>
+    <div className="flex flex-col min-h-full" style={{ background: "#F5EFE5" }}>
 
-      {/* Header */}
-      <div className="px-5 pt-14 pb-4 flex items-center gap-3">
-        <button onClick={() => router.back()}
-          className="touch-scale w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-          <ChevronLeft size={20} style={{ color: "#475569" }} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-black truncate" style={{ color: "#0f172a" }}>Escrow Betaling</h1>
-          <p className="text-xs truncate" style={{ color: "#94a3b8" }}>Veilig betalen via Servr</p>
+      {/* Sticky Header */}
+      <div className="px-5 pt-14 pb-4" style={{ background: "rgba(245,239,229,0.97)" }}>
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push('/profile')}
+            className="touch-scale w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+            <ArrowLeft size={18} style={{ color: "#1A1D1A" }} />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold truncate"
+              style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: "#1A1D1A" }}>
+              Escrow Betaling
+            </h1>
+            <p className="text-xs truncate" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
+              Veilig betalen via Servr
+            </p>
+          </div>
+          <button onClick={() => setShowInfo(true)}
+            className="touch-scale w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+            <Info size={18} style={{ color: "#5C5C56" }} />
+          </button>
         </div>
-        <button onClick={() => setShowInfo(true)}
-          className="touch-scale w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
-          <Info size={18} style={{ color: "#475569" }} />
-        </button>
       </div>
 
-      <div className="px-5 flex flex-col gap-5">
+      <div className="px-5 pb-28 flex flex-col gap-5">
 
-        {/* Hero */}
-        <div className="rounded-3xl p-5"
-          style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)", boxShadow: "0 12px 40px rgba(79,70,229,0.4)" }}>
+        {/* Hero stat card */}
+        <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-              style={{ background: "rgba(255,255,255,0.2)" }}>
-              <Shield size={24} color="white" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: "#2B4030" }}>
+              <Shield size={20} color="#F5EFE5" />
             </div>
             <div>
-              <p className="font-black text-white text-base">Servr Escrow</p>
-              <p className="text-xs" style={{ color: "rgba(255,255,255,0.7)" }}>Beschermd voor klant én vakman</p>
+              <p className="font-semibold text-sm" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+                Servr Escrow
+              </p>
+              <p className="text-xs" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
+                Beschermd voor klant én vakman
+              </p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3" style={{ borderTop: "0.5px solid #E5DDD0", paddingTop: 12 }}>
             {[
               { l: "In bewaring",   v: `€${stats.bewaring.toLocaleString("nl-NL")}` },
               { l: "Actief",        v: stats.actief },
               { l: "Vrijgegeven",   v: `€${stats.vrijgeg.toLocaleString("nl-NL")}` },
             ].map(s => (
-              <div key={s.l} className="rounded-2xl p-3 flex flex-col items-center"
-                style={{ background: "rgba(255,255,255,0.15)" }}>
-                <span className="font-black text-white text-base">{s.v}</span>
-                <span className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>{s.l}</span>
+              <div key={s.l} className="flex flex-col items-center gap-0.5">
+                <span className="font-bold text-sm" style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: "#1A1D1A" }}>
+                  {s.v}
+                </span>
+                <span className="text-[10px]" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>{s.l}</span>
               </div>
             ))}
           </div>
@@ -173,19 +184,25 @@ export default function EscrowPage() {
         {/* Filter */}
         <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
           <button onClick={() => setFilterStatus("alles")}
-            className="touch-scale flex-shrink-0 px-4 py-2 rounded-2xl text-xs font-bold"
-            style={{ background: filterStatus === "alles" ? "#4F46E5" : "#fff", color: filterStatus === "alles" ? "#fff" : "#64748b", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            className="touch-scale flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold"
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              background: filterStatus === "alles" ? "#2B4030" : "#FBF7F0",
+              color: filterStatus === "alles" ? "#F5EFE5" : "#5C5C56",
+              border: "0.5px solid #E5DDD0",
+            }}>
             Alles
           </button>
           {(["in_bewaring","klus_bezig","oplevering","vrijgegeven"] as EscrowStatus[]).map(s => {
             const cfg = STATUS_CFG[s];
             return (
               <button key={s} onClick={() => setFilterStatus(s)}
-                className="touch-scale flex-shrink-0 px-4 py-2 rounded-2xl text-xs font-bold"
+                className="touch-scale flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold"
                 style={{
-                  background: filterStatus === s ? cfg.color : "#fff",
-                  color: filterStatus === s ? "#fff" : "#64748b",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                  fontFamily: "'Inter', sans-serif",
+                  background: filterStatus === s ? "#2B4030" : "#FBF7F0",
+                  color: filterStatus === s ? "#F5EFE5" : "#5C5C56",
+                  border: "0.5px solid #E5DDD0",
                 }}>
                 {cfg.label}
               </button>
@@ -194,36 +211,44 @@ export default function EscrowPage() {
         </div>
 
         {/* Deal list */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {filtered.map(deal => {
             const sCfg = STATUS_CFG[deal.status];
             const SIcon = sCfg.icon;
             const pct = Math.round((deal.mijlpalen.filter(m => m.afgerond).length / deal.mijlpalen.length) * 100);
             return (
               <button key={deal.id} onClick={() => setSelectedId(deal.id)}
-                className="touch-scale w-full rounded-3xl p-4 text-left"
-                style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+                className="touch-scale w-full text-left"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
                 <div className="flex items-start gap-3 mb-3">
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm" style={{ color: "#0f172a" }}>{deal.titel}</p>
-                    <div className="flex items-center gap-2 mt-0.5 text-xs" style={{ color: "#94a3b8" }}>
+                    <p className="font-semibold text-sm" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+                      {deal.titel}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5 text-xs" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
                       <span>{deal.klant}</span>
                       <ArrowRight size={10} />
                       <span>{deal.vakman}</span>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="font-black text-base" style={{ color: "#4F46E5" }}>€{deal.bedrag.toLocaleString("nl-NL")}</p>
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-lg"
-                      style={{ background: sCfg.bg, color: sCfg.color }}>{sCfg.label}</span>
+                    <p className="font-bold text-base" style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: "#2B4030" }}>
+                      €{deal.bedrag.toLocaleString("nl-NL")}
+                    </p>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                      style={{ background: sCfg.bg, color: sCfg.color, fontFamily: "'Inter', sans-serif" }}>
+                      {sCfg.label}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 rounded-full overflow-hidden" style={{ height: 5, background: "#E5E7EB" }}>
-                    <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #4F46E5, #818CF8)", borderRadius: 99 }} />
+                  <div className="flex-1 rounded-full overflow-hidden" style={{ height: 4, background: "#E5DDD0" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: "#2B4030", borderRadius: 99 }} />
                   </div>
-                  <span className="text-[10px] font-bold flex-shrink-0" style={{ color: "#4F46E5" }}>{pct}%</span>
-                  <span className="text-[10px] flex-shrink-0" style={{ color: "#94a3b8" }}>
+                  <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: "#2B4030", fontFamily: "'Inter', sans-serif" }}>
+                    {pct}%
+                  </span>
+                  <span className="text-[10px] flex-shrink-0" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
                     {deal.mijlpalen.filter(m => m.afgerond).length}/{deal.mijlpalen.length} mijlpalen
                   </span>
                 </div>
@@ -238,28 +263,37 @@ export default function EscrowPage() {
         <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setSelectedId(null)}>
           <div className="w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden max-h-[88dvh] overflow-y-auto"
-            style={{ background: "#F1F4FA" }} onClick={e => e.stopPropagation()}>
-            <div className="px-5 pt-4 pb-3 sticky top-0" style={{ background: "#F1F4FA" }}>
-              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E2E8F0" }} />
+            style={{ background: "#F5EFE5" }} onClick={e => e.stopPropagation()}>
+            <div className="px-5 pt-4 pb-3 sticky top-0" style={{ background: "#F5EFE5" }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5DDD0" }} />
               <div className="flex items-center justify-between">
-                <h2 className="font-black text-lg" style={{ color: "#0f172a" }}>{selected.titel}</h2>
+                <h2 className="font-bold text-lg" style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: "#1A1D1A" }}>
+                  {selected.titel}
+                </h2>
                 <button onClick={() => setSelectedId(null)}
-                  className="touch-scale w-9 h-9 rounded-2xl flex items-center justify-center"
-                  style={{ background: "#fff" }}>
-                  <X size={16} style={{ color: "#475569" }} />
+                  className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+                  <X size={16} style={{ color: "#5C5C56" }} />
                 </button>
               </div>
             </div>
             <div className="px-5 pb-10 flex flex-col gap-4">
               {/* Amount */}
-              <div className="rounded-3xl p-5 text-center"
-                style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)", boxShadow: "0 8px 24px rgba(79,70,229,0.35)" }}>
-                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.5)" }}>In escrow bewaring</p>
-                <p className="font-black text-white mt-1" style={{ fontSize: 36, letterSpacing: "-0.03em" }}>
+              <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 20 }}
+                className="text-center">
+                <p className="text-xs font-semibold uppercase tracking-widest mb-1"
+                  style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
+                  In escrow bewaring
+                </p>
+                <p className="font-bold mt-1" style={{ fontFamily: "'Source Serif 4', Georgia, serif", fontSize: 36, color: "#2B4030" }}>
                   €{selected.bedrag.toLocaleString("nl-NL")}
                 </p>
-                <span className="text-xs font-black px-3 py-1 rounded-xl"
-                  style={{ background: "rgba(255,255,255,0.2)", color: "white" }}>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full mt-2 inline-block"
+                  style={{
+                    background: STATUS_CFG[selected.status].bg,
+                    color: STATUS_CFG[selected.status].color,
+                    fontFamily: "'Inter', sans-serif",
+                  }}>
                   {STATUS_CFG[selected.status].label}
                 </span>
               </div>
@@ -268,36 +302,45 @@ export default function EscrowPage() {
                 {[
                   { role: "Klant",  naam: selected.klant,  avatar: selected.klantAvatar,  icon: User },
                   { role: "Vakman", naam: selected.vakman, avatar: selected.vakmanAvatar, icon: Wrench },
-                ].map(p => {
-                  const Icon = p.icon;
-                  return (
-                    <div key={p.role} className="rounded-2xl p-3 flex items-center gap-2"
-                      style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                      <img src={p.avatar} className="w-10 h-10 rounded-2xl object-cover flex-shrink-0" alt="" />
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold" style={{ color: "#94a3b8" }}>{p.role}</p>
-                        <p className="text-xs font-bold truncate" style={{ color: "#0f172a" }}>{p.naam}</p>
-                      </div>
+                ].map(p => (
+                  <div key={p.role} className="rounded-2xl p-3 flex items-center gap-2"
+                    style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+                    <img src={p.avatar} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" alt="" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
+                        {p.role}
+                      </p>
+                      <p className="text-xs font-semibold truncate" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+                        {p.naam}
+                      </p>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
               {/* Mijlpalen */}
               <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: "#94a3b8" }}>Mijlpalen</p>
-                <div className="rounded-2xl overflow-hidden" style={{ background: "#fff", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+                <p className="text-xs font-semibold uppercase tracking-widest mb-3"
+                  style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
+                  Mijlpalen
+                </p>
+                <div className="rounded-2xl overflow-hidden"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
                   {selected.mijlpalen.map((m, i) => (
                     <div key={m.id} className="flex items-center gap-3 px-4 py-3.5"
-                      style={{ borderBottom: i < selected.mijlpalen.length - 1 ? "1px solid #F1F5F9" : "none" }}>
+                      style={{ borderBottom: i < selected.mijlpalen.length - 1 ? "0.5px solid #E5DDD0" : "none" }}>
                       <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ background: m.afgerond ? "#ECFDF5" : "#F1F5F9" }}>
+                        style={{ background: m.afgerond ? "#2B403015" : "#E5DDD0" }}>
                         {m.afgerond
-                          ? <CheckCircle2 size={14} style={{ color: "#059669" }} />
-                          : <div className="w-3 h-3 rounded-full" style={{ background: "#E2E8F0" }} />}
+                          ? <CheckCircle2 size={14} style={{ color: "#2B4030" }} />
+                          : <div className="w-3 h-3 rounded-full" style={{ background: "#8A8A83" }} />}
                       </div>
-                      <p className="flex-1 text-sm font-medium" style={{ color: m.afgerond ? "#374151" : "#94a3b8" }}>{m.label}</p>
-                      <p className="text-sm font-black flex-shrink-0"
-                        style={{ color: m.afgerond ? "#059669" : "#94a3b8" }}>€{m.bedrag}</p>
+                      <p className="flex-1 text-sm font-medium" style={{ color: m.afgerond ? "#5C5C56" : "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+                        {m.label}
+                      </p>
+                      <p className="text-sm font-bold flex-shrink-0"
+                        style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: m.afgerond ? "#8A8A83" : "#2B4030" }}>
+                        €{m.bedrag}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -305,15 +348,15 @@ export default function EscrowPage() {
               {/* Action */}
               {selected.status === "oplevering" && (
                 <button onClick={() => vrijgeven(selected.id)}
-                  className="touch-scale w-full py-4 rounded-2xl font-black text-white flex items-center justify-center gap-2"
-                  style={{ background: "linear-gradient(135deg, #10B981, #34D399)", boxShadow: "0 8px 24px rgba(16,185,129,0.4)" }}>
+                  className="touch-scale w-full py-4 font-semibold flex items-center justify-center gap-2"
+                  style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 99, border: "none", fontFamily: "'Inter', sans-serif" }}>
                   <Unlock size={18} /> Betaling vrijgeven
                 </button>
               )}
               {selected.status === "vrijgegeven" && (
-                <div className="py-4 rounded-2xl font-black text-center"
-                  style={{ background: "#ECFDF5", color: "#059669" }}>
-                  ✓ Betaling succesvol vrijgegeven
+                <div className="py-4 rounded-full font-semibold text-center"
+                  style={{ background: "#2B403020", color: "#2B4030", fontFamily: "'Inter', sans-serif" }}>
+                  Betaling succesvol vrijgegeven
                 </div>
               )}
             </div>
@@ -326,36 +369,42 @@ export default function EscrowPage() {
         <div className="fixed inset-0 z-50 flex flex-col justify-end" style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setShowInfo(false)}>
           <div className="w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden max-h-[88dvh] overflow-y-auto"
-            style={{ background: "#F1F4FA" }} onClick={e => e.stopPropagation()}>
-            <div className="px-5 pt-4 pb-3 sticky top-0" style={{ background: "#F1F4FA" }}>
-              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E2E8F0" }} />
-              <h2 className="font-black text-xl text-center" style={{ color: "#0f172a" }}>Hoe werkt Escrow?</h2>
+            style={{ background: "#F5EFE5" }} onClick={e => e.stopPropagation()}>
+            <div className="px-5 pt-4 pb-3 sticky top-0" style={{ background: "#F5EFE5" }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5DDD0" }} />
+              <h2 className="font-bold text-xl text-center"
+                style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: "#1A1D1A" }}>
+                Hoe werkt Escrow?
+              </h2>
             </div>
             <div className="px-5 pb-10 flex flex-col gap-4">
               {FLOW_STEPS.map((step, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-black text-white text-sm"
-                    style={{ background: "linear-gradient(135deg, #4F46E5, #818CF8)" }}>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm"
+                    style={{ background: "#2B4030", color: "#F5EFE5", fontFamily: "'Source Serif 4', Georgia, serif" }}>
                     {i + 1}
                   </div>
                   <div className="flex-1 pt-1">
-                    <p className="font-bold text-sm" style={{ color: "#0f172a" }}>{step.label}</p>
-                    <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "#64748b" }}>{step.desc}</p>
+                    <p className="font-semibold text-sm" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+                      {step.label}
+                    </p>
+                    <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "#5C5C56", fontFamily: "'Inter', sans-serif" }}>
+                      {step.desc}
+                    </p>
                   </div>
-                  {i < FLOW_STEPS.length - 1 && (
-                    <div className="absolute" style={{ display: "none" }} />
-                  )}
                 </div>
               ))}
-              <div className="rounded-2xl p-4" style={{ background: "#EEF2FF", border: "1.5px solid #C7D2FE" }}>
-                <p className="font-black text-sm" style={{ color: "#4F46E5" }}>🛡️ 100% veilig & beschermd</p>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: "#4338CA" }}>
+              <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+                <p className="font-semibold text-sm mb-1" style={{ color: "#2B4030", fontFamily: "'Inter', sans-serif" }}>
+                  100% veilig & beschermd
+                </p>
+                <p className="text-xs leading-relaxed" style={{ color: "#5C5C56", fontFamily: "'Inter', sans-serif" }}>
                   Het geld wordt bewaard door Servr als betrouwbare derde partij. Nooit meer onbetaalde facturen of slechte klussen.
                 </p>
               </div>
               <button onClick={() => setShowInfo(false)}
-                className="touch-scale w-full py-4 rounded-2xl font-black text-white"
-                style={{ background: "linear-gradient(135deg, #4F46E5, #818CF8)", boxShadow: "0 8px 24px rgba(79,70,229,0.4)" }}>
+                className="touch-scale w-full py-4 font-semibold"
+                style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 99, border: "none", fontFamily: "'Inter', sans-serif" }}>
                 Begrepen!
               </button>
             </div>

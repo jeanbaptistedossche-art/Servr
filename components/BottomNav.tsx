@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays, Briefcase, Zap, MessageCircle, User,
-  Home, Search, LucideIcon,
+  Home, Search, ClipboardList, LucideIcon,
 } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 
@@ -33,18 +33,18 @@ export default function BottomNav() {
 
   const navItems: NavItem[] = isVakman
     ? [
-        { href: "/agenda",     icon: CalendarDays,  label: "Vandaag" },
-        { href: "/diensten",   icon: Briefcase,     label: "Diensten" },
-        { href: "/panic",      icon: Zap,           label: "Spoed", isSpoed: true },
-        { href: "/berichten",  icon: MessageCircle, label: "Berichten" },
-        { href: "/profile",    icon: User,          label: "Profiel" },
+        { href: "/agenda",     icon: CalendarDays,   label: "Vandaag" },
+        { href: "/feed",       icon: ClipboardList,  label: "Opdrachten" },
+        { href: "/panic",      icon: Zap,            label: "Spoed", isSpoed: true },
+        { href: "/berichten",  icon: MessageCircle,  label: "Berichten" },
+        { href: "/profile",    icon: User,           label: "Profiel" },
       ]
     : [
-        { href: "/",           icon: Home,          label: "Home" },
-        { href: "/search",     icon: Search,        label: "Zoeken" },
-        { href: "/panic",      icon: Zap,           label: "Spoed", isSpoed: true },
-        { href: "/berichten",  icon: MessageCircle, label: "Berichten" },
-        { href: "/profile",    icon: User,          label: "Profiel" },
+        { href: "/",           icon: Home,           label: "Home" },
+        { href: "/search",     icon: Search,         label: "Zoeken" },
+        { href: "/panic",      icon: Zap,            label: "Spoed", isSpoed: true },
+        { href: "/berichten",  icon: MessageCircle,  label: "Berichten" },
+        { href: "/profile",    icon: User,           label: "Profiel" },
       ];
 
   return (

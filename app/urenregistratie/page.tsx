@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChevronLeft, Play, Pause, Square, Clock, Plus,
+  Play, Pause, Square, Clock, Plus,
   Euro, TrendingUp, Calendar, Trash2, X, Check,
-  ChevronDown, MoreVertical, Download, Filter,
+  ChevronDown, ArrowLeft,
 } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 
@@ -17,11 +17,11 @@ type UurEntry = {
   klusNaam: string;
   klusId?: string;
   klant: string;
-  datum: string;         // ISO date string
-  startTijd: string;     // HH:MM
-  eindTijd?: string;     // HH:MM
-  duurSec: number;       // total seconds
-  tarief: number;        // €/uur
+  datum: string;
+  startTijd: string;
+  eindTijd?: string;
+  duurSec: number;
+  tarief: number;
   notitie?: string;
   status: "lopend" | "afgerond";
 };
@@ -29,9 +29,9 @@ type UurEntry = {
 type ActiveTimer = {
   klusNaam: string;
   klant: string;
-  startEpoch: number;   // Date.now() when started
-  pausedSec: number;    // accumulated paused seconds
-  pauseStart?: number;  // epoch when paused
+  startEpoch: number;
+  pausedSec: number;
+  pauseStart?: number;
   status: TimerStatus;
   tarief: number;
   notitie: string;
@@ -104,7 +104,6 @@ export default function UrenregistratiePage() {
   const [showDetails, setShowDetails] = useState<UurEntry | null>(null);
   const [filterPeriod, setFilterPeriod] = useState<"week" | "maand" | "alles">("week");
 
-  // New timer form
   const [newKlus, setNewKlus] = useState(MOCK_KLUSSEN[0]);
   const [newTarief, setNewTarief] = useState(uurtarief);
   const [newNotitie, setNewNotitie] = useState("");
@@ -114,7 +113,6 @@ export default function UrenregistratiePage() {
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Tick
   useEffect(() => {
     if (activeTimer?.status === "running") {
       intervalRef.current = setInterval(() => {
@@ -131,7 +129,6 @@ export default function UrenregistratiePage() {
     const klus = isCustom
       ? { naam: customKlus || "Onbenoemde klus", klant: customKlant || "Onbekende klant" }
       : { naam: newKlus.naam, klant: newKlus.klant };
-
     setActiveTimer({
       klusNaam: klus.naam,
       klant: klus.klant,
@@ -165,7 +162,6 @@ export default function UrenregistratiePage() {
       : activeTimer.pausedSec;
     const totalSec = Math.max(0, (Date.now() - activeTimer.startEpoch) / 1000 - totalPaused);
     const startDate = new Date(activeTimer.startEpoch);
-
     const entry: UurEntry = {
       id: `u${Date.now()}`,
       klusNaam: activeTimer.klusNaam,
@@ -178,7 +174,6 @@ export default function UrenregistratiePage() {
       notitie: activeTimer.notitie || undefined,
       status: "afgerond",
     };
-
     setEntries((prev) => [entry, ...prev]);
     setActiveTimer(null);
     setElapsedSec(0);
@@ -190,7 +185,6 @@ export default function UrenregistratiePage() {
     setShowDetails(null);
   }, []);
 
-  // ── Filter ──────────────────────────────────────────────────────────────────
   const filteredEntries = entries.filter((e) => {
     if (filterPeriod === "alles") return true;
     const d = new Date(e.datum);
@@ -202,21 +196,17 @@ export default function UrenregistratiePage() {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 
-  // ── Stats ───────────────────────────────────────────────────────────────────
   const totalSec = filteredEntries.reduce((s, e) => s + e.duurSec, 0);
   const totalVerdienst = filteredEntries.reduce((s, e) => s + calcVerdienst(e), 0);
   const gemTarief = totalSec > 0 ? totalVerdienst / (totalSec / 3600) : 0;
   const aantalKlussen = new Set(filteredEntries.map((e) => e.klusNaam)).size;
 
-  // ── Group by date ───────────────────────────────────────────────────────────
   const grouped: Record<string, UurEntry[]> = {};
   for (const e of filteredEntries) {
     (grouped[e.datum] ??= []).push(e);
   }
   const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
-  // ── Day stats ───────────────────────────────────────────────────────────────
-  // Per-day bar chart for statistieken
   const last7: { label: string; sec: number; eur: number }[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000);
@@ -228,43 +218,45 @@ export default function UrenregistratiePage() {
   }
   const maxSec = Math.max(...last7.map((d) => d.sec), 3600);
 
-  // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen" style={{ background: "#F1F4FA" }}>
-      {/* Header */}
-      <div className="sticky top-0 z-30 px-4 pt-12 pb-3"
-        style={{ background: "rgba(241,244,250,0.96)", backdropFilter: "blur(12px)" }}>
+    <div className="min-h-screen" style={{ background: "#F5EFE5", fontFamily: "'Inter', sans-serif" }}>
+
+      {/* Sticky Header */}
+      <div className="px-5 pt-14 pb-4"
+        style={{ background: "rgba(245,239,229,0.97)" }}>
         <div className="flex items-center gap-3 mb-4">
-          <button onClick={() => router.back()}
-            className="touch-scale w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.10)" }}>
-            <ChevronLeft size={20} style={{ color: "#0f172a" }} />
+          <button onClick={() => router.push('/profile')}
+            className="touch-scale w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+            <ArrowLeft size={18} style={{ color: "#2B4030" }} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black truncate" style={{ color: "#0f172a" }}>Urenregistratie</h1>
-            <p className="text-xs truncate" style={{ color: "#64748b" }}>Tijdregistratie per klus</p>
+            <h1 className="text-xl font-black truncate"
+              style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+              Urenregistratie
+            </h1>
+            <p className="text-xs truncate" style={{ color: "#8A8A83" }}>Tijdregistratie per klus</p>
           </div>
           <button onClick={() => setShowNieuw(true)}
-            className="touch-scale flex items-center gap-1.5 px-3 py-2.5 rounded-2xl font-bold text-sm text-white flex-shrink-0 whitespace-nowrap"
-            style={{ background: "#4F46E5" }}>
+            className="touch-scale flex items-center gap-1.5 px-4 py-2.5 font-bold text-sm flex-shrink-0"
+            style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 99, border: "none" }}>
             <Plus size={15} />
             Timer
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#E2E8F0" }}>
+        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
           {(["lopend", "overzicht", "statistieken"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)}
               className="flex-1 py-2 rounded-xl text-xs font-bold capitalize transition-all relative"
               style={{
-                background: tab === t ? "#fff" : "transparent",
-                color: tab === t ? "#4F46E5" : "#64748b",
-                boxShadow: tab === t ? "0 1px 3px rgba(0,0,0,0.10)" : "none",
+                background: tab === t ? "#2B4030" : "transparent",
+                color: tab === t ? "#F5EFE5" : "#8A8A83",
               }}>
               {t === "lopend" && activeTimer && (
                 <span className="absolute top-1 right-2 w-2 h-2 rounded-full"
-                  style={{ background: activeTimer.status === "running" ? "#10B981" : "#F59E0B" }} />
+                  style={{ background: activeTimer.status === "running" ? "#22C55E" : "#C97A4D" }} />
               )}
               {t}
             </button>
@@ -272,91 +264,86 @@ export default function UrenregistratiePage() {
         </div>
       </div>
 
-      <div className="px-4 pb-28">
+      <div className="px-5 pb-28">
         {/* ── LOPEND TAB ───────────────────────────────────────────────────────── */}
         {tab === "lopend" && (
           <div className="mt-4 flex flex-col gap-4">
             {!activeTimer ? (
-              <div className="rounded-3xl p-8 flex flex-col items-center gap-4"
-                style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <div className="p-8 flex flex-col items-center gap-4"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                 <div className="w-20 h-20 rounded-full flex items-center justify-center"
-                  style={{ background: "#EEF2FF" }}>
-                  <Clock size={36} style={{ color: "#4F46E5" }} />
+                  style={{ background: "#E8EDE9" }}>
+                  <Clock size={36} style={{ color: "#2B4030" }} />
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-lg" style={{ color: "#0f172a" }}>Geen actieve timer</p>
-                  <p className="text-sm mt-1" style={{ color: "#64748b" }}>Tap op "Start timer" om te beginnen</p>
+                  <p className="font-bold text-lg" style={{ color: "#1A1D1A" }}>Geen actieve timer</p>
+                  <p className="text-sm mt-1" style={{ color: "#8A8A83" }}>Tap op "Start timer" om te beginnen</p>
                 </div>
                 <button onClick={() => setShowNieuw(true)}
-                  className="touch-scale px-6 py-3 rounded-2xl font-bold text-white text-sm"
-                  style={{ background: "#4F46E5" }}>
+                  className="touch-scale px-6 py-3 font-bold text-sm"
+                  style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 99, border: "none" }}>
                   Start nieuwe timer
                 </button>
               </div>
             ) : (
-              <div className="rounded-3xl overflow-hidden"
-                style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-                {/* Status bar */}
+              <div className="overflow-hidden"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                 <div className="px-5 py-3 flex items-center gap-2"
-                  style={{ background: activeTimer.status === "running" ? "#10B981" : "#F59E0B" }}>
-                  <span className="text-xs font-bold text-white uppercase tracking-wide">
+                  style={{ background: activeTimer.status === "running" ? "#2B4030" : "#C97A4D" }}>
+                  <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#F5EFE5" }}>
                     {activeTimer.status === "running" ? "⏱ Timer loopt" : "⏸ Gepauzeerd"}
                   </span>
                 </div>
                 <div className="p-5">
-                  {/* Clock display */}
                   <div className="flex flex-col items-center py-6">
-                    <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#94a3b8" }}>Verstreken tijd</p>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#8A8A83" }}>Verstreken tijd</p>
                     <p className="font-black tracking-tight"
-                      style={{ fontSize: 52, color: "#0f172a", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
+                      style={{ fontSize: 52, color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif", fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>
                       {fmtSec(elapsedSec)}
                     </p>
-                    <p className="text-sm font-semibold mt-3" style={{ color: "#10B981" }}>
+                    <p className="text-sm font-semibold mt-3" style={{ color: "#2B4030" }}>
                       {fmtEur((elapsedSec / 3600) * activeTimer.tarief)} (€{activeTimer.tarief}/u)
                     </p>
                   </div>
 
-                  {/* Klus info */}
-                  <div className="rounded-2xl p-4 mb-5" style={{ background: "#F8FAFC" }}>
-                    <p className="font-bold text-sm" style={{ color: "#0f172a" }}>{activeTimer.klusNaam}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{activeTimer.klant}</p>
+                  <div className="p-4 mb-5" style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0", borderRadius: 8 }}>
+                    <p className="font-bold text-sm" style={{ color: "#1A1D1A" }}>{activeTimer.klusNaam}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "#5C5C56" }}>{activeTimer.klant}</p>
                     {activeTimer.notitie && (
-                      <p className="text-xs mt-2 italic" style={{ color: "#94a3b8" }}>"{activeTimer.notitie}"</p>
+                      <p className="text-xs mt-2 italic" style={{ color: "#8A8A83" }}>"{activeTimer.notitie}"</p>
                     )}
                   </div>
 
-                  {/* Controls */}
                   <div className="flex gap-3">
                     {activeTimer.status === "running" ? (
                       <button onClick={pauseTimer}
-                        className="touch-scale flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2"
-                        style={{ background: "#FFF7ED", color: "#F59E0B" }}>
+                        className="touch-scale flex-1 py-4 font-bold flex items-center justify-center gap-2"
+                        style={{ background: "#F7EDE4", color: "#C97A4D", borderRadius: 14, border: "0.5px solid #E5DDD0" }}>
                         <Pause size={20} />
                         Pauzeer
                       </button>
                     ) : (
                       <button onClick={resumeTimer}
-                        className="touch-scale flex-1 py-4 rounded-2xl font-bold flex items-center justify-center gap-2"
-                        style={{ background: "#F0FDF4", color: "#10B981" }}>
+                        className="touch-scale flex-1 py-4 font-bold flex items-center justify-center gap-2"
+                        style={{ background: "#E8EDE9", color: "#2B4030", borderRadius: 14, border: "0.5px solid #E5DDD0" }}>
                         <Play size={20} />
                         Hervat
                       </button>
                     )}
                     <button onClick={stopTimer}
-                      className="touch-scale flex-1 py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-                      style={{ background: "#EF4444" }}>
+                      className="touch-scale flex-1 py-4 font-bold flex items-center justify-center gap-2"
+                      style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 14, border: "none" }}>
                       <Square size={20} />
-                      Stop & sla op
+                      Stop &amp; sla op
                     </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Recent today */}
             {grouped[TODAY] && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: "#94a3b8" }}>Vandaag</p>
+                <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: "#8A8A83" }}>Vandaag</p>
                 <div className="flex flex-col gap-2">
                   {grouped[TODAY].map((e) => (
                     <EntryRow key={e.id} entry={e} onClick={() => setShowDetails(e)} />
@@ -370,48 +357,46 @@ export default function UrenregistratiePage() {
         {/* ── OVERZICHT TAB ────────────────────────────────────────────────────── */}
         {tab === "overzicht" && (
           <div className="mt-4 flex flex-col gap-4">
-            {/* Summary cards */}
             <div className="grid grid-cols-2 gap-3">
-              <SummaryCard icon={<Clock size={18} style={{ color: "#4F46E5" }} />}
+              <SummaryCard icon={<Clock size={17} style={{ color: "#2B4030" }} />}
                 label="Gewerkte tijd" value={fmtDuur(totalSec)}
                 sub={filterPeriod === "week" ? "deze week" : filterPeriod === "maand" ? "deze maand" : "totaal"}
-                color="#EEF2FF" />
-              <SummaryCard icon={<Euro size={18} style={{ color: "#10B981" }} />}
+                bg="#E8EDE9" />
+              <SummaryCard icon={<Euro size={17} style={{ color: "#C97A4D" }} />}
                 label="Verdiend" value={fmtEur(totalVerdienst)}
                 sub={`gem. ${fmtEur(gemTarief)}/u`}
-                color="#ECFDF5" />
-              <SummaryCard icon={<TrendingUp size={18} style={{ color: "#F59E0B" }} />}
+                bg="#F7EDE4" />
+              <SummaryCard icon={<TrendingUp size={17} style={{ color: "#2B4030" }} />}
                 label="Klussen" value={String(aantalKlussen)}
                 sub={`${filteredEntries.length} sessies`}
-                color="#FFFBEB" />
-              <SummaryCard icon={<Calendar size={18} style={{ color: "#8B5CF6" }} />}
+                bg="#E8EDE9" />
+              <SummaryCard icon={<Calendar size={17} style={{ color: "#5C5C56" }} />}
                 label="Gem. dag" value={fmtDuur(totalSec / Math.max(1, sortedDates.length))}
                 sub="per werkdag"
-                color="#F5F3FF" />
+                bg="#F0EDE8" />
             </div>
 
-            {/* Period filter */}
             <div className="flex gap-2">
               {(["week", "maand", "alles"] as const).map((p) => (
                 <button key={p} onClick={() => setFilterPeriod(p)}
-                  className="px-4 py-2 rounded-full text-xs font-bold"
+                  className="px-4 py-2 text-xs font-bold"
                   style={{
-                    background: filterPeriod === p ? "#4F46E5" : "#fff",
-                    color: filterPeriod === p ? "#fff" : "#64748b",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                    background: filterPeriod === p ? "#2B4030" : "#FBF7F0",
+                    color: filterPeriod === p ? "#F5EFE5" : "#5C5C56",
+                    borderRadius: 99,
+                    border: "0.5px solid #E5DDD0",
                   }}>
                   {p === "week" ? "Deze week" : p === "maand" ? "Deze maand" : "Alles"}
                 </button>
               ))}
             </div>
 
-            {/* Grouped entries */}
             {sortedDates.length === 0 ? (
-              <div className="rounded-3xl p-8 text-center"
-                style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+              <div className="p-8 text-center"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                 <p className="text-3xl mb-2">📋</p>
-                <p className="font-bold" style={{ color: "#0f172a" }}>Geen uren gevonden</p>
-                <p className="text-sm mt-1" style={{ color: "#64748b" }}>Start een timer of pas de filter aan</p>
+                <p className="font-bold" style={{ color: "#1A1D1A" }}>Geen uren gevonden</p>
+                <p className="text-sm mt-1" style={{ color: "#8A8A83" }}>Start een timer of pas de filter aan</p>
               </div>
             ) : sortedDates.map((datum) => {
               const dayEntries = grouped[datum];
@@ -420,10 +405,10 @@ export default function UrenregistratiePage() {
               return (
                 <div key={datum}>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-bold" style={{ color: "#374151" }}>{datumLabel(datum)}</p>
+                    <p className="text-sm font-bold" style={{ color: "#1A1D1A" }}>{datumLabel(datum)}</p>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-semibold" style={{ color: "#4F46E5" }}>{fmtDuur(daySec)}</span>
-                      <span className="text-xs font-bold" style={{ color: "#10B981" }}>{fmtEur(dayEur)}</span>
+                      <span className="text-xs font-semibold" style={{ color: "#2B4030" }}>{fmtDuur(daySec)}</span>
+                      <span className="text-xs font-bold" style={{ color: "#C97A4D" }}>{fmtEur(dayEur)}</span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -440,24 +425,23 @@ export default function UrenregistratiePage() {
         {/* ── STATISTIEKEN TAB ─────────────────────────────────────────────────── */}
         {tab === "statistieken" && (
           <div className="mt-4 flex flex-col gap-4">
-            {/* Weekly bar chart */}
-            <div className="rounded-3xl p-5" style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-              <p className="font-bold text-sm mb-4" style={{ color: "#0f172a" }}>Uren per dag (afgelopen 7 dagen)</p>
+            <div className="p-5" style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+              <p className="font-bold text-sm mb-4" style={{ color: "#1A1D1A" }}>Uren per dag (afgelopen 7 dagen)</p>
               <div className="flex items-end gap-2 h-28">
                 {last7.map((d, i) => {
                   const pct = d.sec / maxSec;
                   const isToday = i === 6;
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <p className="text-xs font-semibold" style={{ color: "#4F46E5", fontSize: 10 }}>
+                      <p className="text-xs font-semibold" style={{ color: "#2B4030", fontSize: 10 }}>
                         {d.sec > 0 ? fmtDuur(d.sec) : ""}
                       </p>
                       <div className="w-full rounded-t-lg transition-all"
                         style={{
                           height: Math.max(4, pct * 80),
-                          background: isToday ? "#4F46E5" : d.sec > 0 ? "#A5B4FC" : "#E2E8F0",
+                          background: isToday ? "#2B4030" : d.sec > 0 ? "#C97A4D" : "#E5DDD0",
                         }} />
-                      <p className="text-xs" style={{ color: isToday ? "#4F46E5" : "#94a3b8", fontWeight: isToday ? 700 : 400 }}>
+                      <p className="text-xs" style={{ color: isToday ? "#2B4030" : "#8A8A83", fontWeight: isToday ? 700 : 400 }}>
                         {d.label}
                       </p>
                     </div>
@@ -466,9 +450,8 @@ export default function UrenregistratiePage() {
               </div>
             </div>
 
-            {/* Top klussen */}
-            <div className="rounded-3xl p-5" style={{ background: "#fff", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-              <p className="font-bold text-sm mb-4" style={{ color: "#0f172a" }}>Meeste uren per klus</p>
+            <div className="p-5" style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+              <p className="font-bold text-sm mb-4" style={{ color: "#1A1D1A" }}>Meeste uren per klus</p>
               {(() => {
                 const klusMap: Record<string, { sec: number; eur: number; klant: string }> = {};
                 for (const e of entries) {
@@ -482,50 +465,48 @@ export default function UrenregistratiePage() {
                   <div key={naam} className="mb-3">
                     <div className="flex justify-between items-center mb-1">
                       <div>
-                        <p className="text-sm font-semibold" style={{ color: "#0f172a" }}>{naam}</p>
-                        <p className="text-xs" style={{ color: "#94a3b8" }}>{data.klant}</p>
+                        <p className="text-sm font-semibold" style={{ color: "#1A1D1A" }}>{naam}</p>
+                        <p className="text-xs" style={{ color: "#8A8A83" }}>{data.klant}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold" style={{ color: "#4F46E5" }}>{fmtDuur(data.sec)}</p>
-                        <p className="text-xs font-semibold" style={{ color: "#10B981" }}>{fmtEur(data.eur)}</p>
+                        <p className="text-sm font-bold" style={{ color: "#2B4030" }}>{fmtDuur(data.sec)}</p>
+                        <p className="text-xs font-semibold" style={{ color: "#C97A4D" }}>{fmtEur(data.eur)}</p>
                       </div>
                     </div>
-                    <div className="h-2 rounded-full" style={{ background: "#F1F5F9" }}>
+                    <div className="h-2 rounded-full" style={{ background: "#E5DDD0" }}>
                       <div className="h-2 rounded-full transition-all"
-                        style={{ width: `${(data.sec / maxK) * 100}%`, background: i === 0 ? "#4F46E5" : "#A5B4FC" }} />
+                        style={{ width: `${(data.sec / maxK) * 100}%`, background: i === 0 ? "#2B4030" : "#C97A4D" }} />
                     </div>
                   </div>
                 ));
               })()}
             </div>
 
-            {/* Gem. dag stats */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl p-4 flex flex-col gap-1"
-                style={{ background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#94a3b8" }}>Productiviteit</p>
-                <p className="text-2xl font-black" style={{ color: "#0f172a" }}>
+              <div className="p-4 flex flex-col gap-1"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8A8A83" }}>Productiviteit</p>
+                <p className="text-2xl font-black" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
                   {Math.round((entries.reduce((s, e) => s + e.duurSec, 0) / 3600 / Math.max(1, sortedDates.length)) * 10) / 10}u
                 </p>
-                <p className="text-xs" style={{ color: "#64748b" }}>gem. per werkdag</p>
+                <p className="text-xs" style={{ color: "#8A8A83" }}>gem. per werkdag</p>
               </div>
-              <div className="rounded-2xl p-4 flex flex-col gap-1"
-                style={{ background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#94a3b8" }}>Eff. tarief</p>
-                <p className="text-2xl font-black" style={{ color: "#0f172a" }}>
+              <div className="p-4 flex flex-col gap-1"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#8A8A83" }}>Eff. tarief</p>
+                <p className="text-2xl font-black" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
                   {fmtEur(gemTarief)}<span className="text-sm font-semibold">/u</span>
                 </p>
-                <p className="text-xs" style={{ color: "#64748b" }}>gewogen gem.</p>
+                <p className="text-xs" style={{ color: "#8A8A83" }}>gewogen gem.</p>
               </div>
             </div>
 
-            {/* Tip */}
-            <div className="rounded-2xl p-4 flex gap-3 items-start"
-              style={{ background: "#EEF2FF", border: "1px solid #C7D2FE" }}>
+            <div className="p-4 flex gap-3 items-start"
+              style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
               <span className="text-xl">💡</span>
               <div>
-                <p className="text-sm font-bold" style={{ color: "#4F46E5" }}>Tip: verhoog je tarief</p>
-                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "#374151" }}>
+                <p className="text-sm font-bold" style={{ color: "#2B4030" }}>Tip: verhoog je tarief</p>
+                <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "#5C5C56" }}>
                   Jouw gemiddeld eff. uurtarief is {fmtEur(gemTarief)}. Overweeg je starttarief te verhogen naar €{Math.ceil(gemTarief / 5) * 5}/u.
                 </p>
               </div>
@@ -540,33 +521,38 @@ export default function UrenregistratiePage() {
           style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setShowNieuw(false)}>
           <div className="w-full max-w-[480px] mx-auto rounded-t-[32px] overflow-hidden max-h-[88dvh] overflow-y-auto"
-            style={{ background: "#fff" }}
+            style={{ background: "#FBF7F0" }}
             onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
-              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5E7EB" }} />
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5DDD0" }} />
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-black" style={{ color: "#0f172a" }}>Nieuwe timer</h2>
+                <h2 className="text-lg font-black" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>Nieuwe timer</h2>
                 <button onClick={() => setShowNieuw(false)}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: "#F3F4F6" }}>
-                  <X size={16} style={{ color: "#6B7280" }} />
+                  style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0" }}>
+                  <X size={15} style={{ color: "#5C5C56" }} />
                 </button>
               </div>
 
-              {/* Klus selectie */}
               <div className="mb-4">
-                <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
-                  Klus
-                </label>
+                <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#8A8A83" }}>Klus</label>
                 <div className="flex gap-2 mb-2">
                   <button onClick={() => setIsCustom(false)}
                     className="flex-1 py-2 rounded-xl text-xs font-bold"
-                    style={{ background: !isCustom ? "#4F46E5" : "#F3F4F6", color: !isCustom ? "#fff" : "#64748b" }}>
+                    style={{
+                      background: !isCustom ? "#2B4030" : "#F5EFE5",
+                      color: !isCustom ? "#F5EFE5" : "#5C5C56",
+                      border: "0.5px solid #E5DDD0",
+                    }}>
                     Bestaande klus
                   </button>
                   <button onClick={() => setIsCustom(true)}
                     className="flex-1 py-2 rounded-xl text-xs font-bold"
-                    style={{ background: isCustom ? "#4F46E5" : "#F3F4F6", color: isCustom ? "#fff" : "#64748b" }}>
+                    style={{
+                      background: isCustom ? "#2B4030" : "#F5EFE5",
+                      color: isCustom ? "#F5EFE5" : "#5C5C56",
+                      border: "0.5px solid #E5DDD0",
+                    }}>
                     Nieuwe klus
                   </button>
                 </div>
@@ -579,71 +565,64 @@ export default function UrenregistratiePage() {
                         const found = MOCK_KLUSSEN.find((k) => k.id === e.target.value);
                         if (found) setNewKlus(found);
                       }}
-                      className="w-full appearance-none rounded-2xl px-4 py-3.5 pr-10 text-sm font-semibold"
-                      style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }}>
+                      className="w-full appearance-none pr-10"
+                      style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none" }}>
                       {MOCK_KLUSSEN.map((k) => (
                         <option key={k.id} value={k.id}>{k.naam} — {k.klant}</option>
                       ))}
                     </select>
-                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#94a3b8" }} />
+                    <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#8A8A83" }} />
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
                     <input value={customKlus} onChange={(e) => setCustomKlus(e.target.value)}
                       placeholder="Naam van de klus…"
-                      className="w-full rounded-2xl px-4 py-3.5 text-sm font-semibold"
-                      style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                      style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                     <input value={customKlant} onChange={(e) => setCustomKlant(e.target.value)}
                       placeholder="Naam van de klant…"
-                      className="w-full rounded-2xl px-4 py-3.5 text-sm font-semibold"
-                      style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                      style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                   </div>
                 )}
               </div>
 
-              {/* Tarief */}
               <div className="mb-4">
-                <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
-                  Uurtarief (€)
-                </label>
-                <div className="flex items-center gap-2">
+                <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#8A8A83" }}>Uurtarief (€)</label>
+                <div className="flex items-center gap-2 mb-2">
                   {[45, 55, 65, 75, 85, 95].map((t) => (
                     <button key={t} onClick={() => setNewTarief(t)}
                       className="flex-1 py-2.5 rounded-xl text-xs font-bold"
                       style={{
-                        background: newTarief === t ? "#4F46E5" : "#F3F4F6",
-                        color: newTarief === t ? "#fff" : "#64748b",
+                        background: newTarief === t ? "#2B4030" : "#F5EFE5",
+                        color: newTarief === t ? "#F5EFE5" : "#5C5C56",
+                        border: "0.5px solid #E5DDD0",
                       }}>
                       €{t}
                     </button>
                   ))}
                 </div>
-                <div className="mt-2 flex items-center gap-2 rounded-2xl px-4 py-3"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0" }}>
-                  <Euro size={16} style={{ color: "#94a3b8" }} />
+                <div className="flex items-center gap-2"
+                  style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px" }}>
+                  <Euro size={15} style={{ color: "#8A8A83" }} />
                   <input type="number" value={newTarief}
                     onChange={(e) => setNewTarief(Number(e.target.value))}
                     className="flex-1 bg-transparent text-sm font-bold"
-                    style={{ color: "#0f172a", outline: "none" }} />
-                  <span className="text-xs font-semibold" style={{ color: "#94a3b8" }}>/uur</span>
+                    style={{ color: "#1A1D1A", outline: "none", fontSize: 14 }} />
+                  <span className="text-xs font-semibold" style={{ color: "#8A8A83" }}>/uur</span>
                 </div>
               </div>
 
-              {/* Notitie */}
               <div className="mb-6">
-                <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
-                  Notitie (optioneel)
-                </label>
+                <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#8A8A83" }}>Notitie (optioneel)</label>
                 <textarea value={newNotitie} onChange={(e) => setNewNotitie(e.target.value)}
-                  placeholder="Wat ga je doen? Bijv. 'badkamer betegelen — 1e laag'"
+                  placeholder="Wat ga je doen?"
                   rows={2}
-                  className="w-full rounded-2xl px-4 py-3.5 text-sm resize-none"
-                  style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                  className="w-full resize-none"
+                  style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none" }} />
               </div>
 
               <button onClick={startTimer}
-                className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-                style={{ background: "#4F46E5" }}>
+                className="touch-scale w-full py-4 font-bold flex items-center justify-center gap-2"
+                style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 99, border: "none" }}>
                 <Play size={20} />
                 Start timer
               </button>
@@ -658,47 +637,47 @@ export default function UrenregistratiePage() {
           style={{ background: "rgba(0,0,0,0.5)" }}
           onClick={() => setShowDetails(null)}>
           <div className="w-full max-w-[480px] mx-auto rounded-t-[32px] overflow-hidden"
-            style={{ background: "#fff" }}
+            style={{ background: "#FBF7F0" }}
             onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
-              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5E7EB" }} />
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5DDD0" }} />
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h2 className="font-black text-lg" style={{ color: "#0f172a" }}>{showDetails.klusNaam}</h2>
-                  <p className="text-sm" style={{ color: "#64748b" }}>{showDetails.klant}</p>
+                  <h2 className="font-black text-lg" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>{showDetails.klusNaam}</h2>
+                  <p className="text-sm" style={{ color: "#5C5C56" }}>{showDetails.klant}</p>
                 </div>
                 <button onClick={() => setShowDetails(null)}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: "#F3F4F6" }}>
-                  <X size={16} style={{ color: "#6B7280" }} />
+                  style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0" }}>
+                  <X size={15} style={{ color: "#5C5C56" }} />
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <DetailField label="Datum" value={datumLabel(showDetails.datum)} />
                 <DetailField label="Tijd" value={`${showDetails.startTijd} – ${showDetails.eindTijd ?? "lopend"}`} />
-                <DetailField label="Duur" value={fmtDuur(showDetails.duurSec)} accent="#4F46E5" />
-                <DetailField label="Verdienst" value={fmtEur(calcVerdienst(showDetails))} accent="#10B981" />
+                <DetailField label="Duur" value={fmtDuur(showDetails.duurSec)} accent="#2B4030" />
+                <DetailField label="Verdienst" value={fmtEur(calcVerdienst(showDetails))} accent="#C97A4D" />
               </div>
 
               {showDetails.notitie && (
-                <div className="rounded-2xl p-3 mb-4" style={{ background: "#F8FAFC" }}>
-                  <p className="text-xs font-semibold mb-1" style={{ color: "#94a3b8" }}>Notitie</p>
-                  <p className="text-sm italic" style={{ color: "#374151" }}>"{showDetails.notitie}"</p>
+                <div className="p-3 mb-4" style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0", borderRadius: 8 }}>
+                  <p className="text-xs font-semibold mb-1" style={{ color: "#8A8A83" }}>Notitie</p>
+                  <p className="text-sm italic" style={{ color: "#1A1D1A" }}>"{showDetails.notitie}"</p>
                 </div>
               )}
 
               <div className="flex gap-3">
                 <button onClick={() => deleteEntry(showDetails.id)}
-                  className="touch-scale flex-1 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2"
-                  style={{ background: "#FEF2F2", color: "#EF4444" }}>
-                  <Trash2 size={16} />
+                  className="touch-scale flex-1 py-3.5 font-bold flex items-center justify-center gap-2"
+                  style={{ background: "#FEF2F2", color: "#EF4444", borderRadius: 14, border: "none" }}>
+                  <Trash2 size={15} />
                   Verwijder
                 </button>
                 <button onClick={() => setShowDetails(null)}
-                  className="touch-scale flex-1 py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2"
-                  style={{ background: "#4F46E5", color: "#fff" }}>
-                  <Check size={16} />
+                  className="touch-scale flex-1 py-3.5 font-bold flex items-center justify-center gap-2"
+                  style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 14, border: "none" }}>
+                  <Check size={15} />
                   Sluiten
                 </button>
               </div>
@@ -715,48 +694,48 @@ function EntryRow({ entry, onClick }: { entry: UurEntry; onClick: () => void }) 
   const verdienst = calcVerdienst(entry);
   return (
     <button onClick={onClick}
-      className="touch-scale w-full rounded-2xl p-4 flex items-center gap-3 text-left"
-      style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }}>
+      className="touch-scale w-full p-4 flex items-center gap-3 text-left"
+      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-        style={{ background: "#EEF2FF" }}>
-        <Clock size={18} style={{ color: "#4F46E5" }} />
+        style={{ background: "#E8EDE9" }}>
+        <Clock size={17} style={{ color: "#2B4030" }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold truncate" style={{ color: "#0f172a" }}>{entry.klusNaam}</p>
-        <p className="text-xs truncate" style={{ color: "#64748b" }}>
+        <p className="text-sm font-bold truncate" style={{ color: "#1A1D1A" }}>{entry.klusNaam}</p>
+        <p className="text-xs truncate" style={{ color: "#8A8A83" }}>
           {entry.startTijd}–{entry.eindTijd ?? "…"} · {entry.klant}
         </p>
       </div>
       <div className="text-right flex-shrink-0">
-        <p className="text-sm font-bold" style={{ color: "#4F46E5" }}>{fmtDuur(entry.duurSec)}</p>
-        <p className="text-xs font-semibold" style={{ color: "#10B981" }}>{fmtEur(verdienst)}</p>
+        <p className="text-sm font-bold" style={{ color: "#2B4030" }}>{fmtDuur(entry.duurSec)}</p>
+        <p className="text-xs font-semibold" style={{ color: "#C97A4D" }}>{fmtEur(verdienst)}</p>
       </div>
     </button>
   );
 }
 
-function SummaryCard({ icon, label, value, sub, color }: {
-  icon: React.ReactNode; label: string; value: string; sub: string; color: string;
+function SummaryCard({ icon, label, value, sub, bg }: {
+  icon: React.ReactNode; label: string; value: string; sub: string; bg: string;
 }) {
   return (
-    <div className="rounded-2xl p-4 flex flex-col gap-1"
-      style={{ background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
+    <div className="p-4 flex flex-col gap-1"
+      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
       <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-1"
-        style={{ background: color }}>
+        style={{ background: bg }}>
         {icon}
       </div>
-      <p className="text-2xl font-black leading-tight" style={{ color: "#0f172a" }}>{value}</p>
-      <p className="text-xs font-bold" style={{ color: "#374151" }}>{label}</p>
-      <p className="text-xs" style={{ color: "#94a3b8" }}>{sub}</p>
+      <p className="text-2xl font-black leading-tight" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>{value}</p>
+      <p className="text-xs font-bold" style={{ color: "#1A1D1A" }}>{label}</p>
+      <p className="text-xs" style={{ color: "#8A8A83" }}>{sub}</p>
     </div>
   );
 }
 
 function DetailField({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
-    <div className="rounded-2xl p-3" style={{ background: "#F8FAFC" }}>
-      <p className="text-xs font-semibold mb-0.5" style={{ color: "#94a3b8" }}>{label}</p>
-      <p className="text-sm font-bold" style={{ color: accent ?? "#0f172a" }}>{value}</p>
+    <div className="p-3" style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0", borderRadius: 8 }}>
+      <p className="text-xs font-semibold mb-0.5" style={{ color: "#8A8A83" }}>{label}</p>
+      <p className="text-sm font-bold" style={{ color: accent ?? "#1A1D1A" }}>{value}</p>
     </div>
   );
 }

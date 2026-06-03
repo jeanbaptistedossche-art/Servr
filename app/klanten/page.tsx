@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChevronLeft, Plus, Search, Star, Phone, Mail,
+  ArrowLeft, Plus, Search, Star, Phone, Mail,
   MapPin, Euro, Clock, MessageCircle, X, Check,
   ChevronRight, Trash2, Edit3, Calendar, TrendingUp,
   Users, Heart, Tag, StickyNote, Filter,
@@ -35,27 +35,27 @@ type Klant = {
   adres?: string;
   status: KlantStatus;
   labels: Label[];
-  rating: number;        // 1-5 stars given by vakman
-  aangemaakt: string;    // ISO date
-  laatsActief: string;   // ISO date
+  rating: number;
+  aangemaakt: string;
+  laatsActief: string;
   jobs: KlantJob[];
   notities: Notitie[];
-  bron?: string;         // "Servr" | "WhatsApp" | "Aanbeveling" | "Google"
+  bron?: string;
 };
 
 // ─── Label config ─────────────────────────────────────────────────────────────
 const LABEL_CFG: Record<Label, { naam: string; kleur: string; bg: string; icon: string }> = {
-  vip:           { naam: "VIP",          kleur: "#F59E0B", bg: "#FFFBEB", icon: "👑" },
-  snel_betaler:  { naam: "Snelle betaler", kleur: "#10B981", bg: "#ECFDF5", icon: "⚡" },
-  moeilijk:      { naam: "Moeilijk",     kleur: "#EF4444", bg: "#FEF2F2", icon: "⚠️" },
-  aanbevolen:    { naam: "Aanbevolen",   kleur: "#8B5CF6", bg: "#F5F3FF", icon: "🌟" },
-  nieuw:         { naam: "Nieuw",        kleur: "#0EA5E9", bg: "#F0F9FF", icon: "✨" },
+  vip:           { naam: "VIP",          kleur: "#C97A4D", bg: "#FAF0E6", icon: "👑" },
+  snel_betaler:  { naam: "Snelle betaler", kleur: "#2B4030", bg: "#EAF0EC", icon: "⚡" },
+  moeilijk:      { naam: "Moeilijk",     kleur: "#8A3A2A", bg: "#F9EDEA", icon: "⚠️" },
+  aanbevolen:    { naam: "Aanbevolen",   kleur: "#2B4030", bg: "#EAF0EC", icon: "🌟" },
+  nieuw:         { naam: "Nieuw",        kleur: "#5C5C56", bg: "#F0EFE8", icon: "✨" },
 };
 
 const STATUS_CFG: Record<KlantStatus, { label: string; kleur: string; bg: string }> = {
-  actief:    { label: "Actief",    kleur: "#10B981", bg: "#ECFDF5" },
-  inactief:  { label: "Inactief",  kleur: "#94a3b8", bg: "#F1F5F9" },
-  prospect:  { label: "Prospect",  kleur: "#F59E0B", bg: "#FFFBEB" },
+  actief:    { label: "Actief",    kleur: "#2B4030", bg: "#EAF0EC" },
+  inactief:  { label: "Inactief",  kleur: "#8A8A83", bg: "#F0EFE8" },
+  prospect:  { label: "Prospect",  kleur: "#C97A4D", bg: "#FAF0E6" },
 };
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
@@ -156,7 +156,7 @@ function Stars({ n, max = 5 }: { n: number; max?: number }) {
   return (
     <div className="flex gap-0.5">
       {Array.from({ length: max }).map((_, i) => (
-        <Star key={i} size={12} fill={i < n ? "#F59E0B" : "none"} style={{ color: i < n ? "#F59E0B" : "#D1D5DB" }} />
+        <Star key={i} size={12} fill={i < n ? "#C97A4D" : "none"} style={{ color: i < n ? "#C97A4D" : "#E5DDD0" }} />
       ))}
     </div>
   );
@@ -176,7 +176,6 @@ export default function KlantenPage() {
   const [newNotitie, setNewNotitie] = useState("");
   const [showNotitiInput, setShowNotitiInput] = useState(false);
 
-  // New klant form
   const [form, setForm] = useState<Partial<Klant>>({ status: "prospect", labels: [], rating: 0 });
 
   // ── Derived ─────────────────────────────────────────────────────────────────
@@ -257,36 +256,39 @@ export default function KlantenPage() {
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen" style={{ background: "#F1F4FA" }}>
+    <div className="min-h-screen" style={{ background: "#F5EFE5", fontFamily: "'Inter', sans-serif" }}>
       {/* Header */}
-      <div className="sticky top-0 z-30 px-4 pt-12 pb-3"
-        style={{ background: "rgba(241,244,250,0.96)", backdropFilter: "blur(12px)" }}>
-        <div className="flex items-center gap-3 mb-3">
-          <button onClick={() => router.back()}
-            className="touch-scale w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.10)" }}>
-            <ChevronLeft size={20} style={{ color: "#0f172a" }} />
+      <div className="px-5 pt-14 pb-4"
+        style={{ background: "rgba(245,239,229,0.97)" }}>
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => router.push('/profile')}
+            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+            <ArrowLeft size={18} style={{ color: "#1A1D1A" }} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-black truncate" style={{ color: "#0f172a" }}>Klantenbestand</h1>
-            <p className="text-xs truncate" style={{ color: "#64748b" }}>{klanten.length} contacten · CRM</p>
+            <h1 className="text-xl font-bold truncate"
+              style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+              Klantenbestand
+            </h1>
+            <p className="text-xs truncate" style={{ color: "#8A8A83" }}>{klanten.length} contacten · CRM</p>
           </div>
           <button onClick={() => setShowNieuw(true)}
-            className="touch-scale flex items-center gap-1.5 px-4 py-2 rounded-2xl font-bold text-sm text-white"
-            style={{ background: "#4F46E5" }}>
-            <Plus size={16} />
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold"
+            style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 99, border: "none" }}>
+            <Plus size={15} />
             Nieuw
           </button>
         </div>
 
         {/* Search */}
-        <div className="flex items-center gap-2 rounded-2xl px-4 py-2.5 mb-3"
-          style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-          <Search size={16} style={{ color: "#94a3b8" }} />
+        <div className="flex items-center gap-2 mb-3"
+          style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px" }}>
+          <Search size={15} style={{ color: "#8A8A83" }} />
           <input value={zoek} onChange={(e) => setZoek(e.target.value)}
             placeholder="Zoek op naam, email, telefoon…"
             className="flex-1 text-sm bg-transparent"
-            style={{ color: "#0f172a", outline: "none" }} />
+            style={{ color: "#1A1D1A", outline: "none", fontSize: 14 }} />
         </div>
 
         {/* Filter + sort row */}
@@ -294,19 +296,20 @@ export default function KlantenPage() {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 flex-1" style={{ scrollbarWidth: "none" }}>
             {(["alle", "actief", "inactief", "prospect"] as const).map((s) => (
               <button key={s} onClick={() => setStatusFilter(s)}
-                className="flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold capitalize"
+                className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold capitalize"
                 style={{
-                  background: statusFilter === s ? "#4F46E5" : "#fff",
-                  color: statusFilter === s ? "#fff" : "#64748b",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                  background: statusFilter === s ? "#2B4030" : "transparent",
+                  color: statusFilter === s ? "#F5EFE5" : "#5C5C56",
+                  borderRadius: 99,
+                  border: statusFilter === s ? "none" : "0.5px solid #E5DDD0",
                 }}>
                 {s === "alle" ? "Alles" : STATUS_CFG[s as KlantStatus]?.label ?? s}
               </button>
             ))}
           </div>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="flex-shrink-0 rounded-2xl px-3 py-2 text-xs font-bold appearance-none"
-            style={{ background: "#fff", color: "#64748b", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", border: "none" }}>
+            className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold appearance-none"
+            style={{ background: "#FBF7F0", color: "#5C5C56", border: "0.5px solid #E5DDD0", borderRadius: 8 }}>
             <option value="recent">Recent</option>
             <option value="omzet">Omzet</option>
             <option value="naam">Naam</option>
@@ -314,41 +317,38 @@ export default function KlantenPage() {
         </div>
       </div>
 
-      <div className="px-4 pb-28 mt-4">
-        {/* Summary cards */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <div className="rounded-2xl p-3 flex flex-col items-center gap-0.5"
-            style={{ background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-            <Users size={16} style={{ color: "#4F46E5" }} />
-            <p className="font-black text-xl leading-tight" style={{ color: "#0f172a" }}>{actiefCount}</p>
-            <p className="text-xs text-center" style={{ color: "#94a3b8" }}>Actief</p>
+      <div className="px-5 pb-28 mt-4">
+        {/* Summary stat grid */}
+        <div className="grid grid-cols-3 gap-2 mb-4"
+          style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+          <div className="flex flex-col items-center gap-0.5">
+            <p className="font-bold text-2xl leading-tight"
+              style={{ color: "#2B4030", fontFamily: "'Source Serif 4', Georgia, serif" }}>{actiefCount}</p>
+            <p className="text-xs text-center" style={{ color: "#8A8A83" }}>Actief</p>
           </div>
-          <div className="rounded-2xl p-3 flex flex-col items-center gap-0.5"
-            style={{ background: "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-            <TrendingUp size={16} style={{ color: "#10B981" }} />
-            <p className="font-black text-lg leading-tight" style={{ color: "#0f172a" }}>
+          <div className="flex flex-col items-center gap-0.5" style={{ borderLeft: "0.5px solid #E5DDD0", borderRight: "0.5px solid #E5DDD0" }}>
+            <p className="font-bold text-xl leading-tight"
+              style={{ color: "#2B4030", fontFamily: "'Source Serif 4', Georgia, serif" }}>
               {fmtEur(totaleOmzet)}
             </p>
-            <p className="text-xs text-center" style={{ color: "#94a3b8" }}>Totale omzet</p>
+            <p className="text-xs text-center" style={{ color: "#8A8A83" }}>Totale omzet</p>
           </div>
-          <div className="rounded-2xl p-3 flex flex-col items-center gap-0.5"
-            style={{ background: openstaandTotaal > 0 ? "#FFFBEB" : "#fff", boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
-            <Euro size={16} style={{ color: openstaandTotaal > 0 ? "#F59E0B" : "#94a3b8" }} />
-            <p className="font-black text-lg leading-tight"
-              style={{ color: openstaandTotaal > 0 ? "#D97706" : "#0f172a" }}>
+          <div className="flex flex-col items-center gap-0.5">
+            <p className="font-bold text-xl leading-tight"
+              style={{ color: openstaandTotaal > 0 ? "#C97A4D" : "#2B4030", fontFamily: "'Source Serif 4', Georgia, serif" }}>
               {fmtEur(openstaandTotaal)}
             </p>
-            <p className="text-xs text-center" style={{ color: "#94a3b8" }}>Openstaand</p>
+            <p className="text-xs text-center" style={{ color: "#8A8A83" }}>Openstaand</p>
           </div>
         </div>
 
         {/* Client list */}
         {filtered.length === 0 ? (
-          <div className="rounded-3xl p-8 text-center"
-            style={{ background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+          <div className="p-8 text-center"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
             <p className="text-3xl mb-2">👥</p>
-            <p className="font-bold" style={{ color: "#0f172a" }}>Geen klanten gevonden</p>
-            <p className="text-sm mt-1" style={{ color: "#64748b" }}>Pas de filter aan of voeg een nieuwe klant toe</p>
+            <p className="font-semibold" style={{ color: "#1A1D1A" }}>Geen klanten gevonden</p>
+            <p className="text-sm mt-1" style={{ color: "#8A8A83" }}>Pas de filter aan of voeg een nieuwe klant toe</p>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -358,38 +358,37 @@ export default function KlantenPage() {
               const statusCfg = STATUS_CFG[k.status];
               return (
                 <button key={k.id} onClick={() => { setShowDetail(k); setDetailTab("overzicht"); }}
-                  className="touch-scale w-full rounded-2xl p-4 text-left"
-                  style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.07)" }}>
+                  className="w-full text-left"
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
                   <div className="flex items-center gap-3">
                     <img src={k.avatar} alt={k.naam}
-                      className="w-12 h-12 rounded-2xl object-cover flex-shrink-0"
-                      style={{ border: "2px solid #E2E8F0" }} />
+                      className="w-11 h-11 object-cover flex-shrink-0"
+                      style={{ borderRadius: 10, border: "0.5px solid #E5DDD0" }} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-bold" style={{ color: "#0f172a" }}>{k.naam}</p>
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                          style={{ background: statusCfg.bg, color: statusCfg.kleur }}>
+                        <p className="text-sm font-semibold" style={{ color: "#1A1D1A" }}>{k.naam}</p>
+                        <span className="text-xs font-medium px-2 py-0.5"
+                          style={{ background: statusCfg.bg, color: statusCfg.kleur, borderRadius: 99 }}>
                           {statusCfg.label}
                         </span>
                       </div>
-                      {/* Labels */}
                       <div className="flex gap-1 mt-1 flex-wrap">
                         {k.labels.map((l) => (
-                          <span key={l} className="text-xs font-bold px-1.5 py-0.5 rounded-full"
-                            style={{ background: LABEL_CFG[l].bg, color: LABEL_CFG[l].kleur }}>
+                          <span key={l} className="text-xs px-1.5 py-0.5"
+                            style={{ background: LABEL_CFG[l].bg, color: LABEL_CFG[l].kleur, borderRadius: 99 }}>
                             {LABEL_CFG[l].icon}
                           </span>
                         ))}
                         {k.rating > 0 && <Stars n={k.rating} />}
                       </div>
-                      <p className="text-xs mt-0.5 truncate" style={{ color: "#94a3b8" }}>
+                      <p className="text-xs mt-0.5 truncate" style={{ color: "#8A8A83" }}>
                         {k.jobs.length} klus{k.jobs.length !== 1 ? "sen" : ""} · {k.bron ?? "Servr"}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-bold" style={{ color: "#10B981" }}>{fmtEur(omzet)}</p>
-                      {open > 0 && <p className="text-xs font-bold" style={{ color: "#F59E0B" }}>{fmtEur(open)} open</p>}
-                      <ChevronRight size={14} style={{ color: "#CBD5E1", marginLeft: "auto" }} />
+                      <p className="text-sm font-semibold" style={{ color: "#2B4030" }}>{fmtEur(omzet)}</p>
+                      {open > 0 && <p className="text-xs font-medium" style={{ color: "#C97A4D" }}>{fmtEur(open)} open</p>}
+                      <ChevronRight size={14} style={{ color: "#E5DDD0", marginLeft: "auto", marginTop: 2 }} />
                     </div>
                   </div>
                 </button>
@@ -402,31 +401,32 @@ export default function KlantenPage() {
       {/* ── Klant detail sheet ───────────────────────────────────────────────── */}
       {showDetail && (
         <div className="fixed inset-0 z-50 flex items-end"
-          style={{ background: "rgba(0,0,0,0.5)" }}
+          style={{ background: "rgba(0,0,0,0.45)" }}
           onClick={() => setShowDetail(null)}>
-          <div className="w-full max-w-[480px] mx-auto rounded-t-[32px] overflow-hidden max-h-[92dvh] flex flex-col"
-            style={{ background: "#F1F4FA" }}
+          <div className="w-full max-w-[480px] mx-auto rounded-t-[24px] overflow-hidden max-h-[92dvh] flex flex-col"
+            style={{ background: "#F5EFE5" }}
             onClick={(e) => e.stopPropagation()}>
             {/* Handle + header */}
-            <div className="px-5 pt-4 pb-3 flex-shrink-0" style={{ background: "#F1F4FA" }}>
-              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#CBD5E1" }} />
-              {/* Avatar + name */}
+            <div className="px-5 pt-4 pb-3 flex-shrink-0" style={{ background: "#F5EFE5" }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5DDD0" }} />
               <div className="flex items-center gap-3 mb-3">
                 <img src={showDetail.avatar} alt={showDetail.naam}
-                  className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
-                  style={{ border: "2px solid #E2E8F0" }} />
+                  className="w-14 h-14 object-cover flex-shrink-0"
+                  style={{ borderRadius: 12, border: "0.5px solid #E5DDD0" }} />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h2 className="font-black text-lg" style={{ color: "#0f172a" }}>{showDetail.naam}</h2>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: STATUS_CFG[showDetail.status].bg, color: STATUS_CFG[showDetail.status].kleur }}>
+                    <h2 className="font-bold text-lg" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+                      {showDetail.naam}
+                    </h2>
+                    <span className="text-xs font-medium px-2 py-0.5"
+                      style={{ background: STATUS_CFG[showDetail.status].bg, color: STATUS_CFG[showDetail.status].kleur, borderRadius: 99 }}>
                       {STATUS_CFG[showDetail.status].label}
                     </span>
                   </div>
                   <div className="flex gap-1 mt-1 flex-wrap items-center">
                     {showDetail.labels.map((l) => (
-                      <span key={l} className="text-xs font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: LABEL_CFG[l].bg, color: LABEL_CFG[l].kleur }}>
+                      <span key={l} className="text-xs font-medium px-2 py-0.5"
+                        style={{ background: LABEL_CFG[l].bg, color: LABEL_CFG[l].kleur, borderRadius: 99 }}>
                         {LABEL_CFG[l].icon} {LABEL_CFG[l].naam}
                       </span>
                     ))}
@@ -435,50 +435,49 @@ export default function KlantenPage() {
                 </div>
                 <button onClick={() => setShowDetail(null)}
                   className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: "#E2E8F0" }}>
-                  <X size={16} style={{ color: "#6B7280" }} />
+                  style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+                  <X size={15} style={{ color: "#8A8A83" }} />
                 </button>
               </div>
 
               {/* Quick contact */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-3">
                 {showDetail.telefoon && (
                   <a href={`tel:${showDetail.telefoon}`}
-                    className="touch-scale flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold"
-                    style={{ background: "#fff", color: "#4F46E5" }}>
-                    <Phone size={14} />
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold"
+                    style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 10, color: "#2B4030" }}>
+                    <Phone size={13} />
                     Bellen
                   </a>
                 )}
                 {showDetail.email && (
                   <a href={`mailto:${showDetail.email}`}
-                    className="touch-scale flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold"
-                    style={{ background: "#fff", color: "#4F46E5" }}>
-                    <Mail size={14} />
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold"
+                    style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 10, color: "#2B4030" }}>
+                    <Mail size={13} />
                     Mail
                   </a>
                 )}
                 <button
-                  className="touch-scale flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold"
-                  style={{ background: "#25D366", color: "#fff" }}>
-                  <MessageCircle size={14} />
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold"
+                  style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 10, border: "none" }}>
+                  <MessageCircle size={13} />
                   Chat
                 </button>
               </div>
 
               {/* Tabs */}
-              <div className="flex gap-1 p-1 rounded-2xl mt-3" style={{ background: "#E2E8F0" }}>
+              <div className="flex gap-1 p-1 rounded-xl" style={{ background: "#EDE8DF" }}>
                 {(["overzicht", "jobs", "notities"] as const).map((t) => (
                   <button key={t} onClick={() => setDetailTab(t)}
-                    className="flex-1 py-2 rounded-xl text-xs font-bold capitalize"
+                    className="flex-1 py-2 rounded-lg text-xs font-semibold capitalize"
                     style={{
-                      background: detailTab === t ? "#fff" : "transparent",
-                      color: detailTab === t ? "#4F46E5" : "#64748b",
-                      boxShadow: detailTab === t ? "0 1px 3px rgba(0,0,0,0.10)" : "none",
+                      background: detailTab === t ? "#FBF7F0" : "transparent",
+                      color: detailTab === t ? "#2B4030" : "#8A8A83",
                     }}>
                     {t}
                     {t === "notities" && showDetail.notities.length > 0 && (
-                      <span className="ml-1 text-xs" style={{ color: "#94a3b8" }}>({showDetail.notities.length})</span>
+                      <span className="ml-1 text-xs" style={{ color: "#8A8A83" }}>({showDetail.notities.length})</span>
                     )}
                   </button>
                 ))}
@@ -490,69 +489,73 @@ export default function KlantenPage() {
               {/* OVERZICHT */}
               {detailTab === "overzicht" && (
                 <div className="flex flex-col gap-3 mt-3">
-                  {/* Stat cards */}
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-2xl p-3" style={{ background: "#fff" }}>
-                      <p className="text-xs font-semibold" style={{ color: "#94a3b8" }}>Totale omzet</p>
-                      <p className="font-black text-xl" style={{ color: "#10B981" }}>{fmtEur(totalOmzet(showDetail))}</p>
+                    <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 12 }}>
+                      <p className="text-xs font-medium mb-1" style={{ color: "#8A8A83" }}>Totale omzet</p>
+                      <p className="font-bold text-xl" style={{ color: "#2B4030", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+                        {fmtEur(totalOmzet(showDetail))}
+                      </p>
                     </div>
-                    <div className="rounded-2xl p-3" style={{ background: "#fff" }}>
-                      <p className="text-xs font-semibold" style={{ color: "#94a3b8" }}>Klussen</p>
-                      <p className="font-black text-xl" style={{ color: "#4F46E5" }}>{showDetail.jobs.length}</p>
+                    <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 12 }}>
+                      <p className="text-xs font-medium mb-1" style={{ color: "#8A8A83" }}>Klussen</p>
+                      <p className="font-bold text-xl" style={{ color: "#2B4030", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+                        {showDetail.jobs.length}
+                      </p>
                     </div>
                     {openstaand(showDetail) > 0 && (
-                      <div className="rounded-2xl p-3" style={{ background: "#FFFBEB" }}>
-                        <p className="text-xs font-semibold" style={{ color: "#D97706" }}>Openstaand</p>
-                        <p className="font-black text-xl" style={{ color: "#D97706" }}>{fmtEur(openstaand(showDetail))}</p>
+                      <div style={{ background: "#FAF0E6", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 12 }}>
+                        <p className="text-xs font-medium mb-1" style={{ color: "#C97A4D" }}>Openstaand</p>
+                        <p className="font-bold text-xl" style={{ color: "#C97A4D", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+                          {fmtEur(openstaand(showDetail))}
+                        </p>
                       </div>
                     )}
-                    <div className="rounded-2xl p-3" style={{ background: "#fff" }}>
-                      <p className="text-xs font-semibold" style={{ color: "#94a3b8" }}>Klant sinds</p>
-                      <p className="font-black text-sm" style={{ color: "#0f172a" }}>
+                    <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 12 }}>
+                      <p className="text-xs font-medium mb-1" style={{ color: "#8A8A83" }}>Klant sinds</p>
+                      <p className="font-semibold text-sm" style={{ color: "#1A1D1A" }}>
                         {new Date(showDetail.aangemaakt).toLocaleDateString("nl-NL", { month: "long", year: "numeric" })}
                       </p>
                     </div>
                   </div>
 
-                  {/* Contact info */}
                   {(showDetail.telefoon || showDetail.email || showDetail.adres) && (
-                    <div className="rounded-2xl p-4 flex flex-col gap-3" style={{ background: "#fff" }}>
+                    <div className="flex flex-col gap-3"
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
                       {showDetail.telefoon && (
                         <div className="flex items-center gap-3">
-                          <Phone size={14} style={{ color: "#94a3b8" }} />
-                          <p className="text-sm" style={{ color: "#374151" }}>{showDetail.telefoon}</p>
+                          <Phone size={14} style={{ color: "#8A8A83" }} />
+                          <p className="text-sm" style={{ color: "#5C5C56" }}>{showDetail.telefoon}</p>
                         </div>
                       )}
                       {showDetail.email && (
                         <div className="flex items-center gap-3">
-                          <Mail size={14} style={{ color: "#94a3b8" }} />
-                          <p className="text-sm truncate" style={{ color: "#374151" }}>{showDetail.email}</p>
+                          <Mail size={14} style={{ color: "#8A8A83" }} />
+                          <p className="text-sm truncate" style={{ color: "#5C5C56" }}>{showDetail.email}</p>
                         </div>
                       )}
                       {showDetail.adres && (
                         <div className="flex items-center gap-3">
-                          <MapPin size={14} style={{ color: "#94a3b8" }} />
-                          <p className="text-sm" style={{ color: "#374151" }}>{showDetail.adres}</p>
+                          <MapPin size={14} style={{ color: "#8A8A83" }} />
+                          <p className="text-sm" style={{ color: "#5C5C56" }}>{showDetail.adres}</p>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* Source */}
                   {showDetail.bron && (
-                    <div className="rounded-2xl px-4 py-3 flex items-center gap-2" style={{ background: "#EEF2FF" }}>
-                      <Tag size={14} style={{ color: "#4F46E5" }} />
-                      <p className="text-sm font-semibold" style={{ color: "#4F46E5" }}>
+                    <div className="flex items-center gap-2 px-4 py-3"
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+                      <Tag size={14} style={{ color: "#C97A4D" }} />
+                      <p className="text-sm font-medium" style={{ color: "#5C5C56" }}>
                         Gevonden via: {showDetail.bron}
                       </p>
                     </div>
                   )}
 
-                  {/* Delete */}
                   <button onClick={() => deleteKlant(showDetail.id)}
-                    className="touch-scale w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-                    style={{ background: "#FEF2F2", color: "#EF4444" }}>
-                    <Trash2 size={16} />
+                    className="w-full py-3 font-semibold text-sm flex items-center justify-center gap-2"
+                    style={{ background: "#F9EDEA", color: "#8A3A2A", borderRadius: 14, border: "0.5px solid #E5DDD0" }}>
+                    <Trash2 size={15} />
                     Klant verwijderen
                   </button>
                 </div>
@@ -562,25 +565,26 @@ export default function KlantenPage() {
               {detailTab === "jobs" && (
                 <div className="flex flex-col gap-2 mt-3">
                   {showDetail.jobs.length === 0 ? (
-                    <div className="rounded-2xl p-6 text-center" style={{ background: "#fff" }}>
+                    <div className="p-6 text-center"
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
                       <p className="text-2xl mb-2">🔧</p>
-                      <p className="font-bold" style={{ color: "#0f172a" }}>Nog geen klussen</p>
+                      <p className="font-semibold" style={{ color: "#1A1D1A" }}>Nog geen klussen</p>
                     </div>
                   ) : showDetail.jobs.map((job, i) => (
-                    <div key={i} className="rounded-2xl p-4 flex items-center gap-3"
-                      style={{ background: "#fff" }}>
+                    <div key={i} className="flex items-center gap-3"
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 14 }}>
                       <div className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ background: job.status === "betaald" ? "#10B981" : job.status === "openstaand" ? "#F59E0B" : "#94a3b8" }} />
+                        style={{ background: job.status === "betaald" ? "#2B4030" : job.status === "openstaand" ? "#C97A4D" : "#8A8A83" }} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate" style={{ color: "#0f172a" }}>{job.omschrijving}</p>
-                        <p className="text-xs" style={{ color: "#94a3b8" }}>
+                        <p className="text-sm font-medium truncate" style={{ color: "#1A1D1A" }}>{job.omschrijving}</p>
+                        <p className="text-xs" style={{ color: "#8A8A83" }}>
                           {new Date(job.datum).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" })}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-bold" style={{ color: "#0f172a" }}>{fmtEur(job.bedrag)}</p>
-                        <p className="text-xs font-semibold"
-                          style={{ color: job.status === "betaald" ? "#10B981" : job.status === "openstaand" ? "#F59E0B" : "#94a3b8" }}>
+                        <p className="text-sm font-semibold" style={{ color: "#1A1D1A" }}>{fmtEur(job.bedrag)}</p>
+                        <p className="text-xs font-medium"
+                          style={{ color: job.status === "betaald" ? "#2B4030" : job.status === "openstaand" ? "#C97A4D" : "#8A8A83" }}>
                           {job.status === "betaald" ? "Betaald" : job.status === "openstaand" ? "Openstaand" : "Offerte"}
                         </p>
                       </div>
@@ -592,30 +596,30 @@ export default function KlantenPage() {
               {/* NOTITIES */}
               {detailTab === "notities" && (
                 <div className="flex flex-col gap-3 mt-3">
-                  {/* Add note */}
                   {!showNotitiInput ? (
                     <button onClick={() => setShowNotitiInput(true)}
-                      className="touch-scale w-full py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2"
-                      style={{ background: "#EEF2FF", color: "#4F46E5" }}>
-                      <Plus size={16} />
+                      className="w-full py-3 font-semibold text-sm flex items-center justify-center gap-2"
+                      style={{ background: "transparent", color: "#2B4030", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+                      <Plus size={15} />
                       Notitie toevoegen
                     </button>
                   ) : (
-                    <div className="rounded-2xl p-4 flex flex-col gap-3" style={{ background: "#fff" }}>
+                    <div className="flex flex-col gap-3"
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 14 }}>
                       <textarea value={newNotitie} onChange={(e) => setNewNotitie(e.target.value)}
                         placeholder="Schrijf een notitie over deze klant…"
                         rows={3} autoFocus
-                        className="w-full rounded-xl px-3 py-2.5 text-sm resize-none"
-                        style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                        className="w-full resize-none text-sm"
+                        style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none" }} />
                       <div className="flex gap-2">
                         <button onClick={() => { setShowNotitiInput(false); setNewNotitie(""); }}
-                          className="touch-scale flex-1 py-2.5 rounded-xl font-bold text-sm"
-                          style={{ background: "#F3F4F6", color: "#64748b" }}>
+                          className="flex-1 py-2.5 font-semibold text-sm"
+                          style={{ background: "transparent", color: "#5C5C56", border: "0.5px solid #E5DDD0", borderRadius: 99 }}>
                           Annuleer
                         </button>
                         <button onClick={addNotitie}
-                          className="touch-scale flex-1 py-2.5 rounded-xl font-bold text-sm text-white"
-                          style={{ background: "#4F46E5" }}>
+                          className="flex-1 py-2.5 font-semibold text-sm"
+                          style={{ background: "#2B4030", color: "#F5EFE5", border: "none", borderRadius: 99 }}>
                           Opslaan
                         </button>
                       </div>
@@ -623,15 +627,17 @@ export default function KlantenPage() {
                   )}
 
                   {showDetail.notities.length === 0 && !showNotitiInput ? (
-                    <div className="rounded-2xl p-6 text-center" style={{ background: "#fff" }}>
-                      <StickyNote size={28} style={{ color: "#CBD5E1", margin: "0 auto 8px" }} />
-                      <p className="font-bold" style={{ color: "#0f172a" }}>Nog geen notities</p>
-                      <p className="text-sm mt-1" style={{ color: "#64748b" }}>Voeg notities toe over afspraken, voorkeuren, etc.</p>
+                    <div className="p-6 text-center"
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14 }}>
+                      <StickyNote size={26} style={{ color: "#E5DDD0", margin: "0 auto 8px" }} />
+                      <p className="font-semibold" style={{ color: "#1A1D1A" }}>Nog geen notities</p>
+                      <p className="text-sm mt-1" style={{ color: "#8A8A83" }}>Voeg notities toe over afspraken, voorkeuren, etc.</p>
                     </div>
                   ) : showDetail.notities.map((n) => (
-                    <div key={n.id} className="rounded-2xl p-4" style={{ background: "#fff" }}>
-                      <p className="text-xs font-semibold mb-1" style={{ color: "#94a3b8" }}>{n.datum}</p>
-                      <p className="text-sm leading-relaxed" style={{ color: "#374151" }}>{n.tekst}</p>
+                    <div key={n.id}
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 14 }}>
+                      <p className="text-xs font-medium mb-1" style={{ color: "#8A8A83" }}>{n.datum}</p>
+                      <p className="text-sm leading-relaxed" style={{ color: "#5C5C56" }}>{n.tekst}</p>
                     </div>
                   ))}
                 </div>
@@ -644,64 +650,61 @@ export default function KlantenPage() {
       {/* ── Nieuw klant sheet ────────────────────────────────────────────────── */}
       {showNieuw && (
         <div className="fixed inset-0 z-50 flex items-end"
-          style={{ background: "rgba(0,0,0,0.5)" }}
+          style={{ background: "rgba(0,0,0,0.45)" }}
           onClick={() => setShowNieuw(false)}>
-          <div className="w-full max-w-[480px] mx-auto rounded-t-[32px] overflow-hidden max-h-[88dvh] overflow-y-auto"
-            style={{ background: "#fff" }}
+          <div className="w-full max-w-[480px] mx-auto rounded-t-[24px] overflow-hidden max-h-[88dvh] overflow-y-auto"
+            style={{ background: "#FBF7F0" }}
             onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
-              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5E7EB" }} />
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: "#E5DDD0" }} />
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-lg font-black" style={{ color: "#0f172a" }}>Nieuwe klant</h2>
+                <h2 className="text-lg font-bold" style={{ color: "#1A1D1A", fontFamily: "'Source Serif 4', Georgia, serif" }}>
+                  Nieuwe klant
+                </h2>
                 <button onClick={() => setShowNieuw(false)}
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: "#F3F4F6" }}>
-                  <X size={16} style={{ color: "#6B7280" }} />
+                  style={{ background: "#F5EFE5", border: "0.5px solid #E5DDD0" }}>
+                  <X size={15} style={{ color: "#8A8A83" }} />
                 </button>
               </div>
 
               <div className="flex flex-col gap-4">
-                {/* Naam */}
                 <NieuwField label="Naam *">
                   <input value={form.naam ?? ""} onChange={(e) => setForm((f) => ({ ...f, naam: e.target.value }))}
                     placeholder="Volledige naam…" autoFocus
-                    className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                    style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                    className="w-full"
+                    style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none" }} />
                 </NieuwField>
 
-                {/* Email + tel */}
                 <div className="grid grid-cols-2 gap-3">
                   <NieuwField label="Email">
                     <input type="email" value={form.email ?? ""} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                       placeholder="email@…"
-                      className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                      style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                   </NieuwField>
                   <NieuwField label="Telefoon">
                     <input type="tel" value={form.telefoon ?? ""} onChange={(e) => setForm((f) => ({ ...f, telefoon: e.target.value }))}
                       placeholder="06-…"
-                      className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                      style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                      style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                   </NieuwField>
                 </div>
 
-                {/* Adres */}
                 <NieuwField label="Adres">
                   <input value={form.adres ?? ""} onChange={(e) => setForm((f) => ({ ...f, adres: e.target.value }))}
                     placeholder="Straat + huisnummer, Stad…"
-                    className="w-full rounded-2xl px-4 py-3.5 text-sm"
-                    style={{ background: "#F8FAFC", border: "1.5px solid #E2E8F0", color: "#0f172a" }} />
+                    style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1A1D1A", outline: "none", width: "100%" }} />
                 </NieuwField>
 
-                {/* Status */}
                 <NieuwField label="Status">
                   <div className="flex gap-2">
                     {(["actief", "prospect", "inactief"] as KlantStatus[]).map((s) => (
                       <button key={s} onClick={() => setForm((f) => ({ ...f, status: s }))}
-                        className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                        className="flex-1 py-2.5 text-xs font-semibold"
                         style={{
-                          background: form.status === s ? STATUS_CFG[s].kleur : "#F3F4F6",
-                          color: form.status === s ? "#fff" : "#64748b",
+                          background: form.status === s ? "#2B4030" : "transparent",
+                          color: form.status === s ? "#F5EFE5" : "#5C5C56",
+                          borderRadius: 99,
+                          border: form.status === s ? "none" : "0.5px solid #E5DDD0",
                         }}>
                         {STATUS_CFG[s].label}
                       </button>
@@ -709,7 +712,6 @@ export default function KlantenPage() {
                   </div>
                 </NieuwField>
 
-                {/* Labels */}
                 <NieuwField label="Labels">
                   <div className="flex flex-wrap gap-2">
                     {(Object.keys(LABEL_CFG) as Label[]).map((l) => {
@@ -717,10 +719,12 @@ export default function KlantenPage() {
                       const active = (form.labels ?? []).includes(l);
                       return (
                         <button key={l} onClick={() => toggleLabel(l)}
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold"
                           style={{
-                            background: active ? cfg.kleur : "#F3F4F6",
-                            color: active ? "#fff" : "#64748b",
+                            background: active ? "#2B4030" : "transparent",
+                            color: active ? "#F5EFE5" : "#5C5C56",
+                            borderRadius: 99,
+                            border: active ? "none" : "0.5px solid #E5DDD0",
                           }}>
                           {cfg.icon} {cfg.naam}
                         </button>
@@ -729,15 +733,16 @@ export default function KlantenPage() {
                   </div>
                 </NieuwField>
 
-                {/* Bron */}
                 <NieuwField label="Bron">
                   <div className="flex gap-2 flex-wrap">
                     {["Servr", "WhatsApp", "Aanbeveling", "Google", "Overig"].map((b) => (
                       <button key={b} onClick={() => setForm((f) => ({ ...f, bron: b }))}
-                        className="px-3 py-2 rounded-xl text-xs font-bold"
+                        className="px-3 py-2 text-xs font-semibold"
                         style={{
-                          background: form.bron === b ? "#4F46E5" : "#F3F4F6",
-                          color: form.bron === b ? "#fff" : "#64748b",
+                          background: form.bron === b ? "#2B4030" : "transparent",
+                          color: form.bron === b ? "#F5EFE5" : "#5C5C56",
+                          borderRadius: 99,
+                          border: form.bron === b ? "none" : "0.5px solid #E5DDD0",
                         }}>
                         {b}
                       </button>
@@ -745,23 +750,22 @@ export default function KlantenPage() {
                   </div>
                 </NieuwField>
 
-                {/* Rating */}
                 <NieuwField label="Beoordeling">
                   <div className="flex gap-2">
                     {[1, 2, 3, 4, 5].map((r) => (
                       <button key={r} onClick={() => setForm((f) => ({ ...f, rating: r }))}
-                        className="flex-1 py-2.5 rounded-xl flex items-center justify-center">
-                        <Star size={20} fill={r <= (form.rating ?? 0) ? "#F59E0B" : "none"}
-                          style={{ color: r <= (form.rating ?? 0) ? "#F59E0B" : "#D1D5DB" }} />
+                        className="flex-1 py-2.5 flex items-center justify-center">
+                        <Star size={20} fill={r <= (form.rating ?? 0) ? "#C97A4D" : "none"}
+                          style={{ color: r <= (form.rating ?? 0) ? "#C97A4D" : "#E5DDD0" }} />
                       </button>
                     ))}
                   </div>
                 </NieuwField>
 
                 <button onClick={saveNieuw} disabled={!form.naam}
-                  className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2 disabled:opacity-40"
-                  style={{ background: "#4F46E5" }}>
-                  <Plus size={18} />
+                  className="w-full py-4 font-semibold flex items-center justify-center gap-2 disabled:opacity-40"
+                  style={{ background: "#2B4030", color: "#F5EFE5", borderRadius: 99, border: "none" }}>
+                  <Plus size={17} />
                   Klant opslaan
                 </button>
               </div>
@@ -777,7 +781,7 @@ export default function KlantenPage() {
 function NieuwField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-xs font-bold uppercase tracking-wide mb-2 block" style={{ color: "#64748b" }}>
+      <label className="text-xs font-semibold uppercase tracking-wide mb-2 block" style={{ color: "#8A8A83" }}>
         {label}
       </label>
       {children}

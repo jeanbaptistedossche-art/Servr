@@ -71,22 +71,22 @@ export default function CookiesPage() {
   return (
     <div className="flex flex-col min-h-full pb-32 animate-fade-in">
       <div className="px-5 pt-12 pb-5 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <div className="flex items-center gap-3">
           <Link href="/instellingen"
             className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: "var(--surface-2)" }}>
+            style={{ background: "#EDE4D2" }}>
             <ArrowLeft size={18} />
           </Link>
           <div>
             <h1 className="font-black text-xl">Cookie-instellingen</h1>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>Beheer jouw cookievoorkeuren</p>
+            <p className="text-xs" style={{ color: "#8A8A83" }}>Beheer jouw cookievoorkeuren</p>
           </div>
         </div>
       </div>
 
       <div className="px-5 pt-5 flex flex-col gap-4">
-        <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
+        <p className="text-sm leading-relaxed" style={{ color: "#8A8A83" }}>
           Servr gebruikt cookies en vergelijkbare technologieën om de app te laten werken en jouw ervaring te verbeteren. Hieronder kun je per categorie jouw voorkeuren instellen.
         </p>
 
@@ -98,12 +98,12 @@ export default function CookiesPage() {
                   <p className="font-bold text-sm">{cat.naam}</p>
                   {cat.verplicht && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+                      style={{ background: "#EDE4D2", color: "#8A8A83" }}>
                       Verplicht
                     </span>
                   )}
                 </div>
-                <p className="text-xs leading-relaxed" style={{ color: "var(--muted)" }}>
+                <p className="text-xs leading-relaxed" style={{ color: "#8A8A83" }}>
                   {cat.beschrijving}
                 </p>
               </div>
@@ -111,7 +111,7 @@ export default function CookiesPage() {
                 onClick={() => toggle(cat.id)}
                 className="touch-scale relative w-12 h-6 rounded-full flex-shrink-0 transition-all duration-200"
                 style={{
-                  background: actief[cat.id] ? "var(--teal)" : "var(--surface-2)",
+                  background: actief[cat.id] ? "#2B4030" : "#EDE4D2",
                   opacity: cat.verplicht ? 0.6 : 1,
                 }}>
                 <span
@@ -123,7 +123,7 @@ export default function CookiesPage() {
             <div className="flex flex-wrap gap-1.5 mt-2">
               {cat.voorbeelden.map(v => (
                 <span key={v} className="text-[11px] px-2 py-0.5 rounded-full"
-                  style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+                  style={{ background: "#EDE4D2", color: "#8A8A83" }}>
                   {v}
                 </span>
               ))}
@@ -134,16 +134,16 @@ export default function CookiesPage() {
 
       {/* Sticky opslaan */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] px-5 pb-6 pt-4"
-        style={{ background: "var(--background)", borderTop: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderTop: "1px solid #E5DDD0" }}>
         <div className="flex gap-3">
           <button onClick={accepteerAlle}
             className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm border"
-            style={{ borderColor: "var(--teal)", color: "var(--teal)" }}>
+            style={{ borderColor: "#2B4030", color: "#2B4030" }}>
             Alle accepteren
           </button>
           <button onClick={slaOp}
             className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2"
-            style={{ background: opgeslagen ? "#16a34a" : "var(--teal)" }}>
+            style={{ background: opgeslagen ? "#16a34a" : "#2B4030" }}>
             {opgeslagen ? <><Check size={16} /> Opgeslagen!</> : "Opslaan"}
           </button>
         </div>

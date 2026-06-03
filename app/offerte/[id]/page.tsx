@@ -77,7 +77,7 @@ function StripeForm({ totaal, nummer, onSuccess, onBack }: {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="rounded-2xl overflow-hidden border" style={{ borderColor: "var(--border)" }}>
+      <div className="rounded-2xl overflow-hidden border" style={{ borderColor: "#E5DDD0" }}>
         <PaymentElement options={{ layout: "tabs", paymentMethodOrder: ["apple_pay", "google_pay", "card", "bancontact", "ideal"] }} />
       </div>
       {fout && (
@@ -87,15 +87,15 @@ function StripeForm({ totaal, nummer, onSuccess, onBack }: {
       )}
       <button type="submit" disabled={!stripe || bezig}
         className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-        style={{ background: stripe && !bezig ? "var(--teal)" : "var(--muted)" }}>
+        style={{ background: stripe && !bezig ? "#2B4030" : "#8A8A83" }}>
         {bezig ? <><Loader2 size={18} className="animate-spin" /> Even wachten…</> : <><Lock size={18} /> Betaal €{fmt(totaal)}</>}
       </button>
       <button type="button" onClick={onBack}
         className="touch-scale w-full py-3 rounded-2xl font-semibold text-sm border"
-        style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+        style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
         Terug
       </button>
-      <p className="text-center text-xs flex items-center justify-center gap-1" style={{ color: "var(--muted)" }}>
+      <p className="text-center text-xs flex items-center justify-center gap-1" style={{ color: "#8A8A83" }}>
         <Lock size={10} /> Beveiligd door Stripe · SSL versleuteld
       </p>
     </form>
@@ -157,42 +157,42 @@ function BetaalSectie({ totaal, nummer, onSuccess, onBack }: {
     <div className="flex flex-col gap-3">
       <button onClick={startBetaling}
         className="touch-scale w-full py-4 rounded-2xl font-black text-white text-base flex items-center justify-center gap-2"
-        style={{ background: "var(--teal)" }}>
+        style={{ background: "#2B4030" }}>
         <Lock size={20} /> Betaal nu €{fmt(totaal)}
       </button>
       <button onClick={onBack}
         className="touch-scale w-full py-3 rounded-2xl font-semibold text-sm border"
-        style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+        style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
         Terug
       </button>
-      <p className="text-xs text-center" style={{ color: "var(--muted)" }}>🔒 Beveiligd via Stripe</p>
+      <p className="text-xs text-center" style={{ color: "#8A8A83" }}>🔒 Beveiligd via Stripe</p>
     </div>
   );
 
   if (loading) return (
     <div className="flex flex-col items-center py-10 gap-3">
-      <Loader2 size={28} className="animate-spin" style={{ color: "var(--teal)" }} />
-      <p className="text-sm" style={{ color: "var(--muted)" }}>Betaalmethoden laden…</p>
+      <Loader2 size={28} className="animate-spin" style={{ color: "#2B4030" }} />
+      <p className="text-sm" style={{ color: "#8A8A83" }}>Betaalmethoden laden…</p>
     </div>
   );
 
   // Stripe werkt → toon Elements
   if (clientSecret && stripeInstance) return (
     <Elements stripe={stripeInstance} options={{ clientSecret, appearance: { theme: "stripe", variables: { colorPrimary: "#0F6E56", borderRadius: "16px" } } }}>
-      <div className="flex flex-col gap-2 mb-3 p-3 rounded-2xl text-xs" style={{ background: "var(--surface-2)" }}>
+      <div className="flex flex-col gap-2 mb-3 p-3 rounded-2xl text-xs" style={{ background: "#EDE4D2" }}>
         <div className="flex justify-between">
-          <span style={{ color: "var(--muted)" }}>Klus</span>
+          <span style={{ color: "#8A8A83" }}>Klus</span>
           <span>€{fmt(totaal)}</span>
         </div>
         {(serviceFee ?? 0) > 0 && (
           <div className="flex justify-between">
-            <span style={{ color: "var(--muted)" }}>Service fee</span>
+            <span style={{ color: "#8A8A83" }}>Service fee</span>
             <span>€{fmt(serviceFee!)}</span>
           </div>
         )}
-        <div className="flex justify-between font-black border-t pt-2" style={{ borderColor: "var(--border)" }}>
+        <div className="flex justify-between font-black border-t pt-2" style={{ borderColor: "#E5DDD0" }}>
           <span>Totaal</span>
-          <span style={{ color: "var(--teal)" }}>€{fmt(chargeAmount ?? totaal)}</span>
+          <span style={{ color: "#2B4030" }}>€{fmt(chargeAmount ?? totaal)}</span>
         </div>
       </div>
       <StripeForm totaal={chargeAmount ?? totaal} nummer={nummer} onSuccess={onSuccess} onBack={onBack} />
@@ -211,18 +211,18 @@ function BetaalSectie({ totaal, nummer, onSuccess, onBack }: {
         {["ING", "ABN AMRO", "Rabobank", "KBC", "Belfius"].map(b => (
           <button key={b} onClick={() => setMockBank(b)}
             className="touch-scale flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2"
-            style={{ borderColor: mockBank === b ? "var(--teal)" : "var(--border)", background: mockBank === b ? "var(--teal)" + "10" : "var(--surface)" }}>
+            style={{ borderColor: mockBank === b ? "#2B4030" : "#E5DDD0", background: mockBank === b ? "#2B4030" + "10" : "#FBF7F0" }}>
             <span className="text-lg">🏦</span>
             <span className="flex-1 text-sm font-semibold text-left">{b}</span>
-            <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: mockBank === b ? "var(--teal)" : "var(--border)" }}>
-              {mockBank === b && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--teal)" }} />}
+            <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: mockBank === b ? "#2B4030" : "#E5DDD0" }}>
+              {mockBank === b && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#2B4030" }} />}
             </div>
           </button>
         ))}
       </div>
       <button onClick={onSuccess}
         className="touch-scale w-full py-4 rounded-2xl font-bold text-white"
-        style={{ background: "var(--teal)" }}>
+        style={{ background: "#2B4030" }}>
         Betaal via {mockBank} · €{fmt(totaal)}
       </button>
     </div>
@@ -247,13 +247,13 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
   if (fase === "succes") return (
     <div className="flex flex-col items-center justify-center min-h-dvh gap-6 px-6 text-center animate-bounce-in pb-24">
       <div className="relative">
-        <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: "var(--teal)" }}>
+        <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: "#2B4030" }}>
           <CheckCircle size={48} color="white" />
         </div>
       </div>
       <div>
         <h2 className="font-black text-2xl mb-2">Betaald! 🎉</h2>
-        <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
+        <p className="text-sm leading-relaxed" style={{ color: "#8A8A83" }}>
           <strong>€{fmt(totaal)}</strong> succesvol betaald.
         </p>
       </div>
@@ -261,16 +261,16 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
         <p className="font-bold text-sm mb-1">Betalingsbevestiging</p>
         {extra.regels.filter(r => r.bedrag > 0).map((r, i) => (
           <div key={i} className="flex justify-between text-sm">
-            <span style={{ color: "var(--muted)" }}>{r.omschrijving}</span>
+            <span style={{ color: "#8A8A83" }}>{r.omschrijving}</span>
             <span>€{fmt(r.bedrag)}</span>
           </div>
         ))}
-        <div className="flex justify-between text-base font-black pt-2 border-t" style={{ borderColor: "var(--border)" }}>
+        <div className="flex justify-between text-base font-black pt-2 border-t" style={{ borderColor: "#E5DDD0" }}>
           <span>Totaal betaald</span>
-          <span style={{ color: "var(--teal)" }}>€{fmt(totaal)}</span>
+          <span style={{ color: "#2B4030" }}>€{fmt(totaal)}</span>
         </div>
       </div>
-      <Link href="/" className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-center" style={{ background: "var(--teal)" }}>
+      <Link href="/" className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-center" style={{ background: "#2B4030" }}>
         Terug naar home
       </Link>
     </div>
@@ -280,7 +280,7 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
   if (fase === "betalen") return (
     <div className="flex flex-col min-h-full pb-8 animate-fade-in">
       <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <button onClick={() => setFase("geaccepteerd")}
           className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
           <ArrowLeft size={18} />
@@ -289,33 +289,33 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
       </div>
       <div className="px-5 pt-5 flex flex-col gap-5">
         <div className="card overflow-hidden">
-          <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+          <div className="px-4 py-3 border-b" style={{ borderColor: "#E5DDD0", background: "#EDE4D2" }}>
             <p className="font-bold text-sm">Overzicht {extra.nummer}</p>
           </div>
           <div className="px-4 py-3 flex flex-col gap-2">
             {extra.regels.map((r, i) => (
               <div key={i} className="flex justify-between text-sm">
-                <span style={{ color: r.bedrag === 0 ? "var(--muted)" : "var(--foreground)" }}>
+                <span style={{ color: r.bedrag === 0 ? "#8A8A83" : "#1A1D1A" }}>
                   {r.omschrijving}{r.qty && r.tarief ? ` (${r.qty}× €${fmt(r.tarief)})` : ""}
                 </span>
-                <span style={{ color: r.bedrag === 0 ? "var(--muted)" : "var(--foreground)" }}>
+                <span style={{ color: r.bedrag === 0 ? "#8A8A83" : "#1A1D1A" }}>
                   {r.bedrag === 0 ? "Gratis" : `€${fmt(r.bedrag)}`}
                 </span>
               </div>
             ))}
           </div>
-          <div className="px-4 py-3 border-t flex flex-col gap-1" style={{ borderColor: "var(--border)" }}>
+          <div className="px-4 py-3 border-t flex flex-col gap-1" style={{ borderColor: "#E5DDD0" }}>
             <div className="flex justify-between text-sm">
-              <span style={{ color: "var(--muted)" }}>Klus subtotaal</span>
+              <span style={{ color: "#8A8A83" }}>Klus subtotaal</span>
               <span>€{fmt(totaal)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span style={{ color: "var(--muted)" }}>Service fee (5%)</span>
+              <span style={{ color: "#8A8A83" }}>Service fee (5%)</span>
               <span>€{fmt(totaal * 0.05)}</span>
             </div>
             <div className="flex justify-between font-black text-base pt-1">
               <span>Totaal te betalen</span>
-              <span style={{ color: "var(--teal)" }}>€{fmt(totaal * 1.05)}</span>
+              <span style={{ color: "#2B4030" }}>€{fmt(totaal * 1.05)}</span>
             </div>
           </div>
         </div>
@@ -328,14 +328,14 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
   if (fase === "geaccepteerd") return (
     <div className="flex flex-col min-h-full pb-8 animate-fade-in">
       <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <Link href="/mijn-opdrachten" className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
           <ArrowLeft size={18} />
         </Link>
         <h1 className="font-black text-lg">Klus in uitvoering</h1>
       </div>
       <div className="px-5 pt-5 flex flex-col gap-4">
-        <div className="rounded-3xl overflow-hidden" style={{ background: "linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
+        <div className="rounded-3xl overflow-hidden" style={{ background: "linear-gradient(135deg, #2B4030 0%, #1A2D22 100%)" }}>
           <div className="px-6 py-6 text-center">
             <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
               <CheckCircle size={32} color="white" />
@@ -345,8 +345,8 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
           </div>
         </div>
         <div className="card p-4 flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--teal)" + "15" }}>
-            <MapPin size={18} style={{ color: "var(--teal)" }} />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#2B4030" + "15" }}>
+            <MapPin size={18} style={{ color: "#2B4030" }} />
           </div>
           <div>
             <p className="font-bold text-sm">Jouw adres is nu zichtbaar</p>
@@ -361,26 +361,26 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
               <div className="flex items-center gap-1.5 mt-0.5">
                 <Star size={12} className="fill-yellow-400 text-yellow-400" />
                 <span className="text-xs font-bold">4.9</span>
-                <span className="text-xs" style={{ color: "var(--muted)" }}>(127 reviews)</span>
+                <span className="text-xs" style={{ color: "#8A8A83" }}>(127 reviews)</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: "var(--surface-2)" }}>
-            <Clock size={14} style={{ color: "var(--teal)" }} />
+          <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: "#EDE4D2" }}>
+            <Clock size={14} style={{ color: "#2B4030" }} />
             <p className="text-sm font-semibold">Komt: <strong>{offerte.eta}</strong></p>
           </div>
         </div>
         <Link href={`/chat/${extra.chatId}`}
           className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-center flex items-center justify-center gap-2"
-          style={{ background: "var(--teal)" }}>
+          style={{ background: "#2B4030" }}>
           <MessageCircle size={18} /> Chat met {offerte.vakman.split(" ")[0]}
         </Link>
         <div className="card p-5">
           <p className="font-bold text-sm mb-1">Klus afgerond?</p>
-          <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>Betaal pas nadat de vakman zijn werk heeft gedaan en jij tevreden bent.</p>
+          <p className="text-xs mb-4" style={{ color: "#8A8A83" }}>Betaal pas nadat de vakman zijn werk heeft gedaan en jij tevreden bent.</p>
           <button onClick={() => setFase("betalen")}
             className="touch-scale w-full py-3.5 rounded-2xl font-bold text-white text-sm"
-            style={{ background: "var(--teal)" }}>
+            style={{ background: "#2B4030" }}>
             💳 Klus betalen — €{fmt(totaal)}
           </button>
         </div>
@@ -392,23 +392,23 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
   return (
     <div className="flex flex-col min-h-full pb-10 animate-fade-in">
       <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <Link href="/offertes" className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
           <ArrowLeft size={18} />
         </Link>
         <div className="flex-1">
           <h1 className="font-black text-lg">Offerte</h1>
-          <p className="text-xs" style={{ color: "var(--muted)" }}>{extra.nummer}</p>
+          <p className="text-xs" style={{ color: "#8A8A83" }}>{extra.nummer}</p>
         </div>
         <Link href={`/chat/${extra.chatId}`}
           className="touch-scale flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border"
-          style={{ borderColor: "var(--teal)", color: "var(--teal)" }}>
+          style={{ borderColor: "#2B4030", color: "#2B4030" }}>
           <MessageCircle size={13} /> Vraag stellen
         </Link>
       </div>
       <div className="px-5 pt-4 flex flex-col gap-4">
         <div className="card overflow-hidden">
-          <div className="px-5 py-5" style={{ background: "linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
+          <div className="px-5 py-5" style={{ background: "linear-gradient(135deg, #2B4030 0%, #1A2D22 100%)" }}>
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-3">
@@ -426,50 +426,50 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
               <img src={offerte.vakmanAvatar} className="w-14 h-14 rounded-2xl object-cover" style={{ border: "2px solid rgba(255,255,255,0.3)" }} alt="" />
             </div>
           </div>
-          <div className="px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
-            <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "var(--muted)" }}>Van</p>
+          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
+            <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "#8A8A83" }}>Van</p>
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 <p className="font-black text-sm">{offerte.vakman}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{extra.vakmanBedrijf}</p>
+                <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>{extra.vakmanBedrijf}</p>
                 <div className="flex items-center gap-3 mt-1.5">
                   <div className="flex items-center gap-1">
                     <Star size={11} className="fill-yellow-400 text-yellow-400" />
                     <span className="text-xs font-bold">4.9</span>
-                    <span className="text-xs" style={{ color: "var(--muted)" }}>(127)</span>
+                    <span className="text-xs" style={{ color: "#8A8A83" }}>(127)</span>
                   </div>
-                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full" style={{ background: "var(--teal)", color: "white" }}>
+                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full" style={{ background: "#2B4030", color: "white" }}>
                     S{offerte.vakmanScore}
                   </span>
                 </div>
               </div>
-              <a href={`tel:${extra.vakmanTel}`} className="touch-scale w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "var(--teal)" + "12" }}>
-                <Phone size={16} style={{ color: "var(--teal)" }} />
+              <a href={`tel:${extra.vakmanTel}`} className="touch-scale w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#2B4030" + "12" }}>
+                <Phone size={16} style={{ color: "#2B4030" }} />
               </a>
             </div>
           </div>
-          <div className="px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
-            <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "var(--muted)" }}>Voor</p>
+          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
+            <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "#8A8A83" }}>Voor</p>
             <p className="font-bold text-sm">{opdracht.categorieIcon} {opdracht.title}</p>
             <div className="flex items-center gap-1.5 mt-1">
-              <Clock size={11} style={{ color: "var(--teal)" }} />
-              <p className="text-xs font-semibold" style={{ color: "var(--teal)" }}>Uitvoering: {offerte.eta}</p>
+              <Clock size={11} style={{ color: "#2B4030" }} />
+              <p className="text-xs font-semibold" style={{ color: "#2B4030" }}>Uitvoering: {offerte.eta}</p>
             </div>
           </div>
-          <div className="px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
-            <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "var(--muted)" }}>Omschrijving</p>
+          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
+            <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "#8A8A83" }}>Omschrijving</p>
             <p className="text-sm leading-relaxed">{offerte.beschrijving}</p>
           </div>
-          <div className="px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
-            <p className="text-[10px] font-bold uppercase mb-3" style={{ color: "var(--muted)" }}>Prijsopbouw</p>
+          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
+            <p className="text-[10px] font-bold uppercase mb-3" style={{ color: "#8A8A83" }}>Prijsopbouw</p>
             <div className="flex flex-col gap-2.5">
               {extra.regels.map((r, i) => (
                 <div key={i} className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <p className="text-sm">{r.omschrijving}</p>
-                    {r.qty && r.tarief ? <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{r.qty} {r.eenheid} × €{fmt(r.tarief)}</p> : null}
+                    {r.qty && r.tarief ? <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>{r.qty} {r.eenheid} × €{fmt(r.tarief)}</p> : null}
                   </div>
-                  <p className="text-sm font-semibold flex-shrink-0" style={{ color: r.bedrag === 0 ? "var(--muted)" : "var(--foreground)" }}>
+                  <p className="text-sm font-semibold flex-shrink-0" style={{ color: r.bedrag === 0 ? "#8A8A83" : "#1A1D1A" }}>
                     {r.bedrag === 0 ? "Gratis" : `€${fmt(r.bedrag)}`}
                   </p>
                 </div>
@@ -479,18 +479,18 @@ export default function OffertePage({ params }: { params: Promise<{ id: string }
           <div className="px-5 py-4">
             <div className="flex justify-between items-center pt-1">
               <span className="font-black text-base">Totaal</span>
-              <span className="font-black text-2xl" style={{ color: "var(--teal)" }}>€{fmt(totaal)}</span>
+              <span className="font-black text-2xl" style={{ color: "#2B4030" }}>€{fmt(totaal)}</span>
             </div>
-            <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>Je betaalt pas nadat de klus naar wens is afgerond.</p>
+            <p className="text-xs mt-2" style={{ color: "#8A8A83" }}>Je betaalt pas nadat de klus naar wens is afgerond.</p>
           </div>
         </div>
         <div className="flex gap-3 pt-1">
-          <Link href="/offertes" className="touch-scale flex-1 py-4 rounded-2xl font-bold text-sm text-center border" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+          <Link href="/offertes" className="touch-scale flex-1 py-4 rounded-2xl font-bold text-sm text-center border" style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
             ✕ Weigeren
           </Link>
           <button onClick={() => setFase("geaccepteerd")}
             className="touch-scale flex-[2] py-4 rounded-2xl font-black text-white text-sm flex items-center justify-center gap-2"
-            style={{ background: "var(--teal)" }}>
+            style={{ background: "#2B4030" }}>
             <CheckCircle size={18} /> Accepteer offerte
           </button>
         </div>

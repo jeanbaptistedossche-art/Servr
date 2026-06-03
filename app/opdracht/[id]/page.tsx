@@ -23,13 +23,13 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
       <span className="text-6xl">👋</span>
       <div>
         <h2 className="font-black text-xl mb-2">Opdracht geweigerd</h2>
-        <p className="text-sm" style={{ color: "var(--muted)" }}>
+        <p className="text-sm" style={{ color: "#8A8A83" }}>
           Geen probleem — er komen meer opdrachten in jouw buurt.
         </p>
       </div>
       <button onClick={() => router.push("/dashboard")}
         className="touch-scale px-6 py-3.5 rounded-2xl font-bold text-white"
-        style={{ background: "var(--teal)" }}>
+        style={{ background: "#2B4030" }}>
         Terug naar dashboard
       </button>
     </div>
@@ -40,20 +40,20 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
       <span className="text-6xl">🎉</span>
       <div>
         <h2 className="font-black text-xl mb-2">Offerte verstuurd!</h2>
-        <p className="text-sm" style={{ color: "var(--muted)" }}>
+        <p className="text-sm" style={{ color: "#8A8A83" }}>
           Je offerte van <strong>€{prijs}</strong> is verstuurd naar {opdracht.klant}.<br />
           Je hoort het zodra zij accepteren.
         </p>
       </div>
       <div className="card p-4 w-full text-left">
-        <p className="text-xs font-bold uppercase mb-2" style={{ color: "var(--muted)" }}>Jouw offerte</p>
-        <p className="font-black text-2xl mb-1" style={{ color: "var(--teal)" }}>€{prijs}</p>
-        <p className="text-sm" style={{ color: "var(--muted)" }}>{offerteText}</p>
-        <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>📅 {eta}</p>
+        <p className="text-xs font-bold uppercase mb-2" style={{ color: "#8A8A83" }}>Jouw offerte</p>
+        <p className="font-black text-2xl mb-1" style={{ color: "#2B4030" }}>€{prijs}</p>
+        <p className="text-sm" style={{ color: "#8A8A83" }}>{offerteText}</p>
+        <p className="text-xs mt-2" style={{ color: "#8A8A83" }}>📅 {eta}</p>
       </div>
       <button onClick={() => router.push("/dashboard")}
         className="touch-scale w-full py-3.5 rounded-2xl font-bold text-white"
-        style={{ background: "var(--teal)" }}>
+        style={{ background: "#2B4030" }}>
         Terug naar dashboard
       </button>
     </div>
@@ -63,7 +63,7 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
     <div className="flex flex-col min-h-full pb-8 animate-fade-in">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <button onClick={() => router.back()}
           className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
           <ArrowLeft size={18} />
@@ -83,11 +83,11 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
           <img src={opdracht.klantAvatar} className="w-14 h-14 rounded-2xl object-cover" alt="" />
           <div className="flex-1">
             <p className="font-bold text-base">{opdracht.klant}</p>
-            <p className="text-sm" style={{ color: "var(--muted)" }}>Klant</p>
+            <p className="text-sm" style={{ color: "#8A8A83" }}>Klant</p>
           </div>
           <Link href={`/chat/new`}
             className="touch-scale w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "var(--teal)" + "15", color: "var(--teal)" }}>
+            style={{ background: "#2B4030" + "15", color: "#2B4030" }}>
             <MessageCircle size={18} />
           </Link>
         </div>
@@ -102,31 +102,31 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
         {/* Details */}
         <div className="card p-4 flex flex-col gap-3">
           <div>
-            <p className="text-xs font-bold uppercase mb-1" style={{ color: "var(--muted)" }}>Categorie</p>
+            <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>Categorie</p>
             <p className="font-semibold">{opdracht.categorieIcon} {opdracht.categorie}</p>
           </div>
-          <div className="h-px" style={{ background: "var(--border)" }} />
+          <div className="h-px" style={{ background: "#E5DDD0" }} />
           <div>
-            <p className="text-xs font-bold uppercase mb-1" style={{ color: "var(--muted)" }}>Beschrijving</p>
+            <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>Beschrijving</p>
             <p className="text-sm leading-relaxed">{opdracht.beschrijving}</p>
           </div>
-          <div className="h-px" style={{ background: "var(--border)" }} />
+          <div className="h-px" style={{ background: "#E5DDD0" }} />
           <div className="flex gap-4">
             <div className="flex-1">
-              <p className="text-xs font-bold uppercase mb-1" style={{ color: "var(--muted)" }}>Urgentie</p>
+              <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>Urgentie</p>
               <div className="flex items-center gap-1.5">
                 <AlertTriangle size={14} style={{ color: urgentieKleur }} />
                 <span className="font-semibold text-sm" style={{ color: urgentieKleur }}>{urgentieLabel}</span>
               </div>
             </div>
             <div className="flex-1">
-              <p className="text-xs font-bold uppercase mb-1" style={{ color: "var(--muted)" }}>Budget</p>
-              <p className="font-semibold text-sm" style={{ color: "var(--teal)" }}>{opdracht.budget}</p>
+              <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>Budget</p>
+              <p className="font-semibold text-sm" style={{ color: "#2B4030" }}>{opdracht.budget}</p>
             </div>
           </div>
-          <div className="h-px" style={{ background: "var(--border)" }} />
+          <div className="h-px" style={{ background: "#E5DDD0" }} />
           <div>
-            <p className="text-xs font-bold uppercase mb-1" style={{ color: "var(--muted)" }}>⏰ Geplaatst</p>
+            <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>⏰ Geplaatst</p>
             <p className="text-sm">{opdracht.aangemaakt}</p>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
           <div className="flex items-center justify-between mb-2">
             <p className="font-black text-base">📍 Locatie klant</p>
             <span className="text-xs px-2 py-1 rounded-full font-semibold"
-              style={{ background: "var(--teal)" + "15", color: "var(--teal)" }}>
+              style={{ background: "#2B4030" + "15", color: "#2B4030" }}>
               {opdracht.afstand} van jou
             </span>
           </div>
@@ -170,10 +170,10 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
 
             {/* Adres label */}
             <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2.5 flex items-center gap-2">
-              <MapPin size={14} style={{ color: "var(--coral)", flexShrink: 0 }} />
+              <MapPin size={14} style={{ color: "#C97A4D", flexShrink: 0 }} />
               <div>
                 <p className="font-bold text-xs">{opdracht.adres}</p>
-                <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+                <p className="text-[11px]" style={{ color: "#8A8A83" }}>
                   Exact adres zichtbaar na acceptatie
                 </p>
               </div>
@@ -187,22 +187,22 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
             <p className="font-black text-base">Stuur een offerte</p>
 
             <div>
-              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
                 Jouw prijs *
               </label>
               <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2"
-                style={{ borderColor: prijs ? "var(--teal)" : "var(--border)", background: "var(--surface)" }}>
-                <Euro size={17} style={{ color: "var(--teal)" }} />
+                style={{ borderColor: prijs ? "#2B4030" : "#E5DDD0", background: "#FBF7F0" }}>
+                <Euro size={17} style={{ color: "#2B4030" }} />
                 <input value={prijs} onChange={e => setPrijs(e.target.value.replace(/\D/g, ""))}
                   placeholder="85" inputMode="numeric"
                   className="flex-1 bg-transparent outline-none text-2xl font-black"
-                  style={{ color: "var(--teal)" }} />
-                <span className="text-sm" style={{ color: "var(--muted)" }}>totaal</span>
+                  style={{ color: "#2B4030" }} />
+                <span className="text-sm" style={{ color: "#8A8A83" }}>totaal</span>
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
                 Wanneer kun je?
               </label>
               <div className="flex gap-2">
@@ -210,9 +210,9 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
                   <button key={t} onClick={() => setEta(t)}
                     className="touch-scale flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
                     style={{
-                      borderColor: eta === t ? "var(--teal)" : "var(--border)",
-                      background: eta === t ? "var(--teal)" : "var(--surface)",
-                      color: eta === t ? "white" : "var(--foreground)",
+                      borderColor: eta === t ? "#2B4030" : "#E5DDD0",
+                      background: eta === t ? "#2B4030" : "#FBF7F0",
+                      color: eta === t ? "white" : "#1A1D1A",
                     }}>
                     {t}
                   </button>
@@ -221,26 +221,26 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
                 Toelichting
               </label>
               <textarea value={offerteText} onChange={e => setOfferteText(e.target.value)}
                 placeholder="Beschrijf wat je gaat doen en wat er in de prijs is inbegrepen..."
                 rows={3}
                 className="w-full px-4 py-3 rounded-2xl border outline-none text-sm resize-none"
-                style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
+                style={{ borderColor: "#E5DDD0", background: "#FBF7F0", color: "#1A1D1A" }} />
             </div>
 
             <div className="flex gap-3">
               <button onClick={() => setActie("idle")}
                 className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm border"
-                style={{ borderColor: "var(--border)" }}>
+                style={{ borderColor: "#E5DDD0" }}>
                 Annuleren
               </button>
               <button
                 onClick={() => prijs && setActie("verstuurd")}
                 className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-white text-sm"
-                style={{ background: prijs ? "var(--teal)" : "var(--muted)" }}>
+                style={{ background: prijs ? "#2B4030" : "#8A8A83" }}>
                 Offerte sturen ✓
               </button>
             </div>
@@ -250,12 +250,12 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
           <div className="flex flex-col gap-3">
             <button onClick={() => setActie("offerte")}
               className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-base flex items-center justify-center gap-2"
-              style={{ background: "var(--teal)" }}>
+              style={{ background: "#2B4030" }}>
               <Check size={20} /> Offerte sturen
             </button>
             <button onClick={() => setActie("geweigerd")}
               className="touch-scale w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 border"
-              style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+              style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
               <X size={18} /> Weigeren
             </button>
           </div>

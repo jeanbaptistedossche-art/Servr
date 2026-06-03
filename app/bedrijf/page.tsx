@@ -19,27 +19,27 @@ function Field({
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-xs font-bold uppercase" style={{ color: "var(--muted)" }}>{label}</label>
+        <label className="text-xs font-bold uppercase" style={{ color: "#8A8A83" }}>{label}</label>
         {optional && (
           <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-            style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+            style={{ background: "#EDE4D2", color: "#8A8A83" }}>
             Optioneel
           </span>
         )}
       </div>
       <div className="flex items-center gap-2 px-4 py-3.5 rounded-2xl border transition-colors"
-        style={{ borderColor: value ? "var(--teal)" : "var(--border)", background: "var(--surface)" }}>
-        {prefix && <span className="text-sm font-semibold" style={{ color: "var(--muted)" }}>{prefix}</span>}
+        style={{ borderColor: value ? "#2B4030" : "#E5DDD0", background: "#FBF7F0" }}>
+        {prefix && <span className="text-sm font-semibold" style={{ color: "#8A8A83" }}>{prefix}</span>}
         <input
           type={type} value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className="flex-1 bg-transparent outline-none text-sm"
-          style={{ color: "var(--foreground)" }}
+          style={{ color: "#1A1D1A" }}
         />
-        {value && <CheckCircle size={15} style={{ color: "var(--teal)", flexShrink: 0 }} />}
+        {value && <CheckCircle size={15} style={{ color: "#2B4030", flexShrink: 0 }} />}
       </div>
-      {hint && <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "var(--muted)" }}>{hint}</p>}
+      {hint && <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "#8A8A83" }}>{hint}</p>}
     </div>
   );
 }
@@ -55,11 +55,11 @@ function LandKiezer({
   return (
     <div className="relative">
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-xs font-bold uppercase" style={{ color: "var(--muted)" }}>
+        <label className="text-xs font-bold uppercase" style={{ color: "#8A8A83" }}>
           Land van vestiging
         </label>
         <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-          style={{ background: "var(--teal)" + "15", color: "var(--teal)" }}>
+          style={{ background: "#2B4030" + "15", color: "#2B4030" }}>
           Bepaalt verplichte velden
         </span>
       </div>
@@ -67,13 +67,13 @@ function LandKiezer({
       <button
         onClick={() => setOpen(o => !o)}
         className="touch-scale w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2 text-left transition-all"
-        style={{ borderColor: "var(--teal)", background: "var(--surface)" }}>
+        style={{ borderColor: "#2B4030", background: "#FBF7F0" }}>
         <span className="text-2xl">{huidig.vlag}</span>
         <span className="flex-1 font-semibold text-sm">{huidig.naam}</span>
-        <Globe size={16} style={{ color: "var(--muted)" }} />
+        <Globe size={16} style={{ color: "#8A8A83" }} />
         <ChevronRight size={15}
           style={{
-            color: "var(--muted)",
+            color: "#8A8A83",
             transform: open ? "rotate(90deg)" : "none",
             transition: "transform 0.2s",
           }} />
@@ -81,20 +81,20 @@ function LandKiezer({
 
       {open && (
         <div className="absolute z-20 top-full left-0 right-0 mt-1.5 rounded-2xl border overflow-hidden shadow-lg"
-          style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+          style={{ background: "#FBF7F0", borderColor: "#E5DDD0" }}>
           {(Object.entries(LANDEN) as [LandCode, typeof LANDEN[LandCode]][]).map(([code, cfg]) => (
             <button
               key={code}
               onClick={() => { onChange(code); setOpen(false); }}
               className="touch-scale w-full flex items-center gap-3 px-4 py-3.5 border-b last:border-0 transition-colors text-left"
               style={{
-                borderColor: "var(--border)",
-                background: geselecteerd === code ? "var(--teal)" + "0f" : "transparent",
+                borderColor: "#E5DDD0",
+                background: geselecteerd === code ? "#2B4030" + "0f" : "transparent",
               }}>
               <span className="text-xl">{cfg.vlag}</span>
               <span className="flex-1 text-sm font-semibold">{cfg.naam}</span>
               {geselecteerd === code && (
-                <CheckCircle size={15} style={{ color: "var(--teal)" }} />
+                <CheckCircle size={15} style={{ color: "#2B4030" }} />
               )}
             </button>
           ))}
@@ -165,16 +165,16 @@ export default function BedrijfPage() {
     <div className="flex flex-col min-h-full pb-24 animate-fade-in">
       {/* Header */}
       <div className="px-5 pt-12 pb-5"
-        style={{ background: "linear-gradient(160deg, var(--teal) 0%, var(--teal-dark) 100%)" }}>
+        style={{ background: "linear-gradient(160deg, #2B4030 0%, #1A2D22 100%)" }}>
         <div className="flex items-center gap-3 mb-5">
-          <Link href="/dashboard"
+          <Link href="/profile"
             className="touch-scale w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
             <ArrowLeft size={18} color="white" />
           </Link>
           <h1 className="text-white font-black text-xl flex-1">Bedrijfsprofiel</h1>
           <button onClick={save}
             className="touch-scale px-4 py-2 rounded-full text-sm font-bold transition-all"
-            style={{ background: saved ? "rgba(255,255,255,0.3)" : "white", color: saved ? "white" : "var(--teal)" }}>
+            style={{ background: saved ? "rgba(255,255,255,0.3)" : "white", color: saved ? "white" : "#2B4030" }}>
             {saved ? "✓ Opgeslagen!" : "Opslaan"}
           </button>
         </div>
@@ -202,19 +202,19 @@ export default function BedrijfPage() {
         <div className="flex items-center gap-4">
           <div className="relative">
             <div className="w-20 h-20 rounded-3xl flex items-center justify-center border-2 border-dashed"
-              style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
-              <Building2 size={32} style={{ color: "var(--muted)" }} />
+              style={{ borderColor: "#E5DDD0", background: "#EDE4D2" }}>
+              <Building2 size={32} style={{ color: "#8A8A83" }} />
             </div>
             <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center touch-scale"
-              style={{ background: "var(--teal)" }}>
+              style={{ background: "#2B4030" }}>
               <Camera size={14} color="white" />
             </button>
           </div>
           <div>
             <p className="font-black text-base">{bedrijf.handelsnaam || "Jouw bedrijf"}</p>
-            <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>Logo voor professionele uitstraling</p>
+            <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>Logo voor professionele uitstraling</p>
             <button className="touch-scale mt-2 text-xs font-semibold px-3 py-1.5 rounded-full border"
-              style={{ borderColor: "var(--teal)", color: "var(--teal)" }}>
+              style={{ borderColor: "#2B4030", color: "#2B4030" }}>
               Logo uploaden
             </button>
           </div>
@@ -223,7 +223,7 @@ export default function BedrijfPage() {
 
       {/* Tabs */}
       <div className="px-5 mb-5">
-        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "var(--surface-2)" }}>
+        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#EDE4D2" }}>
           {([
             { id: "algemeen", icon: <Building2 size={14} />, label: "Algemeen" },
             { id: "financieel", icon: <CreditCard size={14} />, label: "Financieel" },
@@ -233,7 +233,7 @@ export default function BedrijfPage() {
               className="touch-scale flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all"
               style={{
                 background: tab === t.id ? "white" : "transparent",
-                color: tab === t.id ? "var(--foreground)" : "var(--muted)",
+                color: tab === t.id ? "#1A1D1A" : "#8A8A83",
                 boxShadow: tab === t.id ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
               }}>
               {t.icon} {t.label}
@@ -250,7 +250,7 @@ export default function BedrijfPage() {
             {/* Stap 1: Land kiezen */}
             <LandKiezer geselecteerd={bedrijf.land} onChange={setLand} />
 
-            <div className="h-px" style={{ background: "var(--border)" }} />
+            <div className="h-px" style={{ background: "#E5DDD0" }} />
 
             {/* Bedrijfsnamen */}
             <Field label="Bedrijfsnaam (officieel)" value={bedrijf.naam} onChange={update("naam")}
@@ -258,11 +258,11 @@ export default function BedrijfPage() {
             <Field label="Handelsnaam" value={bedrijf.handelsnaam} onChange={update("handelsnaam")}
               placeholder="Marco Loodgieter" hint="Naam die klanten zien op offertes" optional />
 
-            <div className="h-px" style={{ background: "var(--border)" }} />
+            <div className="h-px" style={{ background: "#E5DDD0" }} />
 
             {/* Land-specifieke registratie */}
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
-              style={{ background: "var(--teal)" + "10", color: "var(--teal)" }}>
+              style={{ background: "#2B4030" + "10", color: "#2B4030" }}>
               <span>{landCfg.vlag}</span>
               <span>{landCfg.naam} — verplichte bedrijfsgegevens</span>
             </div>
@@ -286,12 +286,12 @@ export default function BedrijfPage() {
               />
             ) : (
               <div className="px-4 py-3 rounded-2xl text-xs"
-                style={{ background: "var(--surface-2)", color: "var(--muted)" }}>
+                style={{ background: "#EDE4D2", color: "#8A8A83" }}>
                 Geen BTW-nummer vereist voor {landCfg.naam}
               </div>
             )}
 
-            <div className="h-px" style={{ background: "var(--border)" }} />
+            <div className="h-px" style={{ background: "#E5DDD0" }} />
 
             {/* Contact */}
             <Field label="E-mailadres" value={bedrijf.email} onChange={update("email")}
@@ -301,7 +301,7 @@ export default function BedrijfPage() {
             <Field label="Website" value={bedrijf.website} onChange={update("website")}
               placeholder="www.jouwbedrijf.be" prefix="https://" optional />
 
-            <div className="h-px" style={{ background: "var(--border)" }} />
+            <div className="h-px" style={{ background: "#E5DDD0" }} />
 
             {/* Adres */}
             <Field label="Straat + huisnummer" value={bedrijf.adres} onChange={update("adres")}
@@ -321,11 +321,11 @@ export default function BedrijfPage() {
             {/* ── Stripe Connect sectie ── */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold uppercase" style={{ color: "var(--muted)" }}>
+                <p className="text-xs font-bold uppercase" style={{ color: "#8A8A83" }}>
                   Online betalingen
                 </p>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: onboarded ? "#dcfce7" : "var(--surface-2)", color: onboarded ? "#16a34a" : "var(--muted)" }}>
+                  style={{ background: onboarded ? "#dcfce7" : "#EDE4D2", color: onboarded ? "#16a34a" : "#8A8A83" }}>
                   {onboarded ? "✓ Gekoppeld" : "Niet actief"}
                 </span>
               </div>
@@ -339,33 +339,33 @@ export default function BedrijfPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-sm">Stripe account gekoppeld</p>
-                      <p className="text-xs truncate" style={{ color: "var(--muted)" }}>{accountId}</p>
+                      <p className="text-xs truncate" style={{ color: "#8A8A83" }}>{accountId}</p>
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5 p-3 rounded-xl text-xs"
-                    style={{ background: "var(--surface-2)" }}>
+                    style={{ background: "#EDE4D2" }}>
                     <div className="flex justify-between">
-                      <span style={{ color: "var(--muted)" }}>Jij ontvangt</span>
+                      <span style={{ color: "#8A8A83" }}>Jij ontvangt</span>
                       <span className="font-bold text-green-600">90% van elke betaling</span>
                     </div>
                     <div className="flex justify-between">
-                      <span style={{ color: "var(--muted)" }}>Servr commissie</span>
+                      <span style={{ color: "#8A8A83" }}>Servr commissie</span>
                       <span className="font-semibold">10%</span>
                     </div>
                   </div>
                   <button
                     onClick={() => reset()}
                     className="touch-scale flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold border"
-                    style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+                    style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
                     <Unlink size={13} /> Ontkoppelen
                   </button>
                 </div>
               ) : (
                 <div className="card p-4 flex flex-col gap-3">
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
+                  <p className="text-sm leading-relaxed" style={{ color: "#8A8A83" }}>
                     Ontvang betalingen rechtstreeks op jouw rekening via Stripe.
-                    Servr houdt <strong style={{ color: "var(--foreground)" }}>10% commissie</strong> in,
-                    jij krijgt <strong style={{ color: "var(--foreground)" }}>90%</strong>.
+                    Servr houdt <strong style={{ color: "#1A1D1A" }}>10% commissie</strong> in,
+                    jij krijgt <strong style={{ color: "#1A1D1A" }}>90%</strong>.
                   </p>
                   {connectError && (
                     <div className="p-3 rounded-xl text-xs" style={{ background: "#fee2e2", color: "#dc2626" }}>
@@ -397,24 +397,24 @@ export default function BedrijfPage() {
                       }
                     }}
                     className="touch-scale w-full py-3.5 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-                    style={{ background: connectLoading ? "var(--muted)" : "#635BFF" }}>
+                    style={{ background: connectLoading ? "#8A8A83" : "#635BFF" }}>
                     {connectLoading
                       ? <><Loader2 size={16} className="animate-spin" /> Openen…</>
                       : <><ExternalLink size={16} /> Koppel Stripe account</>
                     }
                   </button>
-                  <p className="text-[11px] text-center" style={{ color: "var(--muted)" }}>
+                  <p className="text-[11px] text-center" style={{ color: "#8A8A83" }}>
                     Je wordt doorgestuurd naar Stripe om je identiteit te bevestigen
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="h-px" style={{ background: "var(--border)" }} />
+            <div className="h-px" style={{ background: "#E5DDD0" }} />
 
-            <div className="p-4 rounded-2xl" style={{ background: "var(--teal)" + "10" }}>
-              <p className="font-bold text-sm mb-1" style={{ color: "var(--teal)" }}>🔒 Bankgegevens</p>
-              <p className="text-xs" style={{ color: "var(--teal)" }}>
+            <div className="p-4 rounded-2xl" style={{ background: "#2B4030" + "10" }}>
+              <p className="font-bold text-sm mb-1" style={{ color: "#2B4030" }}>🔒 Bankgegevens</p>
+              <p className="text-xs" style={{ color: "#2B4030" }}>
                 Je IBAN verschijnt op facturen. Klanten betalen direct op jouw rekening. Servr houdt alleen de service fee in.
               </p>
             </div>
@@ -424,10 +424,10 @@ export default function BedrijfPage() {
             <Field label="Bank" value={bedrijf.bankNaam} onChange={update("bankNaam")}
               placeholder={bedrijf.land === "BE" ? "BNP Paribas Fortis" : "ABN AMRO"} />
 
-            <div className="h-px" style={{ background: "var(--border)" }} />
+            <div className="h-px" style={{ background: "#E5DDD0" }} />
 
             <div>
-              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
                 Betalingstermijn
               </label>
               <div className="flex gap-2">
@@ -435,21 +435,21 @@ export default function BedrijfPage() {
                   <button key={d} onClick={() => setBedrijf(b => ({ ...b, betalingstermijn: d }))}
                     className="touch-scale flex-1 py-3 rounded-xl font-bold text-sm border-2 transition-all"
                     style={{
-                      borderColor: bedrijf.betalingstermijn === d ? "var(--teal)" : "var(--border)",
-                      background: bedrijf.betalingstermijn === d ? "var(--teal)" + "10" : "var(--surface)",
-                      color: bedrijf.betalingstermijn === d ? "var(--teal)" : "var(--foreground)",
+                      borderColor: bedrijf.betalingstermijn === d ? "#2B4030" : "#E5DDD0",
+                      background: bedrijf.betalingstermijn === d ? "#2B4030" + "10" : "#FBF7F0",
+                      color: bedrijf.betalingstermijn === d ? "#2B4030" : "#1A1D1A",
                     }}>
                     {d}d
                   </button>
                 ))}
               </div>
-              <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+              <p className="text-xs mt-1" style={{ color: "#8A8A83" }}>
                 Klant heeft {bedrijf.betalingstermijn} dagen om de factuur te betalen
               </p>
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
                 {landCfg.btw?.label.replace("nummer", "percentage").replace("Numéro", "%") ?? "BTW-percentage"}
               </label>
               <div className="flex gap-2 flex-wrap">
@@ -457,21 +457,21 @@ export default function BedrijfPage() {
                   <button key={p} onClick={() => setBedrijf(b => ({ ...b, btw_percentage: p }))}
                     className="touch-scale flex-1 min-w-[60px] py-3 rounded-xl font-bold text-sm border-2 transition-all"
                     style={{
-                      borderColor: bedrijf.btw_percentage === p ? "var(--teal)" : "var(--border)",
-                      background: bedrijf.btw_percentage === p ? "var(--teal)" + "10" : "var(--surface)",
-                      color: bedrijf.btw_percentage === p ? "var(--teal)" : "var(--foreground)",
+                      borderColor: bedrijf.btw_percentage === p ? "#2B4030" : "#E5DDD0",
+                      background: bedrijf.btw_percentage === p ? "#2B4030" + "10" : "#FBF7F0",
+                      color: bedrijf.btw_percentage === p ? "#2B4030" : "#1A1D1A",
                     }}>
                     {p}%
                   </button>
                 ))}
               </div>
               {bedrijf.land === "BE" && (
-                <p className="text-xs mt-1.5" style={{ color: "var(--muted)" }}>
+                <p className="text-xs mt-1.5" style={{ color: "#8A8A83" }}>
                   🇧🇪 België: 6% (voeding/bouw), 12% (catering), 21% (standaard)
                 </p>
               )}
               {bedrijf.land === "NL" && (
-                <p className="text-xs mt-1.5" style={{ color: "var(--muted)" }}>
+                <p className="text-xs mt-1.5" style={{ color: "#8A8A83" }}>
                   🇳🇱 NL: 9% (voeding/meds), 21% (standaard)
                 </p>
               )}
@@ -484,80 +484,80 @@ export default function BedrijfPage() {
           <>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+                <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
                   Offerte prefix
                 </label>
                 <input value={bedrijf.offertePrefix} onChange={e => update("offertePrefix")(e.target.value)}
                   className="w-full px-4 py-3.5 rounded-2xl border outline-none text-sm"
-                  style={{ borderColor: "var(--border)", background: "var(--surface)" }} />
+                  style={{ borderColor: "#E5DDD0", background: "#FBF7F0" }} />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+                <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
                   Volgend nummer
                 </label>
                 <input value={bedrijf.offerteVolgNr} type="number"
                   onChange={e => setBedrijf(b => ({ ...b, offerteVolgNr: +e.target.value }))}
                   className="w-full px-4 py-3.5 rounded-2xl border outline-none text-sm"
-                  style={{ borderColor: "var(--border)", background: "var(--surface)" }} />
+                  style={{ borderColor: "#E5DDD0", background: "#FBF7F0" }} />
               </div>
             </div>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>
+            <p className="text-xs" style={{ color: "#8A8A83" }}>
               Volgende offerte: <strong>{bedrijf.offertePrefix}{bedrijf.offerteVolgNr}</strong>
             </p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+                <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
                   Factuur prefix
                 </label>
                 <input value={bedrijf.factuurPrefix} onChange={e => update("factuurPrefix")(e.target.value)}
                   className="w-full px-4 py-3.5 rounded-2xl border outline-none text-sm"
-                  style={{ borderColor: "var(--border)", background: "var(--surface)" }} />
+                  style={{ borderColor: "#E5DDD0", background: "#FBF7F0" }} />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+                <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
                   Volgend nummer
                 </label>
                 <input value={bedrijf.factuurVolgNr} type="number"
                   onChange={e => setBedrijf(b => ({ ...b, factuurVolgNr: +e.target.value }))}
                   className="w-full px-4 py-3.5 rounded-2xl border outline-none text-sm"
-                  style={{ borderColor: "var(--border)", background: "var(--surface)" }} />
+                  style={{ borderColor: "#E5DDD0", background: "#FBF7F0" }} />
               </div>
             </div>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>
+            <p className="text-xs" style={{ color: "#8A8A83" }}>
               Volgende factuur: <strong>{bedrijf.factuurPrefix}{bedrijf.factuurVolgNr}</strong>
             </p>
 
             <div>
-              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "var(--muted)" }}>
+              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
                 Voettekst (onderaan elke factuur)
               </label>
               <textarea value={bedrijf.footer} onChange={e => update("footer")(e.target.value)}
                 rows={3} className="w-full px-4 py-3 rounded-2xl border outline-none text-sm resize-none"
-                style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--foreground)" }} />
+                style={{ borderColor: "#E5DDD0", background: "#FBF7F0", color: "#1A1D1A" }} />
             </div>
 
             {/* Preview factuurkop */}
             <div className="card p-4">
-              <p className="text-xs font-bold uppercase mb-3" style={{ color: "var(--muted)" }}>Voorbeeld koptekst</p>
+              <p className="text-xs font-bold uppercase mb-3" style={{ color: "#8A8A83" }}>Voorbeeld koptekst</p>
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-black text-base">{bedrijf.handelsnaam || bedrijf.naam}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>{bedrijf.adres}</p>
-                  <p className="text-xs" style={{ color: "var(--muted)" }}>{bedrijf.postcode} {bedrijf.stad}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>{bedrijf.adres}</p>
+                  <p className="text-xs" style={{ color: "#8A8A83" }}>{bedrijf.postcode} {bedrijf.stad}</p>
                   {bedrijf.registratieNummer && (
-                    <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>
+                    <p className="text-xs mt-1" style={{ color: "#8A8A83" }}>
                       {LANDEN[bedrijf.land].registratie.label}: {bedrijf.registratieNummer}
                     </p>
                   )}
                   {bedrijf.btw && (
-                    <p className="text-xs" style={{ color: "var(--muted)" }}>
+                    <p className="text-xs" style={{ color: "#8A8A83" }}>
                       {LANDEN[bedrijf.land].btw?.label}: {bedrijf.btw}
                     </p>
                   )}
                 </div>
                 <div className="w-16 h-16 rounded-xl flex items-center justify-center"
-                  style={{ background: "var(--teal)" }}>
+                  style={{ background: "#2B4030" }}>
                   <span className="text-white font-black text-xl">
                     {(bedrijf.handelsnaam || bedrijf.naam || "B").charAt(0)}
                   </span>
@@ -567,7 +567,7 @@ export default function BedrijfPage() {
 
             <Link href="/offerte/maak"
               className="touch-scale flex items-center justify-between p-4 rounded-2xl"
-              style={{ background: "var(--teal)" }}>
+              style={{ background: "#2B4030" }}>
               <div>
                 <p className="text-white font-bold text-sm">Maak een offerte</p>
                 <p className="text-white/70 text-xs">Direct versturen naar klant</p>
@@ -582,7 +582,7 @@ export default function BedrijfPage() {
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-[480px] px-5">
         <button onClick={save}
           className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-base shadow-lg"
-          style={{ background: saved ? "#16a34a" : "var(--teal)", transition: "background 0.3s" }}>
+          style={{ background: saved ? "#16a34a" : "#2B4030", transition: "background 0.3s" }}>
           {saved ? "✓ Opgeslagen!" : "Wijzigingen opslaan"}
         </button>
       </div>

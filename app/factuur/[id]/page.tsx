@@ -102,7 +102,7 @@ const STATUS_CFG: Record<FactuurStatus, { label: string; color: string; bg: stri
   open:        { label: "Openstaand",  color: "#d97706", bg: "#fef3c7",          icon: <Clock size={14} /> },
   herinnering: { label: "Herinnering", color: "#dc2626", bg: "#fee2e2",          icon: <AlertCircle size={14} /> },
   betaald:     { label: "Betaald",     color: "#16a34a", bg: "#dcfce7",          icon: <CheckCircle2 size={14} /> },
-  verlopen:    { label: "Verlopen",    color: "#6b7280", bg: "var(--surface-2)", icon: <XCircle size={14} /> },
+  verlopen:    { label: "Verlopen",    color: "#6b7280", bg: "#EDE4D2", icon: <XCircle size={14} /> },
 };
 
 export default function FactuurDetailPage() {
@@ -117,7 +117,7 @@ export default function FactuurDetailPage() {
       <p className="font-black text-xl">Factuur niet gevonden</p>
       <Link href="/documenten?tab=facturen"
         className="touch-scale px-6 py-3 rounded-2xl font-bold text-white text-sm"
-        style={{ background: "var(--teal)" }}>
+        style={{ background: "#2B4030" }}>
         Terug naar overzicht
       </Link>
     </div>
@@ -133,7 +133,7 @@ export default function FactuurDetailPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "var(--background)", borderBottom: "1px solid var(--border)" }}>
+        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
         <Link href="/documenten?tab=facturen"
           className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
           <ArrowLeft size={18} />
@@ -146,7 +146,7 @@ export default function FactuurDetailPage() {
         </div>
         <Link href={`/chat/${data.chatId}`}
           className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
-          <MessageCircle size={18} style={{ color: "var(--teal)" }} />
+          <MessageCircle size={18} style={{ color: "#2B4030" }} />
         </Link>
       </div>
 
@@ -285,7 +285,7 @@ export default function FactuurDetailPage() {
         )}
         <Link href={`/chat/${data.chatId}`}
           className="touch-scale w-full py-3.5 rounded-2xl font-bold text-center border flex items-center justify-center gap-2"
-          style={{ borderColor: "var(--border)", color: "var(--teal)" }}>
+          style={{ borderColor: "#E5DDD0", color: "#2B4030" }}>
           <MessageCircle size={16} /> Stuur een bericht
         </Link>
       </div>

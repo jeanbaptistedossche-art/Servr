@@ -196,7 +196,7 @@ export default function SocialeBijdragenPage() {
       <div className="sticky top-0 z-30 px-4 pt-12 pb-3"
         style={{ background: "rgba(241,244,250,0.96)", backdropFilter: "blur(12px)" }}>
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()}
+          <button onClick={() => router.push('/profile')}
             className="touch-scale w-10 h-10 rounded-full flex items-center justify-center"
             style={{ background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,0.10)" }}>
             <ChevronLeft size={20} style={{ color: "#0f172a" }} />

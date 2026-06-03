@@ -121,8 +121,8 @@ export default function AdminPage() {
           </Link>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <ShieldCheck size={16} color="var(--teal)" />
-              <span className="text-xs font-bold" style={{ color: "var(--teal)" }}>SERVR ADMIN</span>
+              <ShieldCheck size={16} color="#2B4030" />
+              <span className="text-xs font-bold" style={{ color: "#2B4030" }}>SERVR ADMIN</span>
             </div>
             <h1 className="text-white font-black text-xl">Platform Beheer</h1>
           </div>
@@ -156,7 +156,7 @@ export default function AdminPage() {
             <button key={p} onClick={() => setPeriode(p)}
               className="touch-scale flex-1 py-1.5 rounded-xl text-[11px] font-bold transition-all"
               style={{
-                background: periode === p ? "var(--teal)" : "rgba(255,255,255,0.08)",
+                background: periode === p ? "#2B4030" : "rgba(255,255,255,0.08)",
                 color: periode === p ? "white" : "rgba(255,255,255,0.5)",
               }}>
               {PERIODE_LABELS[p]}
@@ -168,9 +168,9 @@ export default function AdminPage() {
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3 px-5 py-4">
         {[
-          { label: "Transacties", value: data.aantalTransacties.toString(), icon: <BarChart3 size={14} />, color: "var(--teal)" },
+          { label: "Transacties", value: data.aantalTransacties.toString(), icon: <BarChart3 size={14} />, color: "#2B4030" },
           { label: "Nieuwe klanten", value: `+${data.nieuweKlanten}`, icon: <Users size={14} />, color: "#7c3aed" },
-          { label: "Nieuwe vakm.", value: `+${data.nieuweVakmensen}`, icon: <Wrench size={14} />, color: "var(--coral)" },
+          { label: "Nieuwe vakm.", value: `+${data.nieuweVakmensen}`, icon: <Wrench size={14} />, color: "#C97A4D" },
         ].map(s => (
           <div key={s.label} className="card p-3 flex flex-col gap-1.5 items-center text-center">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center"
@@ -178,14 +178,14 @@ export default function AdminPage() {
               {s.icon}
             </div>
             <p className="font-black text-lg leading-none">{s.value}</p>
-            <p className="text-[10px]" style={{ color: "var(--muted)" }}>{s.label}</p>
+            <p className="text-[10px]" style={{ color: "#8A8A83" }}>{s.label}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
       <div className="px-5 mb-4">
-        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "var(--surface-2)" }}>
+        <div className="flex gap-1 p-1 rounded-2xl" style={{ background: "#EDE4D2" }}>
           {([
             { id: "overzicht", label: "📊 Omzet" },
             { id: "vakmensen", label: `🔧 Vakm. (${MOCK_VAKMENSEN.length})` },
@@ -195,7 +195,7 @@ export default function AdminPage() {
               className="touch-scale flex-1 py-2.5 rounded-xl text-xs font-bold transition-all"
               style={{
                 background: tab === t.id ? "white" : "transparent",
-                color: tab === t.id ? "var(--foreground)" : "var(--muted)",
+                color: tab === t.id ? "#1A1D1A" : "#8A8A83",
                 boxShadow: tab === t.id ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
               }}>
               {t.label}
@@ -214,10 +214,10 @@ export default function AdminPage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <p className="font-black text-sm">Commissie-inkomsten</p>
-                  <p className="text-xs" style={{ color: "var(--muted)" }}>10% op alle transacties</p>
+                  <p className="text-xs" style={{ color: "#8A8A83" }}>10% op alle transacties</p>
                 </div>
                 <button className="touch-scale flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
-                  style={{ background: "var(--teal)" + "15", color: "var(--teal)" }}>
+                  style={{ background: "#2B4030" + "15", color: "#2B4030" }}>
                   <Download size={11} /> Export
                 </button>
               </div>
@@ -227,10 +227,10 @@ export default function AdminPage() {
                     <div className="w-full rounded-t-lg transition-all duration-300"
                       style={{
                         height: `${(v / maxBar) * 96}px`,
-                        background: `linear-gradient(to top, var(--teal), var(--teal-dark))`,
+                        background: `linear-gradient(to top, #2B4030, #1A2D22)`,
                         opacity: 0.8,
                       }} />
-                    <span className="text-[8px]" style={{ color: "var(--muted)" }}>{data.labels[i]}</span>
+                    <span className="text-[8px]" style={{ color: "#8A8A83" }}>{data.labels[i]}</span>
                   </div>
                 ))}
               </div>
@@ -238,19 +238,19 @@ export default function AdminPage() {
 
             {/* Revenue breakdown */}
             <div className="card overflow-hidden">
-              <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+              <div className="px-4 py-3 border-b" style={{ borderColor: "#E5DDD0" }}>
                 <p className="font-black text-sm">Financieel overzicht</p>
               </div>
               {[
-                { label: "Bruto transactiewaarde", value: `€${fmt(data.transactiewaarde)}`, sub: "Totaal betaald door klanten", color: "var(--foreground)" },
-                { label: "Vakmannen uitbetaald", value: `€${fmt(data.transactiewaarde - data.commissie)}`, sub: "90% naar vakmansen", color: "var(--foreground)" },
-                { label: "Servr commissie (10%)", value: `€${showCommissie ? fmt(data.commissie) : "••••••"}`, sub: "Jouw platform-inkomsten", color: "var(--teal)", bold: true },
+                { label: "Bruto transactiewaarde", value: `€${fmt(data.transactiewaarde)}`, sub: "Totaal betaald door klanten", color: "#1A1D1A" },
+                { label: "Vakmannen uitbetaald", value: `€${fmt(data.transactiewaarde - data.commissie)}`, sub: "90% naar vakmansen", color: "#1A1D1A" },
+                { label: "Servr commissie (10%)", value: `€${showCommissie ? fmt(data.commissie) : "••••••"}`, sub: "Jouw platform-inkomsten", color: "#2B4030", bold: true },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between px-4 py-3.5 border-b last:border-0"
-                  style={{ borderColor: "var(--border)" }}>
+                  style={{ borderColor: "#E5DDD0" }}>
                   <div>
                     <p className={`text-sm ${row.bold ? "font-black" : "font-semibold"}`}>{row.label}</p>
-                    <p className="text-xs" style={{ color: "var(--muted)" }}>{row.sub}</p>
+                    <p className="text-xs" style={{ color: "#8A8A83" }}>{row.sub}</p>
                   </div>
                   <p className={`font-black text-base ${row.bold ? "" : "text-sm"}`}
                     style={{ color: row.color }}>
@@ -262,7 +262,7 @@ export default function AdminPage() {
 
             {/* Top vakmensen bijdragers */}
             <div className="card overflow-hidden">
-              <div className="px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+              <div className="px-4 py-3 border-b" style={{ borderColor: "#E5DDD0" }}>
                 <p className="font-black text-sm">Top commissie-bijdragers</p>
               </div>
               {[...MOCK_VAKMENSEN]
@@ -270,18 +270,18 @@ export default function AdminPage() {
                 .slice(0, 4)
                 .map((v, i) => (
                   <div key={v.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-0"
-                    style={{ borderColor: "var(--border)" }}>
-                    <span className="w-5 text-xs font-black" style={{ color: "var(--muted)" }}>#{i + 1}</span>
+                    style={{ borderColor: "#E5DDD0" }}>
+                    <span className="w-5 text-xs font-black" style={{ color: "#8A8A83" }}>#{i + 1}</span>
                     <img src={v.avatar} className="w-8 h-8 rounded-full object-cover" alt="" />
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate">{v.name}</p>
-                      <p className="text-xs" style={{ color: "var(--muted)" }}>{v.category}</p>
+                      <p className="text-xs" style={{ color: "#8A8A83" }}>{v.category}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-black text-sm" style={{ color: "var(--teal)" }}>
+                      <p className="font-black text-sm" style={{ color: "#2B4030" }}>
                         {showCommissie ? `€${fmt(v.commissie)}` : "••••"}
                       </p>
-                      <p className="text-[10px]" style={{ color: "var(--muted)" }}>van €{fmt(v.omzet)}</p>
+                      <p className="text-[10px]" style={{ color: "#8A8A83" }}>van €{fmt(v.omzet)}</p>
                     </div>
                   </div>
                 ))
@@ -297,39 +297,39 @@ export default function AdminPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="card p-4">
                 <p className="text-2xl font-black">{MOCK_VAKMENSEN.filter(v => v.actief).length}</p>
-                <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Actieve vakmensen</p>
+                <p className="text-xs mt-1" style={{ color: "#8A8A83" }}>Actieve vakmensen</p>
               </div>
               <div className="card p-4">
-                <p className="text-2xl font-black" style={{ color: "var(--teal)" }}>
+                <p className="text-2xl font-black" style={{ color: "#2B4030" }}>
                   €{fmt(MOCK_VAKMENSEN.reduce((s, v) => s + v.commissie, 0))}
                 </p>
-                <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Totale commissie (all-time)</p>
+                <p className="text-xs mt-1" style={{ color: "#8A8A83" }}>Totale commissie (all-time)</p>
               </div>
             </div>
 
             <div className="card overflow-hidden">
               {MOCK_VAKMENSEN.map(v => (
                 <div key={v.id} className="flex items-center gap-3 px-4 py-3.5 border-b last:border-0"
-                  style={{ borderColor: "var(--border)" }}>
+                  style={{ borderColor: "#E5DDD0" }}>
                   <div className="relative flex-shrink-0">
                     <img src={v.avatar} className="w-12 h-12 rounded-2xl object-cover" alt="" />
                     <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 ${v.actief ? "bg-green-500" : "bg-gray-300"}`}
-                      style={{ borderColor: "var(--background)" }} />
+                      style={{ borderColor: "#F5EFE5" }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-sm">{v.name}</p>
-                    <p className="text-xs" style={{ color: "var(--muted)" }}>{v.category} · {v.klussen} klussen</p>
+                    <p className="text-xs" style={{ color: "#8A8A83" }}>{v.category} · {v.klussen} klussen</p>
                     <div className="flex items-center gap-1 mt-1">
                       <Star size={10} className="fill-yellow-400 text-yellow-400" />
                       <span className="text-[10px] font-semibold">{v.score} score</span>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="font-black text-sm" style={{ color: "var(--teal)" }}>
+                    <p className="font-black text-sm" style={{ color: "#2B4030" }}>
                       {showCommissie ? `€${fmtK(v.commissie)}` : "••••"}
                     </p>
-                    <p className="text-[10px]" style={{ color: "var(--muted)" }}>commissie</p>
-                    <p className="text-[10px]" style={{ color: "var(--muted)" }}>€{fmtK(v.omzet)} omzet</p>
+                    <p className="text-[10px]" style={{ color: "#8A8A83" }}>commissie</p>
+                    <p className="text-[10px]" style={{ color: "#8A8A83" }}>€{fmtK(v.omzet)} omzet</p>
                   </div>
                 </div>
               ))}
@@ -344,32 +344,32 @@ export default function AdminPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="card p-4">
                 <p className="text-2xl font-black">{MOCK_KLANTEN.filter(k => k.actief).length}</p>
-                <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Actieve klanten</p>
+                <p className="text-xs mt-1" style={{ color: "#8A8A83" }}>Actieve klanten</p>
               </div>
               <div className="card p-4">
                 <p className="text-2xl font-black">
                   €{fmtK(Math.round(MOCK_KLANTEN.reduce((s, k) => s + k.totaalBetaald, 0) / MOCK_KLANTEN.length))}
                 </p>
-                <p className="text-xs mt-1" style={{ color: "var(--muted)" }}>Gem. besteding per klant</p>
+                <p className="text-xs mt-1" style={{ color: "#8A8A83" }}>Gem. besteding per klant</p>
               </div>
             </div>
 
             <div className="card overflow-hidden">
               {MOCK_KLANTEN.map(k => (
                 <div key={k.id} className="flex items-center gap-3 px-4 py-3.5 border-b last:border-0"
-                  style={{ borderColor: "var(--border)" }}>
+                  style={{ borderColor: "#E5DDD0" }}>
                   <div className="relative flex-shrink-0">
                     <img src={k.avatar} className="w-12 h-12 rounded-2xl object-cover" alt="" />
                     <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 ${k.actief ? "bg-green-500" : "bg-gray-300"}`}
-                      style={{ borderColor: "var(--background)" }} />
+                      style={{ borderColor: "#F5EFE5" }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-sm">{k.name}</p>
-                    <p className="text-xs" style={{ color: "var(--muted)" }}>{k.boekingen} boekingen · lid sinds {k.lid_sinds}</p>
+                    <p className="text-xs" style={{ color: "#8A8A83" }}>{k.boekingen} boekingen · lid sinds {k.lid_sinds}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="font-black text-sm">€{fmtK(k.totaalBetaald)}</p>
-                    <p className="text-[10px]" style={{ color: "var(--muted)" }}>
+                    <p className="text-[10px]" style={{ color: "#8A8A83" }}>
                       {showCommissie ? `→ €${fmtK(Math.round(k.totaalBetaald * 0.1))} commissie` : "••••"}
                     </p>
                   </div>
@@ -379,14 +379,14 @@ export default function AdminPage() {
 
             {/* Commissie model uitleg */}
             <div className="card p-4 flex gap-3"
-              style={{ background: "var(--teal)" + "08", border: "1px solid var(--teal)" + "30" }}>
+              style={{ background: "#2B4030" + "08", border: "1px solid #2B4030" + "30" }}>
               <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: "var(--teal)" }}>
+                style={{ background: "#2B4030" }}>
                 <Euro size={14} color="white" />
               </div>
               <div>
-                <p className="font-black text-sm" style={{ color: "var(--teal)" }}>Commissie model</p>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--muted)" }}>
+                <p className="font-black text-sm" style={{ color: "#2B4030" }}>Commissie model</p>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: "#8A8A83" }}>
                   Servr rekent <strong>10% commissie</strong> op elke transactie.
                   Dit bedrag is <strong>verborgen in de marge</strong> — klanten en vakmensen
                   zien alleen de netto bedragen. De klant betaalt de marktprijs,

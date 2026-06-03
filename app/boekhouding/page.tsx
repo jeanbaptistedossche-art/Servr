@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft, TrendingUp, TrendingDown, Euro, FileText, Car,
   Plus, X, Check, Download, AlertCircle, Camera, Fuel,
@@ -23,8 +23,8 @@ const LAND_CFG = {
     btwAangifte: "Kwartaal",
     inkomstenbelasting: "Inkomstenbelasting (Box 1)",
     schijven: [
-      { max: 38441,    tarief: 0.3697, label: "Schijf 1 — 36,97%", kleur: "#10B981" },
-      { max: Infinity, tarief: 0.4950, label: "Schijf 2 — 49,50%", kleur: "#F59E0B" },
+      { max: 38441,    tarief: 0.3697, label: "Schijf 1 — 36,97%", kleur: "#2B4030" },
+      { max: Infinity, tarief: 0.4950, label: "Schijf 2 — 49,50%", kleur: "#C97A4D" },
     ],
     aftrekposten: (winst: number) => {
       const zelfs = 5030;
@@ -48,10 +48,10 @@ const LAND_CFG = {
     btwAangifte: "Kwartaal",
     inkomstenbelasting: "Personenbelasting",
     schijven: [
-      { max: 15820,    tarief: 0.25,  label: "Schijf 1 — 25%",    kleur: "#10B981" },
-      { max: 27920,    tarief: 0.40,  label: "Schijf 2 — 40%",    kleur: "#F59E0B" },
-      { max: 48320,    tarief: 0.45,  label: "Schijf 3 — 45%",    kleur: "#EF4444" },
-      { max: Infinity, tarief: 0.50,  label: "Schijf 4 — 50%",    kleur: "#7C3AED" },
+      { max: 15820,    tarief: 0.25,  label: "Schijf 1 — 25%",    kleur: "#2B4030" },
+      { max: 27920,    tarief: 0.40,  label: "Schijf 2 — 40%",    kleur: "#5C5C56" },
+      { max: 48320,    tarief: 0.45,  label: "Schijf 3 — 45%",    kleur: "#C97A4D" },
+      { max: Infinity, tarief: 0.50,  label: "Schijf 4 — 50%",    kleur: "#8A8A83" },
     ],
     aftrekposten: (winst: number) => {
       const beroep = Math.min(Math.round(winst * 0.30), 5650);
@@ -77,9 +77,9 @@ const LAND_CFG = {
     btwAangifte: "Kwartaal / Maand",
     inkomstenbelasting: "Einkommensteuer",
     schijven: [
-      { max: 11604,    tarief: 0,     label: "Grundfreibetrag",     kleur: "#10B981" },
-      { max: 61972,    tarief: 0.42,  label: "Schijf 1 — 14–42%",  kleur: "#F59E0B" },
-      { max: Infinity, tarief: 0.45,  label: "Schijf 2 — 45%",     kleur: "#EF4444" },
+      { max: 11604,    tarief: 0,     label: "Grundfreibetrag",     kleur: "#2B4030" },
+      { max: 61972,    tarief: 0.42,  label: "Schijf 1 — 14–42%",  kleur: "#C97A4D" },
+      { max: Infinity, tarief: 0.45,  label: "Schijf 2 — 45%",     kleur: "#8A8A83" },
     ],
     aftrekposten: (winst: number) => {
       const pausch = Math.min(Math.round(winst * 0.25), 2800);
@@ -105,11 +105,11 @@ const LAND_CFG = {
     btwAangifte: "Kwartaal / Maand",
     inkomstenbelasting: "Impôt sur le revenu",
     schijven: [
-      { max: 11294,    tarief: 0,     label: "Exonéré",             kleur: "#10B981" },
-      { max: 28797,    tarief: 0.11,  label: "Tranche 1 — 11%",    kleur: "#10B981" },
-      { max: 82341,    tarief: 0.30,  label: "Tranche 2 — 30%",    kleur: "#F59E0B" },
-      { max: 177106,   tarief: 0.41,  label: "Tranche 3 — 41%",    kleur: "#EF4444" },
-      { max: Infinity, tarief: 0.45,  label: "Tranche 4 — 45%",    kleur: "#7C3AED" },
+      { max: 11294,    tarief: 0,     label: "Exonéré",             kleur: "#2B4030" },
+      { max: 28797,    tarief: 0.11,  label: "Tranche 1 — 11%",    kleur: "#2B4030" },
+      { max: 82341,    tarief: 0.30,  label: "Tranche 2 — 30%",    kleur: "#C97A4D" },
+      { max: 177106,   tarief: 0.41,  label: "Tranche 3 — 41%",    kleur: "#8A8A83" },
+      { max: Infinity, tarief: 0.45,  label: "Tranche 4 — 45%",    kleur: "#5C5C56" },
     ],
     aftrekposten: (winst: number) => {
       const abatt = Math.min(Math.round(winst * 0.34), 7000);
@@ -186,8 +186,8 @@ const BTW_KWARTALEN_BASE = [
 ];
 
 const KAT_COLORS: Record<UitgaveKat,string> = {
-  Materialen:"#3B82F6", Gereedschap:"#F59E0B", Brandstof:"#10B981",
-  Verzekering:"#8B5CF6", Marketing:"#EC4899", Software:"#06B6D4", Overig:"#94A3B8",
+  Materialen:"#2B4030", Gereedschap:"#C97A4D", Brandstof:"#5C5C56",
+  Verzekering:"#8A8A83", Marketing:"#C97A4D", Software:"#2B4030", Overig:"#8A8A83",
 };
 const KAT_ICONS: Record<UitgaveKat, React.ReactNode> = {
   Materialen:<ShoppingBag size={14}/>, Gereedschap:<Wrench size={14}/>,
@@ -195,9 +195,9 @@ const KAT_ICONS: Record<UitgaveKat, React.ReactNode> = {
   Marketing:<BarChart3 size={14}/>, Software:<Wifi size={14}/>, Overig:<MoreHorizontal size={14}/>,
 };
 const BTW_ST: Record<BtwStatus,{bg:string;color:string;label:string}> = {
-  betaald:   {bg:"#dcfce7",color:"#16a34a",label:"✓ Betaald"},
-  openstaand:{bg:"#fef3c7",color:"#d97706",label:"! Openstaand"},
-  "nog niet":{bg:"#f1f5f9",color:"#94a3b8",label:"Nog niet"},
+  betaald:   {bg:"#2B403015",color:"#2B4030",label:"Betaald"},
+  openstaand:{bg:"#C97A4D15",color:"#C97A4D",label:"Openstaand"},
+  "nog niet":{bg:"#E5DDD0",color:"#8A8A83",label:"Nog niet"},
 };
 
 function fmt(n:number,d=2){return n.toLocaleString("nl-NL",{minimumFractionDigits:d,maximumFractionDigits:d});}
@@ -226,8 +226,11 @@ function berekenBelasting(netto: number, cfg: typeof LAND_CFG[Land]) {
   return { aftrekList, totaalAftrek, belastbaar, belasting: Math.round(belasting), sociaal };
 }
 
+const CARD = { background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 } as const;
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function BoekhoudingPage() {
+  const router = useRouter();
   const storeLand = useUserStore(s => s.land);
   const setStoreLand = useUserStore(s => s.setLand);
 
@@ -297,8 +300,6 @@ export default function BoekhoudingPage() {
   };
 
   const exportData = () => {
-    const fmtEurLocal = (n: number) =>
-      new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(n);
     const now = new Date().toLocaleDateString("nl-NL");
     let csv = "";
 
@@ -318,7 +319,6 @@ export default function BoekhoudingPage() {
         `${r.datum};"${r.bestemming}";${fmt(r.km,1)};"${r.doel}";${fmt(r.km * cfg.kmVergoeding)}`
       ).join("\n");
     } else {
-      // Overzicht export — alles samen
       csv = `Servr Boekhouding Export – ${now}\n`;
       csv += `Land;${cfg.naam}\nBoekjaar;2026\n\n`;
       csv += `INKOMSTEN\nDatum;Klant;Omschrijving;Bedrag;BTW;Status\n`;
@@ -345,59 +345,78 @@ export default function BoekhoudingPage() {
     URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="flex flex-col min-h-full" style={{background:"#F1F4FA"}}>
+  const inputStyle = {
+    background: "#FBF7F0",
+    border: "0.5px solid #E5DDD0",
+    borderRadius: 8,
+    padding: "10px 12px",
+    fontSize: 14,
+    color: "#1A1D1A",
+    fontFamily: "'Inter', sans-serif",
+    outline: "none",
+    width: "100%",
+  };
 
-      {/* Header */}
-      <div className="px-5 pt-14 pb-3 sticky top-0 z-20"
-        style={{background:"#F1F4FA",borderBottom:"1px solid #E2E8F0"}}>
+  return (
+    <div className="flex flex-col min-h-full" style={{ background: "#F5EFE5" }}>
+
+      {/* Sticky Header */}
+      <div className="px-5 pt-14 pb-4" style={{ background: "rgba(245,239,229,0.97)" }}>
         <div className="flex items-center gap-3 mb-3">
-          <Link href="/profile"
-            className="touch-scale w-9 h-9 rounded-full flex items-center justify-center bg-white shadow-sm flex-shrink-0">
-            <ArrowLeft size={18}/>
-          </Link>
+          <button onClick={() => router.push('/profile')}
+            className="touch-scale w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
+            <ArrowLeft size={18} style={{ color: "#1A1D1A" }} />
+          </button>
           <div className="flex-1">
-            <h1 className="font-black text-2xl">Boekhouding</h1>
-            <p className="text-xs" style={{color:"#64748B"}}>Boekjaar 2026</p>
+            <h1 className="font-bold text-xl" style={{ fontFamily: "'Source Serif 4', Georgia, serif", color: "#1A1D1A" }}>
+              Boekhouding
+            </h1>
+            <p className="text-xs" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>Boekjaar 2026</p>
           </div>
           {/* Land selector */}
-          <button onClick={()=>setShowLand(v=>!v)}
-            className="touch-scale flex items-center gap-1 px-2.5 py-2 rounded-xl bg-white shadow-sm text-xs font-bold relative whitespace-nowrap flex-shrink-0">
-            <span className="text-sm font-black">{storeLand}</span>
-          </button>
+          <div className="relative">
+            <button onClick={() => setShowLand(v => !v)}
+              className="touch-scale flex items-center gap-1 px-3 py-2 rounded-full text-xs font-semibold flex-shrink-0"
+              style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+              <span>{cfg.vlag}</span>
+              <span>{storeLand}</span>
+            </button>
+            {showLand && (
+              <div className="absolute right-0 top-10 z-30 rounded-2xl overflow-hidden"
+                style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", minWidth: 220, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}>
+                {(Object.keys(LAND_CFG) as Land[]).map(l => (
+                  <button key={l} onClick={() => { setStoreLand(l); setShowLand(false); }}
+                    className="touch-scale w-full flex items-center gap-3 px-4 py-3 text-left"
+                    style={{ borderBottom: "0.5px solid #E5DDD0", background: storeLand === l ? "#2B403010" : "transparent" }}>
+                    <span className="text-lg">{LAND_CFG[l].vlag}</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>{LAND_CFG[l].naam}</p>
+                      <p className="text-[10px]" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>{LAND_CFG[l].belastingdienst}</p>
+                    </div>
+                    {storeLand === l && <Check size={14} style={{ color: "#2B4030" }} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button onClick={exportData}
-            className="touch-scale w-9 h-9 rounded-xl flex items-center justify-center bg-white shadow-sm flex-shrink-0"
-            style={{color:"#4F46E5"}} title="Export CSV">
-            <Download size={16}/>
+            className="touch-scale w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}
+            title="Export CSV">
+            <Download size={16} style={{ color: "#2B4030" }} />
           </button>
         </div>
 
-        {/* Land dropdown */}
-        {showLand && (
-          <div className="absolute right-4 top-16 z-30 rounded-2xl overflow-hidden shadow-xl"
-            style={{background:"white",border:"1px solid #E2E8F0",minWidth:220}}>
-            {(Object.keys(LAND_CFG) as Land[]).map(l => (
-              <button key={l} onClick={()=>{setStoreLand(l);setShowLand(false);}}
-                className="touch-scale w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50"
-                style={{borderBottom:"1px solid #F1F5F9",background:storeLand===l?"#EEF2FF":"white"}}>
-                <span className="text-lg">{LAND_CFG[l].vlag}</span>
-                <div className="flex-1">
-                  <p className="font-bold text-sm">{LAND_CFG[l].naam}</p>
-                  <p className="text-[10px]" style={{color:"#94A3B8"}}>{LAND_CFG[l].belastingdienst}</p>
-                </div>
-                {storeLand===l && <Check size={14} style={{color:"#4F46E5"}}/>}
-              </button>
-            ))}
-          </div>
-        )}
-
         {/* Land info strip */}
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-2"
-          style={{background:"#4F46E510",border:"1px solid #4F46E520"}}>
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl mb-3"
+          style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0" }}>
           <span className="text-base">{cfg.vlag}</span>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold truncate">{cfg.naam} — {cfg.belastingdienst}</p>
-            <p className="text-[10px]" style={{color:"#64748B"}}>
+            <p className="text-xs font-semibold truncate" style={{ color: "#1A1D1A", fontFamily: "'Inter', sans-serif" }}>
+              {cfg.naam} — {cfg.belastingdienst}
+            </p>
+            <p className="text-[10px]" style={{ color: "#8A8A83", fontFamily: "'Inter', sans-serif" }}>
               {cfg.ondernemingLabel} · BTW {cfg.btwTarieven.join("/")}% · {cfg.btwAangifte}
             </p>
           </div>
@@ -405,13 +424,14 @@ export default function BoekhoudingPage() {
 
         {/* Tabs */}
         <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-          {TABS.map(t=>(
-            <button key={t.key} onClick={()=>setActiveTab(t.key)}
-              className="touch-scale flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex-shrink-0"
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setActiveTab(t.key)}
+              className="touch-scale flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0"
               style={{
-                background:activeTab===t.key?"#4F46E5":"white",
-                color:activeTab===t.key?"white":"#64748B",
-                boxShadow:activeTab===t.key?"0 2px 8px #4F46E540":"0 1px 3px rgba(0,0,0,0.06)",
+                fontFamily: "'Inter', sans-serif",
+                background: activeTab === t.key ? "#2B4030" : "#FBF7F0",
+                color: activeTab === t.key ? "#F5EFE5" : "#5C5C56",
+                border: "0.5px solid #E5DDD0",
               }}>
               {t.icon}{t.label}
             </button>
@@ -419,98 +439,103 @@ export default function BoekhoudingPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 px-4 py-4 pb-24">
+      <div className="flex flex-col gap-4 px-5 py-4 pb-28">
 
         {/* ══ OVERZICHT ══ */}
         {activeTab==="overzicht" && (<>
           <div className="grid grid-cols-2 gap-3">
             {[
-              {label:"Omzet (excl. BTW)", value:`€${fmt(totOmzet)}`,    color:"#10B981", icon:<TrendingUp size={16} color="#10B981"/>},
-              {label:"Totale kosten",     value:`€${fmt(totUitg)}`,     color:"#EF4444", icon:<TrendingDown size={16} color="#EF4444"/>},
-              {label:"Netto winst",       value:`€${fmt(netto)}`,        color:"#4F46E5", icon:<Euro size={16} color="#4F46E5"/>},
-              {label:"Openstaande BTW",   value:`€${fmt(openBtw)}`,     color:"#F59E0B", icon:<Receipt size={16} color="#F59E0B"/>},
+              {label:"Omzet (excl. BTW)", value:`€${fmt(totOmzet)}`,    color:"#2B4030", icon:<TrendingUp size={16} style={{color:"#2B4030"}}/>},
+              {label:"Totale kosten",     value:`€${fmt(totUitg)}`,     color:"#C97A4D", icon:<TrendingDown size={16} style={{color:"#C97A4D"}}/>},
+              {label:"Netto winst",       value:`€${fmt(netto)}`,        color:"#2B4030", icon:<Euro size={16} style={{color:"#2B4030"}}/>},
+              {label:"Openstaande BTW",   value:`€${fmt(openBtw)}`,     color:"#C97A4D", icon:<Receipt size={16} style={{color:"#C97A4D"}}/>},
             ].map(s=>(
-              <div key={s.label} className="bg-white rounded-2xl p-4" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
+              <div key={s.label} style={CARD}>
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-2"
-                  style={{background:s.color+"15"}}>{s.icon}</div>
-                <p className="font-black text-xl" style={{color:s.color}}>{s.value}</p>
-                <p className="text-xs mt-0.5" style={{color:"#94A3B8"}}>{s.label}</p>
+                  style={{background:"#F5EFE5"}}>{s.icon}</div>
+                <p className="font-bold text-xl" style={{fontFamily:"'Source Serif 4', Georgia, serif", color:s.color}}>{s.value}</p>
+                <p className="text-xs mt-0.5" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>{s.label}</p>
               </div>
             ))}
           </div>
 
           {openOmzet>0 && (
-            <div className="bg-white rounded-2xl p-4 flex items-center gap-3"
-              style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)",border:"1px solid #FEF3C7"}}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{background:"#FEF3C7"}}>
-                <AlertCircle size={17} style={{color:"#D97706"}}/>
+            <div style={CARD} className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{background:"#C97A4D15"}}>
+                <AlertCircle size={17} style={{color:"#C97A4D"}}/>
               </div>
               <div className="flex-1">
-                <p className="font-bold text-sm">€{fmt(openOmzet)} openstaand</p>
-                <p className="text-xs" style={{color:"#94A3B8"}}>Nog niet betaalde facturen</p>
+                <p className="font-semibold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>€{fmt(openOmzet)} openstaand</p>
+                <p className="text-xs" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Nog niet betaalde facturen</p>
               </div>
               <button onClick={()=>setActiveTab("inkomsten")}
-                className="touch-scale text-xs font-bold px-3 py-1.5 rounded-xl"
-                style={{background:"#FEF3C7",color:"#D97706"}}>Bekijk</button>
+                className="touch-scale text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{background:"transparent",border:"0.5px solid #E5DDD0",color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>
+                Bekijk
+              </button>
             </div>
           )}
 
           {/* Grafiek */}
-          <div className="bg-white rounded-2xl p-4" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-            <p className="font-bold text-sm mb-4">Omzet per maand 2026</p>
+          <div style={CARD}>
+            <p className="font-semibold text-sm mb-4" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>Omzet per maand 2026</p>
             <div className="flex items-end gap-1 h-28">
               {OMZET_PER_MAAND.map((v,i)=>(
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
                   <div className="w-full rounded-t-md"
                     style={{
                       height:v>0?`${Math.round((v/maxOmzet)*96)}px`:"4px",
-                      background:v>0?(i===4?"linear-gradient(180deg,#4F46E5,#818CF8)":"#E0E7FF"):"#F1F5F9",
+                      background:v>0?(i===4?"#2B4030":"#2B403040"):"#E5DDD0",
                       minHeight:4,
                     }}/>
-                  <span className="text-[9px] font-semibold" style={{color:v>0?"#64748B":"#CBD5E1"}}>{MAANDEN[i]}</span>
+                  <span className="text-[9px] font-semibold" style={{color:v>0?"#5C5C56":"#8A8A83",fontFamily:"'Inter', sans-serif"}}>
+                    {MAANDEN[i]}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* W&V rekening */}
-          <div className="bg-white rounded-2xl overflow-hidden" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-            <div className="px-4 py-3 border-b border-gray-100">
-              <p className="font-bold text-sm">Winst- & verliesrekening 2026</p>
-              <p className="text-xs mt-0.5" style={{color:"#94A3B8"}}>{cfg.naam} — {cfg.belastingdienst}</p>
+          <div style={{...CARD, padding:0, overflow:"hidden"}}>
+            <div className="px-4 py-3" style={{borderBottom:"0.5px solid #E5DDD0"}}>
+              <p className="font-semibold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>Winst- & verliesrekening 2026</p>
+              <p className="text-xs mt-0.5" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>{cfg.naam} — {cfg.belastingdienst}</p>
             </div>
             {[
-              {label:"Omzet (excl. BTW)",    value:totOmzet,     color:"#10B981", plus:true},
-              {label:"Aftrekbare kosten",     value:-aftrekKost,  color:"#EF4444", plus:false},
-              {label:"Bruto winst",           value:netto,        color:"#4F46E5", plus:true, bold:true},
-              ...aftrekList.map(a=>({label:a.naam, value:-a.bedrag, color:"#6366F1", plus:false})),
-              {label:"Belastbaar inkomen",    value:belastbaar,   color:"#0F172A", plus:true, bold:true},
+              {label:"Omzet (excl. BTW)",    value:totOmzet,     color:"#2B4030", plus:true},
+              {label:"Aftrekbare kosten",     value:-aftrekKost,  color:"#C97A4D", plus:false},
+              {label:"Bruto winst",           value:netto,        color:"#2B4030", plus:true, bold:true},
+              ...aftrekList.map(a=>({label:a.naam, value:-a.bedrag, color:"#5C5C56", plus:false})),
+              {label:"Belastbaar inkomen",    value:belastbaar,   color:"#1A1D1A", plus:true, bold:true},
             ].map((r,i)=>(
-              <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50">
-                <p className="text-sm" style={{fontWeight:r.bold?700:400,color:r.bold?"#0F172A":"#64748B"}}>{r.label}</p>
-                <p className="text-sm font-bold" style={{color:r.color}}>
+              <div key={i} className="flex items-center justify-between px-4 py-2.5" style={{borderBottom:"0.5px solid #E5DDD0"}}>
+                <p className="text-sm" style={{fontWeight:r.bold?700:400,color:r.bold?"#1A1D1A":"#5C5C56",fontFamily:"'Inter', sans-serif"}}>{r.label}</p>
+                <p className="text-sm font-semibold" style={{color:r.color,fontFamily:"'Source Serif 4', Georgia, serif"}}>
                   {r.plus?"+":"−"}€{fmt(Math.abs(r.value))}
                 </p>
               </div>
             ))}
             {cfg.socialeBijdragen && (
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50">
-                <p className="text-sm" style={{color:"#64748B"}}>{cfg.socialeBijdragen.naam}</p>
-                <p className="text-sm font-bold" style={{color:"#EF4444"}}>−€{fmt(sociaal)}</p>
+              <div className="flex items-center justify-between px-4 py-2.5" style={{borderBottom:"0.5px solid #E5DDD0"}}>
+                <p className="text-sm" style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>{cfg.socialeBijdragen.naam}</p>
+                <p className="text-sm font-semibold" style={{color:"#C97A4D",fontFamily:"'Source Serif 4', Georgia, serif"}}>−€{fmt(sociaal)}</p>
               </div>
             )}
-            <div className="flex items-center justify-between px-4 py-3" style={{background:"#F8FAFC"}}>
-              <p className="font-black text-sm">Totale belastingdruk</p>
-              <p className="font-black text-sm" style={{color:"#EF4444"}}>−€{fmt(totaalBelastingDruk)}</p>
+            <div className="flex items-center justify-between px-4 py-3" style={{background:"#F5EFE5"}}>
+              <p className="font-bold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>Totale belastingdruk</p>
+              <p className="font-bold text-sm" style={{color:"#C97A4D",fontFamily:"'Source Serif 4', Georgia, serif"}}>−€{fmt(totaalBelastingDruk)}</p>
             </div>
           </div>
 
-          <div className="rounded-2xl p-4 flex items-start gap-3"
-            style={{background:"#4F46E510",border:"1px solid #4F46E530"}}>
-            <PiggyBank size={18} style={{color:"#4F46E5",flexShrink:0,marginTop:2}}/>
+          <div style={CARD} className="flex items-start gap-3">
+            <PiggyBank size={18} style={{color:"#2B4030",flexShrink:0,marginTop:2}}/>
             <div>
-              <p className="font-bold text-sm">Reserveer elke maand €{fmt(reservePerMaand,0)}</p>
-              <p className="text-xs mt-0.5 leading-relaxed" style={{color:"#64748B"}}>
+              <p className="font-semibold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>
+                Reserveer elke maand €{fmt(reservePerMaand,0)}
+              </p>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>
                 Geschatte jaarlijkse belasting: €{fmt(totaalBelastingDruk,0)} ({cfg.naam}).
                 Zet dit maandelijks apart om verrassingen te vermijden.
               </p>
@@ -520,34 +545,33 @@ export default function BoekhoudingPage() {
 
         {/* ══ INKOMSTEN ══ */}
         {activeTab==="inkomsten" && (<>
-          <div className="bg-white rounded-2xl p-4" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-            <div className="flex justify-between">
-              <div>
-                <p className="text-xs font-semibold" style={{color:"#94A3B8"}}>Totaal ontvangen</p>
-                <p className="font-black text-2xl" style={{color:"#10B981"}}>€{fmt(totOmzet)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold" style={{color:"#94A3B8"}}>Openstaand</p>
-                <p className="font-black text-xl" style={{color:"#F59E0B"}}>€{fmt(openOmzet)}</p>
-              </div>
+          <div style={CARD} className="flex justify-between">
+            <div>
+              <p className="text-xs font-semibold" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Totaal ontvangen</p>
+              <p className="font-bold text-2xl" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#2B4030"}}>€{fmt(totOmzet)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-semibold" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Openstaand</p>
+              <p className="font-bold text-xl" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#C97A4D"}}>€{fmt(openOmzet)}</p>
             </div>
           </div>
-          <div className="bg-white rounded-2xl overflow-hidden" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
+          <div style={{...CARD,padding:0,overflow:"hidden"}}>
             {MOCK_FACTUREN.map((f,i)=>(
-              <div key={f.id} className={`flex items-center gap-3 px-4 py-3.5 ${i<MOCK_FACTUREN.length-1?"border-b border-gray-50":""}`}>
+              <div key={f.id} className="flex items-center gap-3 px-4 py-3.5"
+                style={{borderBottom:i<MOCK_FACTUREN.length-1?"0.5px solid #E5DDD0":"none"}}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{background:f.status==="betaald"?"#F0FDF4":"#FEF3C7"}}>
-                  <FileText size={16} style={{color:f.status==="betaald"?"#16A34A":"#D97706"}}/>
+                  style={{background:f.status==="betaald"?"#2B403015":"#C97A4D15"}}>
+                  <FileText size={16} style={{color:f.status==="betaald"?"#2B4030":"#C97A4D"}}/>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{f.omschrijving}</p>
-                  <p className="text-xs mt-0.5" style={{color:"#94A3B8"}}>
+                  <p className="font-semibold text-sm truncate" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>{f.omschrijving}</p>
+                  <p className="text-xs mt-0.5" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>
                     {f.klant} · {new Date(f.datum).toLocaleDateString("nl-NL",{day:"numeric",month:"short"})}
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="font-bold text-sm">€{fmt(f.bedrag)}</p>
-                  <p className="text-[10px]" style={{color:"#94A3B8"}}>+BTW €{fmt(f.btw)}</p>
+                  <p className="font-bold text-sm" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#1A1D1A"}}>€{fmt(f.bedrag)}</p>
+                  <p className="text-[10px]" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>+BTW €{fmt(f.btw)}</p>
                 </div>
               </div>
             ))}
@@ -557,19 +581,19 @@ export default function BoekhoudingPage() {
         {/* ══ UITGAVEN ══ */}
         {activeTab==="uitgaven" && (<>
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-2xl p-4" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-              <p className="text-xs font-semibold mb-1" style={{color:"#94A3B8"}}>Totale kosten</p>
-              <p className="font-black text-xl" style={{color:"#EF4444"}}>€{fmt(totUitg)}</p>
+            <div style={CARD}>
+              <p className="text-xs font-semibold mb-1" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Totale kosten</p>
+              <p className="font-bold text-xl" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#C97A4D"}}>€{fmt(totUitg)}</p>
             </div>
-            <div className="bg-white rounded-2xl p-4" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-              <p className="text-xs font-semibold mb-1" style={{color:"#94A3B8"}}>Aftrekbaar</p>
-              <p className="font-black text-xl" style={{color:"#10B981"}}>€{fmt(aftrekKost)}</p>
+            <div style={CARD}>
+              <p className="text-xs font-semibold mb-1" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Aftrekbaar</p>
+              <p className="font-bold text-xl" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#2B4030"}}>€{fmt(aftrekKost)}</p>
             </div>
           </div>
 
           {/* Categorieën */}
-          <div className="bg-white rounded-2xl p-4" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-            <p className="font-bold text-sm mb-3">Per categorie</p>
+          <div style={CARD}>
+            <p className="font-semibold text-sm mb-3" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>Per categorie</p>
             {(Object.keys(KAT_COLORS) as UitgaveKat[]).map(kat=>{
               const total=uitgaven.filter(u=>u.categorie===kat).reduce((s,u)=>s+u.bedrag,0);
               if(!total) return null;
@@ -580,11 +604,11 @@ export default function BoekhoudingPage() {
                     <div className="flex items-center gap-2">
                       <span className="w-5 h-5 rounded-md flex items-center justify-center"
                         style={{background:KAT_COLORS[kat]+"18",color:KAT_COLORS[kat]}}>{KAT_ICONS[kat]}</span>
-                      <span className="text-xs font-semibold">{kat}</span>
+                      <span className="text-xs font-semibold" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>{kat}</span>
                     </div>
-                    <span className="text-xs font-bold">€{fmt(total)}</span>
+                    <span className="text-xs font-bold" style={{color:"#1A1D1A",fontFamily:"'Source Serif 4', Georgia, serif"}}>€{fmt(total)}</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full" style={{background:"#F1F5F9"}}>
+                  <div className="w-full h-1.5 rounded-full" style={{background:"#E5DDD0"}}>
                     <div className="h-1.5 rounded-full" style={{width:`${pct}%`,background:KAT_COLORS[kat]}}/>
                   </div>
                 </div>
@@ -592,28 +616,30 @@ export default function BoekhoudingPage() {
             })}
           </div>
 
-          <div className="bg-white rounded-2xl overflow-hidden" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <p className="font-bold text-sm">Alle uitgaven</p>
+          <div style={{...CARD,padding:0,overflow:"hidden"}}>
+            <div className="flex items-center justify-between px-4 py-3" style={{borderBottom:"0.5px solid #E5DDD0"}}>
+              <p className="font-semibold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>Alle uitgaven</p>
               <button onClick={()=>setShowAddU(true)}
-                className="touch-scale flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl"
-                style={{background:"#EF444410",color:"#EF4444"}}>
+                className="touch-scale flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{background:"#2B4030",color:"#F5EFE5",fontFamily:"'Inter', sans-serif",border:"none"}}>
                 <Plus size={12}/> Toevoegen
               </button>
             </div>
             {uitgaven.map((u,i)=>(
-              <div key={u.id} className={`flex items-center gap-3 px-4 py-3 ${i<uitgaven.length-1?"border-b border-gray-50":""}`}>
+              <div key={u.id} className="flex items-center gap-3 px-4 py-3"
+                style={{borderBottom:i<uitgaven.length-1?"0.5px solid #E5DDD0":"none"}}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{background:KAT_COLORS[u.categorie]+"15",color:KAT_COLORS[u.categorie]}}>
                   {KAT_ICONS[u.categorie]}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{u.omschrijving}</p>
-                  <p className="text-xs mt-0.5" style={{color:"#94A3B8"}}>
+                  <p className="font-semibold text-sm truncate" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>{u.omschrijving}</p>
+                  <p className="text-xs mt-0.5" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>
                     {u.categorie} · {new Date(u.datum).toLocaleDateString("nl-NL",{day:"numeric",month:"short"})}
                   </p>
                 </div>
-                <p className="font-bold text-sm flex-shrink-0" style={{color:"#EF4444"}}>−€{fmt(u.bedrag)}</p>
+                <p className="font-bold text-sm flex-shrink-0"
+                  style={{color:"#C97A4D",fontFamily:"'Source Serif 4', Georgia, serif"}}>−€{fmt(u.bedrag)}</p>
               </div>
             ))}
           </div>
@@ -621,20 +647,19 @@ export default function BoekhoudingPage() {
 
         {/* ══ BTW ══ */}
         {activeTab==="btw" && (<>
-          <div className="bg-white rounded-2xl p-4" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-            <p className="text-xs font-semibold mb-1" style={{color:"#94A3B8"}}>
+          <div style={CARD}>
+            <p className="text-xs font-semibold mb-1" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>
               Totale BTW ontvangen 2026 ({cfg.naam})
             </p>
-            <p className="font-black text-2xl" style={{color:"#F59E0B"}}>€{fmt(totBtwOntvangen)}</p>
-            <p className="text-xs mt-1" style={{color:"#94A3B8"}}>
+            <p className="font-bold text-2xl" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#C97A4D"}}>€{fmt(totBtwOntvangen)}</p>
+            <p className="text-xs mt-1" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>
               Standaard tarief: {cfg.btwTarieven[0]}% · Overige: {cfg.btwTarieven.slice(1).join("/")}%
             </p>
           </div>
 
-          <div className="rounded-2xl p-4 flex items-start gap-3"
-            style={{background:"#FEF3C720",border:"1px solid #FEF3C7"}}>
-            <BookOpen size={16} style={{color:"#D97706",flexShrink:0,marginTop:2}}/>
-            <p className="text-xs leading-relaxed" style={{color:"#92400E"}}>
+          <div style={CARD} className="flex items-start gap-3">
+            <BookOpen size={16} style={{color:"#2B4030",flexShrink:0,marginTop:2}}/>
+            <p className="text-xs leading-relaxed" style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>
               In <strong>{cfg.naam}</strong> doe je {cfg.btwAangifte.toLowerCase()} BTW-aangifte bij de{" "}
               <strong>{cfg.belastingdienst}</strong>. Het standaard BTW-tarief is {cfg.btwTarieven[0]}%.
             </p>
@@ -646,51 +671,49 @@ export default function BoekhoudingPage() {
             const st = isIng ? "betaald" : q.status;
             const stCfg = BTW_ST[st];
             return (
-              <div key={q.kwartaal} className="bg-white rounded-2xl overflow-hidden"
-                style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-                <div className="flex items-center justify-between px-4 py-3"
-                  style={{borderBottom:"1px solid #F1F5F9"}}>
+              <div key={q.kwartaal} style={{...CARD,padding:0,overflow:"hidden"}}>
+                <div className="flex items-center justify-between px-4 py-3" style={{borderBottom:"0.5px solid #E5DDD0"}}>
                   <div>
-                    <p className="font-bold text-sm">{q.kwartaal}</p>
-                    <p className="text-xs" style={{color:"#94A3B8"}}>{q.periode}</p>
+                    <p className="font-semibold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>{q.kwartaal}</p>
+                    <p className="text-xs" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>{q.periode}</p>
                   </div>
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full"
-                    style={{background:stCfg.bg,color:stCfg.color}}>
-                    {isIng?"✓ Betaald":stCfg.label}
+                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
+                    style={{background:stCfg.bg,color:stCfg.color,fontFamily:"'Inter', sans-serif"}}>
+                    {isIng?"Betaald":stCfg.label}
                   </span>
                 </div>
                 {q.omzet>0 ? (
                   <div className="px-4 py-3">
                     <div className="flex justify-between text-sm mb-1.5">
-                      <span style={{color:"#64748B"}}>Omzet (excl. BTW)</span>
-                      <span className="font-semibold">€{fmt(q.omzet)}</span>
+                      <span style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>Omzet (excl. BTW)</span>
+                      <span className="font-semibold" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#1A1D1A"}}>€{fmt(q.omzet)}</span>
                     </div>
                     <div className="flex justify-between text-sm mb-1.5">
-                      <span style={{color:"#64748B"}}>BTW ({cfg.btwTarieven[0]}%)</span>
-                      <span className="font-semibold" style={{color:"#F59E0B"}}>€{fmt(btw)}</span>
+                      <span style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>BTW ({cfg.btwTarieven[0]}%)</span>
+                      <span className="font-semibold" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#C97A4D"}}>€{fmt(btw)}</span>
                     </div>
-                    <div className="flex justify-between text-sm pt-2 border-t border-gray-100">
-                      <span className="font-bold">Te betalen aan {cfg.belastingdienst}</span>
-                      <span className="font-black" style={{color:"#EF4444"}}>€{fmt(btw)}</span>
+                    <div className="flex justify-between text-sm pt-2" style={{borderTop:"0.5px solid #E5DDD0"}}>
+                      <span className="font-semibold" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>Te betalen aan {cfg.belastingdienst}</span>
+                      <span className="font-bold" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#C97A4D"}}>€{fmt(btw)}</span>
                     </div>
                     {!isIng && st==="openstaand" && (
                       <button onClick={()=>setShowBtwModal(i)}
-                        className="touch-scale mt-3 w-full py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2"
-                        style={{background:"linear-gradient(135deg,#F59E0B,#EF4444)"}}>
+                        className="touch-scale mt-3 w-full py-3 rounded-full font-semibold text-sm flex items-center justify-center gap-2"
+                        style={{background:"#2B4030",color:"#F5EFE5",border:"none",fontFamily:"'Inter', sans-serif"}}>
                         <Send size={14}/> Aangifte indienen bij {cfg.belastingdienst}
                       </button>
                     )}
                     {(isIng||st==="betaald") && (
-                      <div className="mt-3 py-2.5 rounded-xl flex items-center justify-center gap-2"
-                        style={{background:"#F0FDF4"}}>
-                        <Check size={14} style={{color:"#16A34A"}}/>
-                        <span className="text-sm font-bold" style={{color:"#16A34A"}}>Aangifte gedaan ✓</span>
+                      <div className="mt-3 py-2.5 rounded-full flex items-center justify-center gap-2"
+                        style={{background:"#2B403015"}}>
+                        <Check size={14} style={{color:"#2B4030"}}/>
+                        <span className="text-sm font-semibold" style={{color:"#2B4030",fontFamily:"'Inter', sans-serif"}}>Aangifte gedaan</span>
                       </div>
                     )}
                   </div>
                 ) : (
                   <div className="px-4 py-4 text-center">
-                    <p className="text-sm" style={{color:"#94A3B8"}}>Kwartaal nog niet begonnen</p>
+                    <p className="text-sm" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Kwartaal nog niet begonnen</p>
                   </div>
                 )}
               </div>
@@ -700,37 +723,38 @@ export default function BoekhoudingPage() {
 
         {/* ══ BELASTING ══ */}
         {activeTab==="belasting" && (<>
-          <div className="rounded-2xl p-4"
-            style={{background:"linear-gradient(135deg,#4F46E5,#818CF8)",boxShadow:"0 4px 20px #4F46E540"}}>
+          <div style={CARD}>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl">{cfg.vlag}</span>
-              <p className="text-white/80 text-xs font-semibold">{cfg.inkomstenbelasting} 2026</p>
+              <p className="text-xs font-semibold" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>{cfg.inkomstenbelasting} 2026</p>
             </div>
-            <p className="font-black text-3xl text-white">€{fmt(belasting)}</p>
+            <p className="font-bold" style={{fontFamily:"'Source Serif 4', Georgia, serif",fontSize:32,color:"#2B4030"}}>€{fmt(belasting)}</p>
             {cfg.socialeBijdragen && (
-              <p className="text-white/70 text-xs mt-1">
+              <p className="text-xs mt-1" style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>
                 + {cfg.socialeBijdragen.naam}: €{fmt(sociaal)} → Totaal €{fmt(totaalBelastingDruk)}
               </p>
             )}
-            <p className="text-white/60 text-xs mt-0.5">Reserveer €{fmt(reservePerMaand,0)}/maand</p>
+            <p className="text-xs mt-0.5" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>
+              Reserveer €{fmt(reservePerMaand,0)}/maand
+            </p>
           </div>
 
           {/* Aftrekposten */}
-          <div className="bg-white rounded-2xl overflow-hidden" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-            <div className="px-4 py-3 border-b border-gray-100">
-              <p className="font-bold text-sm">Aftrekposten — {cfg.naam}</p>
+          <div style={{...CARD,padding:0,overflow:"hidden"}}>
+            <div className="px-4 py-3" style={{borderBottom:"0.5px solid #E5DDD0"}}>
+              <p className="font-semibold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>Aftrekposten — {cfg.naam}</p>
             </div>
             {[
-              {label:"Bruto winst",       bedrag:netto,     color:"#10B981",plus:true},
-              ...aftrekList.map(a=>({label:a.naam,bedrag:-a.bedrag,color:"#4F46E5",plus:false,info:a.info})),
-              {label:"Belastbaar inkomen",bedrag:belastbaar,color:"#0F172A",plus:true,bold:true},
+              {label:"Bruto winst",       bedrag:netto,     color:"#2B4030",plus:true},
+              ...aftrekList.map(a=>({label:a.naam,bedrag:-a.bedrag,color:"#5C5C56",plus:false,info:a.info})),
+              {label:"Belastbaar inkomen",bedrag:belastbaar,color:"#1A1D1A",plus:true,bold:true},
             ].map((r,i)=>(
-              <div key={i} className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
+              <div key={i} className="flex items-center justify-between px-4 py-3" style={{borderBottom:"0.5px solid #E5DDD0"}}>
                 <div>
-                  <p className="text-sm" style={{fontWeight:("bold" in r&&r.bold)?700:500}}>{r.label}</p>
-                  {"info" in r && r.info && <p className="text-xs mt-0.5" style={{color:"#94A3B8"}}>{r.info as string}</p>}
+                  <p className="text-sm" style={{fontWeight:("bold" in r&&r.bold)?700:500,color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>{r.label}</p>
+                  {"info" in r && r.info && <p className="text-xs mt-0.5" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>{r.info as string}</p>}
                 </div>
-                <p className="font-bold text-sm" style={{color:r.color}}>
+                <p className="font-semibold text-sm" style={{color:r.color,fontFamily:"'Source Serif 4', Georgia, serif"}}>
                   {r.plus?"+":"−"}€{fmt(Math.abs(r.bedrag))}
                 </p>
               </div>
@@ -738,9 +762,11 @@ export default function BoekhoudingPage() {
           </div>
 
           {/* Schijven */}
-          <div className="bg-white rounded-2xl overflow-hidden" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-            <div className="px-4 py-3 border-b border-gray-100">
-              <p className="font-bold text-sm">{cfg.inkomstenbelasting} — schijven 2026</p>
+          <div style={{...CARD,padding:0,overflow:"hidden"}}>
+            <div className="px-4 py-3" style={{borderBottom:"0.5px solid #E5DDD0"}}>
+              <p className="font-semibold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>
+                {cfg.inkomstenbelasting} — schijven 2026
+              </p>
             </div>
             <div className="px-4 py-3 space-y-2">
               {cfg.schijven.map((s,i)=>{
@@ -750,14 +776,14 @@ export default function BoekhoudingPage() {
                 if(deel===0 && prev>=belastbaar) return null;
                 return (
                   <div key={i} className="rounded-xl p-3"
-                    style={{background:s.kleur+"12",border:`1px solid ${s.kleur}25`}}>
+                    style={{background:s.kleur+"10",border:`0.5px solid ${s.kleur}30`}}>
                     <div className="flex justify-between mb-0.5">
-                      <span className="text-xs font-bold" style={{color:s.kleur}}>{s.label}</span>
-                      <span className="text-xs font-bold" style={{color:s.kleur}}>
+                      <span className="text-xs font-semibold" style={{color:s.kleur,fontFamily:"'Inter', sans-serif"}}>{s.label}</span>
+                      <span className="text-xs font-bold" style={{color:s.kleur,fontFamily:"'Source Serif 4', Georgia, serif"}}>
                         {deel>0?`€${fmt(tax)}`:"—"}
                       </span>
                     </div>
-                    <p className="text-xs" style={{color:s.kleur+"99"}}>
+                    <p className="text-xs" style={{color:s.kleur+"99",fontFamily:"'Inter', sans-serif"}}>
                       {s.max===Infinity
                         ? `Boven €${fmt(prev,0)}`
                         : `€${fmt(i>0?cfg.schijven[i-1].max:0,0)} – €${fmt(s.max,0)}`}
@@ -767,30 +793,28 @@ export default function BoekhoudingPage() {
                 );
               })}
 
-              {/* Sociale bijdragen (BE/DE/FR) */}
               {cfg.socialeBijdragen && (
-                <div className="rounded-xl p-3" style={{background:"#8B5CF615",border:"1px solid #8B5CF625"}}>
+                <div className="rounded-xl p-3" style={{background:"#C97A4D10",border:"0.5px solid #C97A4D30"}}>
                   <div className="flex justify-between mb-0.5">
-                    <span className="text-xs font-bold" style={{color:"#8B5CF6"}}>{cfg.socialeBijdragen.naam}</span>
-                    <span className="text-xs font-bold" style={{color:"#8B5CF6"}}>€{fmt(sociaal)}</span>
+                    <span className="text-xs font-semibold" style={{color:"#C97A4D",fontFamily:"'Inter', sans-serif"}}>{cfg.socialeBijdragen.naam}</span>
+                    <span className="text-xs font-bold" style={{color:"#C97A4D",fontFamily:"'Source Serif 4', Georgia, serif"}}>€{fmt(sociaal)}</span>
                   </div>
-                  <p className="text-xs" style={{color:"#8B5CF699"}}>{cfg.socialeBijdragen.info}</p>
+                  <p className="text-xs" style={{color:"#C97A4D99",fontFamily:"'Inter', sans-serif"}}>{cfg.socialeBijdragen.info}</p>
                 </div>
               )}
 
-              <div className="flex justify-between pt-2 border-t border-gray-100">
-                <span className="font-black text-sm">Totale belastingdruk</span>
-                <span className="font-black text-sm" style={{color:"#EF4444"}}>€{fmt(totaalBelastingDruk)}</span>
+              <div className="flex justify-between pt-2" style={{borderTop:"0.5px solid #E5DDD0"}}>
+                <span className="font-bold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>Totale belastingdruk</span>
+                <span className="font-bold text-sm" style={{color:"#C97A4D",fontFamily:"'Source Serif 4', Georgia, serif"}}>€{fmt(totaalBelastingDruk)}</span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl p-4 flex items-start gap-3"
-            style={{background:"#4F46E510",border:"1px solid #4F46E530"}}>
-            <PiggyBank size={18} style={{color:"#4F46E5",flexShrink:0,marginTop:2}}/>
+          <div style={CARD} className="flex items-start gap-3">
+            <PiggyBank size={18} style={{color:"#2B4030",flexShrink:0,marginTop:2}}/>
             <div>
-              <p className="font-bold text-sm">Slim reserveren — {cfg.naam}</p>
-              <p className="text-xs mt-0.5 leading-relaxed" style={{color:"#64748B"}}>
+              <p className="font-semibold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>Slim reserveren — {cfg.naam}</p>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>
                 Reserveer maandelijks €{fmt(reservePerMaand,0)} zodat je de{" "}
                 {cfg.inkomstenbelasting.toLowerCase()} altijd kan betalen.
                 {cfg.socialeBijdragen && ` Inclusief ${cfg.socialeBijdragen.naam}.`}
@@ -802,49 +826,51 @@ export default function BoekhoudingPage() {
         {/* ══ KILOMETERS ══ */}
         {activeTab==="kilometers" && (<>
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white rounded-2xl p-4" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-              <Car size={16} style={{color:"#3B82F6"}} className="mb-2"/>
-              <p className="font-black text-xl" style={{color:"#3B82F6"}}>{fmt(totKm,0)} km</p>
-              <p className="text-xs mt-0.5" style={{color:"#94A3B8"}}>Zakelijk gereden</p>
+            <div style={CARD}>
+              <Car size={16} style={{color:"#2B4030"}} className="mb-2"/>
+              <p className="font-bold text-xl" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#2B4030"}}>
+                {fmt(totKm,0)} km
+              </p>
+              <p className="text-xs mt-0.5" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Zakelijk gereden</p>
             </div>
-            <div className="bg-white rounded-2xl p-4" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-              <Euro size={16} style={{color:"#10B981"}} className="mb-2"/>
-              <p className="font-black text-xl" style={{color:"#10B981"}}>€{fmt(kmVerg)}</p>
-              <p className="text-xs mt-0.5" style={{color:"#94A3B8"}}>Belastingvrij</p>
+            <div style={CARD}>
+              <Euro size={16} style={{color:"#C97A4D"}} className="mb-2"/>
+              <p className="font-bold text-xl" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#C97A4D"}}>€{fmt(kmVerg)}</p>
+              <p className="text-xs mt-0.5" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Belastingvrij</p>
             </div>
           </div>
-          <div className="rounded-2xl p-3 flex items-start gap-2"
-            style={{background:"#EFF6FF",border:"1px solid #DBEAFE"}}>
-            <Car size={14} style={{color:"#3B82F6",flexShrink:0,marginTop:2}}/>
-            <p className="text-xs leading-relaxed" style={{color:"#1E40AF"}}>
+          <div style={CARD} className="flex items-start gap-2">
+            <Car size={14} style={{color:"#2B4030",flexShrink:0,marginTop:2}}/>
+            <p className="text-xs leading-relaxed" style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>
               <strong>{cfg.naam}:</strong> {cfg.kmLabel}
             </p>
           </div>
-          <div className="bg-white rounded-2xl overflow-hidden" style={{boxShadow:"0 1px 4px rgba(0,0,0,0.07)"}}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <p className="font-bold text-sm">Rittenregistratie</p>
+          <div style={{...CARD,padding:0,overflow:"hidden"}}>
+            <div className="flex items-center justify-between px-4 py-3" style={{borderBottom:"0.5px solid #E5DDD0"}}>
+              <p className="font-semibold text-sm" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>Rittenregistratie</p>
               <button onClick={()=>setShowAddR(true)}
-                className="touch-scale flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl"
-                style={{background:"#3B82F610",color:"#3B82F6"}}>
+                className="touch-scale flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full"
+                style={{background:"#2B4030",color:"#F5EFE5",border:"none",fontFamily:"'Inter', sans-serif"}}>
                 <Plus size={12}/> Rit toevoegen
               </button>
             </div>
             {ritten.map((r,i)=>(
-              <div key={r.id} className={`flex items-center gap-3 px-4 py-3 ${i<ritten.length-1?"border-b border-gray-50":""}`}>
+              <div key={r.id} className="flex items-center gap-3 px-4 py-3"
+                style={{borderBottom:i<ritten.length-1?"0.5px solid #E5DDD0":"none"}}>
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{background:"#EFF6FF"}}>
-                  <Car size={15} style={{color:"#3B82F6"}}/>
+                  style={{background:"#2B403015"}}>
+                  <Car size={15} style={{color:"#2B4030"}}/>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{r.bestemming}</p>
-                  <p className="text-xs mt-0.5" style={{color:"#94A3B8"}}>
+                  <p className="font-semibold text-sm truncate" style={{color:"#1A1D1A",fontFamily:"'Inter', sans-serif"}}>{r.bestemming}</p>
+                  <p className="text-xs mt-0.5" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>
                     {new Date(r.datum).toLocaleDateString("nl-NL",{day:"numeric",month:"short"})}
                     {r.doel ? ` · ${r.doel}` : ""}
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="font-bold text-sm" style={{color:"#3B82F6"}}>{fmt(r.km,1)} km</p>
-                  <p className="text-[10px]" style={{color:"#94A3B8"}}>€{fmt(r.km*cfg.kmVergoeding)}</p>
+                  <p className="font-bold text-sm" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#2B4030"}}>{fmt(r.km,1)} km</p>
+                  <p className="text-[10px]" style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>€{fmt(r.km*cfg.kmVergoeding)}</p>
                 </div>
               </div>
             ))}
@@ -857,53 +883,61 @@ export default function BoekhoudingPage() {
         <div className="fixed inset-0 z-50 flex items-end" style={{background:"rgba(0,0,0,0.45)"}}
           onClick={e=>{if(e.target===e.currentTarget)setShowAddU(false);}}>
           <div className="w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden"
-            style={{background:"white",maxHeight:"88dvh"}}>
-            <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-gray-100">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:"#EF444415"}}>
-                <TrendingDown size={17} style={{color:"#EF4444"}}/>
+            style={{background:"#F5EFE5",maxHeight:"88dvh"}}>
+            <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{borderBottom:"0.5px solid #E5DDD0"}}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:"#C97A4D15"}}>
+                <TrendingDown size={17} style={{color:"#C97A4D"}}/>
               </div>
-              <p className="font-black text-base flex-1">Uitgave toevoegen</p>
+              <p className="font-bold text-base flex-1" style={{color:"#1A1D1A",fontFamily:"'Source Serif 4', Georgia, serif"}}>Uitgave toevoegen</p>
               <button onClick={()=>setShowAddU(false)}
-                className="touch-scale w-8 h-8 rounded-full flex items-center justify-center" style={{background:"#F1F5F9"}}>
-                <X size={14} style={{color:"#64748B"}}/>
+                className="touch-scale w-8 h-8 rounded-full flex items-center justify-center"
+                style={{background:"#FBF7F0",border:"0.5px solid #E5DDD0"}}>
+                <X size={14} style={{color:"#5C5C56"}}/>
               </button>
             </div>
             <div className="overflow-y-auto px-5 py-4 flex flex-col gap-4">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide mb-1.5 block" style={{color:"#94A3B8"}}>Omschrijving *</label>
+                <label className="text-xs font-semibold uppercase tracking-wide mb-1.5 block"
+                  style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Omschrijving *</label>
                 <input value={nuOms} onChange={e=>setNuOms(e.target.value)} placeholder="Bijv. Verfroller kopen"
-                  className="w-full px-4 py-3 rounded-2xl border outline-none text-sm"
-                  style={{borderColor:nuOms?"#4F46E5":"#E2E8F0",background:"#F8FAFC"}}/>
+                  style={inputStyle}/>
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide mb-1.5 block" style={{color:"#94A3B8"}}>Bedrag (€) *</label>
+                <label className="text-xs font-semibold uppercase tracking-wide mb-1.5 block"
+                  style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Bedrag (€) *</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold" style={{color:"#64748B"}}>€</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-semibold"
+                    style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>€</span>
                   <input type="number" value={nuBed} onChange={e=>setNuBed(e.target.value)} placeholder="0.00"
-                    className="w-full pl-8 pr-4 py-3 rounded-2xl border outline-none text-sm"
-                    style={{borderColor:nuBed?"#4F46E5":"#E2E8F0",background:"#F8FAFC"}}/>
+                    style={{...inputStyle, paddingLeft: 28}}/>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide mb-1.5 block" style={{color:"#94A3B8"}}>Categorie</label>
+                <label className="text-xs font-semibold uppercase tracking-wide mb-1.5 block"
+                  style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Categorie</label>
                 <div className="flex flex-wrap gap-2">
                   {(Object.keys(KAT_COLORS) as UitgaveKat[]).map(k=>(
                     <button key={k} onClick={()=>setNuKat(k)}
-                      className="touch-scale flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold"
-                      style={{background:nuKat===k?KAT_COLORS[k]:KAT_COLORS[k]+"12",color:nuKat===k?"white":KAT_COLORS[k]}}>
+                      className="touch-scale flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold"
+                      style={{
+                        fontFamily:"'Inter', sans-serif",
+                        background:nuKat===k?"#2B4030":"transparent",
+                        color:nuKat===k?"#F5EFE5":"#5C5C56",
+                        border:"0.5px solid #E5DDD0",
+                      }}>
                       {KAT_ICONS[k]}{k}
                     </button>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide mb-1.5 block" style={{color:"#94A3B8"}}>Datum</label>
-                <input type="date" value={nuDat} onChange={e=>setNuDat(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border outline-none text-sm"
-                  style={{borderColor:"#E2E8F0",background:"#F8FAFC"}}/>
+                <label className="text-xs font-semibold uppercase tracking-wide mb-1.5 block"
+                  style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Datum</label>
+                <input type="date" value={nuDat} onChange={e=>setNuDat(e.target.value)} style={inputStyle}/>
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide mb-1.5 block" style={{color:"#94A3B8"}}>Bon (optioneel)</label>
+                <label className="text-xs font-semibold uppercase tracking-wide mb-1.5 block"
+                  style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Bon (optioneel)</label>
                 {nuBon?(
                   <div className="relative rounded-2xl overflow-hidden">
                     <img src={nuBon} alt="bon" className="w-full h-32 object-cover"/>
@@ -915,8 +949,8 @@ export default function BoekhoudingPage() {
                   </div>
                 ):(
                   <button onClick={()=>bonRef.current?.click()}
-                    className="touch-scale w-full py-4 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-sm font-semibold"
-                    style={{borderColor:"#E2E8F0",color:"#94A3B8"}}>
+                    className="touch-scale w-full py-4 rounded-2xl flex items-center justify-center gap-2 text-sm font-semibold"
+                    style={{background:"transparent",border:"0.5px solid #E5DDD0",color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>
                     <Camera size={16}/> Foto van bon
                   </button>
                 )}
@@ -929,10 +963,15 @@ export default function BoekhoudingPage() {
                   }}/>
               </div>
             </div>
-            <div className="px-5 py-4 border-t border-gray-100">
+            <div className="px-5 py-4" style={{borderTop:"0.5px solid #E5DDD0"}}>
               <button onClick={saveUitgave} disabled={!nuOms.trim()||!nuBed}
-                className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-sm"
-                style={{background:nuOms&&nuBed?"#EF4444":"#CBD5E1"}}>
+                className="touch-scale w-full py-4 rounded-full font-semibold text-sm"
+                style={{
+                  background:nuOms&&nuBed?"#2B4030":"#E5DDD0",
+                  color:nuOms&&nuBed?"#F5EFE5":"#8A8A83",
+                  border:"none",
+                  fontFamily:"'Inter', sans-serif",
+                }}>
                 Uitgave opslaan
               </button>
             </div>
@@ -945,15 +984,16 @@ export default function BoekhoudingPage() {
         <div className="fixed inset-0 z-50 flex items-end" style={{background:"rgba(0,0,0,0.45)"}}
           onClick={e=>{if(e.target===e.currentTarget)setShowAddR(false);}}>
           <div className="w-full max-w-[480px] mx-auto rounded-t-3xl overflow-hidden"
-            style={{background:"white",maxHeight:"80dvh"}}>
-            <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-gray-100">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:"#EFF6FF"}}>
-                <Car size={17} style={{color:"#3B82F6"}}/>
+            style={{background:"#F5EFE5",maxHeight:"80dvh"}}>
+            <div className="flex items-center gap-3 px-5 pt-5 pb-4" style={{borderBottom:"0.5px solid #E5DDD0"}}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{background:"#2B403015"}}>
+                <Car size={17} style={{color:"#2B4030"}}/>
               </div>
-              <p className="font-black text-base flex-1">Rit registreren</p>
+              <p className="font-bold text-base flex-1" style={{color:"#1A1D1A",fontFamily:"'Source Serif 4', Georgia, serif"}}>Rit registreren</p>
               <button onClick={()=>setShowAddR(false)}
-                className="touch-scale w-8 h-8 rounded-full flex items-center justify-center" style={{background:"#F1F5F9"}}>
-                <X size={14} style={{color:"#64748B"}}/>
+                className="touch-scale w-8 h-8 rounded-full flex items-center justify-center"
+                style={{background:"#FBF7F0",border:"0.5px solid #E5DDD0"}}>
+                <X size={14} style={{color:"#5C5C56"}}/>
               </button>
             </div>
             <div className="px-5 py-4 flex flex-col gap-4">
@@ -963,28 +1003,32 @@ export default function BoekhoudingPage() {
                 {label:"Doel",val:rDoel,set:setRDoel,ph:"Bijv. Klus: kraan",type:"text"},
               ].map(f=>(
                 <div key={f.label}>
-                  <label className="text-xs font-bold uppercase tracking-wide mb-1.5 block" style={{color:"#94A3B8"}}>{f.label}</label>
+                  <label className="text-xs font-semibold uppercase tracking-wide mb-1.5 block"
+                    style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>{f.label}</label>
                   <input type={f.type} value={f.val} onChange={e=>f.set(e.target.value)} placeholder={f.ph}
-                    className="w-full px-4 py-3 rounded-2xl border outline-none text-sm"
-                    style={{borderColor:f.val?"#3B82F6":"#E2E8F0",background:"#F8FAFC"}}/>
+                    style={inputStyle}/>
                   {f.label.includes("Kilom") && rKm && (
-                    <p className="text-xs mt-1 font-semibold" style={{color:"#10B981"}}>
+                    <p className="text-xs mt-1 font-semibold" style={{color:"#2B4030",fontFamily:"'Inter', sans-serif"}}>
                       = €{fmt(parseFloat(rKm||"0")*cfg.kmVergoeding)} belastingvrij
                     </p>
                   )}
                 </div>
               ))}
               <div>
-                <label className="text-xs font-bold uppercase tracking-wide mb-1.5 block" style={{color:"#94A3B8"}}>Datum</label>
-                <input type="date" value={rDat} onChange={e=>setRDat(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border outline-none text-sm"
-                  style={{borderColor:"#E2E8F0",background:"#F8FAFC"}}/>
+                <label className="text-xs font-semibold uppercase tracking-wide mb-1.5 block"
+                  style={{color:"#8A8A83",fontFamily:"'Inter', sans-serif"}}>Datum</label>
+                <input type="date" value={rDat} onChange={e=>setRDat(e.target.value)} style={inputStyle}/>
               </div>
             </div>
-            <div className="px-5 py-4 border-t border-gray-100">
+            <div className="px-5 py-4" style={{borderTop:"0.5px solid #E5DDD0"}}>
               <button onClick={saveRit} disabled={!rBest.trim()||!rKm}
-                className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-sm"
-                style={{background:rBest&&rKm?"#3B82F6":"#CBD5E1"}}>
+                className="touch-scale w-full py-4 rounded-full font-semibold text-sm"
+                style={{
+                  background:rBest&&rKm?"#2B4030":"#E5DDD0",
+                  color:rBest&&rKm?"#F5EFE5":"#8A8A83",
+                  border:"none",
+                  fontFamily:"'Inter', sans-serif",
+                }}>
                 Rit opslaan
               </button>
             </div>
@@ -998,23 +1042,23 @@ export default function BoekhoudingPage() {
           style={{background:"rgba(0,0,0,0.5)"}}
           onClick={()=>setShowBtwModal(null)}>
           <div className="w-full max-w-[360px] rounded-3xl overflow-hidden"
-            style={{background:"white",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}
+            style={{background:"#F5EFE5",boxShadow:"0 24px 64px rgba(0,0,0,0.25)"}}
             onClick={e=>e.stopPropagation()}>
             <div className="px-6 pt-6 pb-4 text-center">
               <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{background:"linear-gradient(135deg,#F59E0B20,#EF444420)"}}>
-                <Send size={28} style={{color:"#F59E0B"}}/>
+                style={{background:"#2B403015"}}>
+                <Send size={28} style={{color:"#2B4030"}}/>
               </div>
               <p className="text-lg">{cfg.vlag}</p>
-              <h2 className="font-black text-xl mb-2">BTW Aangifte</h2>
-              <p className="text-sm leading-relaxed" style={{color:"#64748B"}}>
+              <h2 className="font-bold text-xl mb-2" style={{fontFamily:"'Source Serif 4', Georgia, serif",color:"#1A1D1A"}}>BTW Aangifte</h2>
+              <p className="text-sm leading-relaxed" style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>
                 Aangifte voor <strong>{BTW_KWARTALEN_BASE[showBtwModal].kwartaal}</strong> bij{" "}
                 <strong>{cfg.belastingdienst}</strong>.
               </p>
-              <div className="mt-4 p-4 rounded-2xl text-left" style={{background:"#FEF3C7"}}>
+              <div className="mt-4 p-4 rounded-2xl text-left" style={{background:"#FBF7F0",border:"0.5px solid #E5DDD0"}}>
                 <div className="flex justify-between text-sm">
-                  <span style={{color:"#92400E"}}>Te betalen</span>
-                  <span className="font-black" style={{color:"#D97706"}}>
+                  <span style={{color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>Te betalen</span>
+                  <span className="font-bold" style={{color:"#C97A4D",fontFamily:"'Source Serif 4', Georgia, serif"}}>
                     €{fmt(Math.round(BTW_KWARTALEN_BASE[showBtwModal].omzet * btwTarief))}
                   </span>
                 </div>
@@ -1022,13 +1066,13 @@ export default function BoekhoudingPage() {
             </div>
             <div className="px-6 pb-6 flex flex-col gap-2">
               <button onClick={()=>{setIngediend(p=>[...p,showBtwModal!]);setShowBtwModal(null);}}
-                className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-sm"
-                style={{background:"linear-gradient(135deg,#F59E0B,#EF4444)"}}>
-                ✓ Aangifte bevestigen
+                className="touch-scale w-full py-4 rounded-full font-semibold text-sm"
+                style={{background:"#2B4030",color:"#F5EFE5",border:"none",fontFamily:"'Inter', sans-serif"}}>
+                Aangifte bevestigen
               </button>
               <button onClick={()=>setShowBtwModal(null)}
-                className="touch-scale w-full py-3 rounded-2xl font-semibold text-sm"
-                style={{color:"#64748B"}}>
+                className="touch-scale w-full py-3 rounded-full font-semibold text-sm"
+                style={{background:"transparent",border:"0.5px solid #E5DDD0",color:"#5C5C56",fontFamily:"'Inter', sans-serif"}}>
                 Annuleren
               </button>
             </div>
