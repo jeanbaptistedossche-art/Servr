@@ -50,10 +50,32 @@ export default function BoekenPage({ params }: { params: Promise<{ vakmanId: str
   const { schema: storeSchema } = useAgendaStore();
   const { voegBoeking } = useBookingStore();
 
-  const provider = PROVIDERS.find(p => p.id === vakmanId);
-  const vakman   = provider
-    ? { naam: provider.name, avatar: provider.avatar, categorie: provider.category, rating: provider.rating }
-    : VAKMAN_FALLBACK;
+  // Probeer eerst mock data, anders laad uit Supabase
+  const mockProvider = PROVIDERS.find(p => p.id === vakmanId);
+  const [vakman, setVakman] = useState(
+    mockProvider
+      ? { naam: mockProvider.name, avatar: mockProvider.avatar, categorie: mockProvider.category, rating: mockProvider.rating }
+      : VAKMAN_FALLBACK
+  );
+
+  useEffect(() => {
+    if (mockProvider) return; // mock gevonden, niets doen
+    // Laad echte vakman uit Supabase
+    Promise.all([
+      supabase.from("profiles").select("name").eq("id", vakmanId).single(),
+      (supabase.from("vakmensen") as any).select("specialty, gemiddelde_rating").eq("id", vakmanId).single(),
+    ]).then(([{ data: prof }, { data: vak }]) => {
+      if (prof) {
+        setVakman({
+          naam: prof.name ?? "Vakman",
+          avatar: `https://i.pravatar.cc/150?u=${vakmanId}`,
+          categorie: vak?.specialty ?? "Vakman",
+          rating: vak?.gemiddelde_rating ?? 0,
+        });
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vakmanId]);
 
   const activeDiensten = MOCK_DIENSTEN.filter(d => d.actief);
 
