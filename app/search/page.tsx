@@ -333,11 +333,8 @@ function ZoekenInner() {
   const toggleFilter = (id: string) =>
     setActiveFilters(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
 
-  // Merge real vakmensen (prepended) + mock providers
-  const allItems: CardItem[] = [
-    ...realVakmensen,
-    ...PROVIDERS.map(p => ({ ...p, isReal: false as const })),
-  ];
+  // Alleen echte vakmensen uit Supabase — geen nep data
+  const allItems: CardItem[] = [...realVakmensen];
 
   // Slimme categorie detectie uit zoekterm
   const gevondenCat = query ? zoekCategorie(query) : null;
