@@ -136,7 +136,7 @@ function NieuwForm({ vakmanId, onSaved, onCancel }: { vakmanId: string; onSaved:
   const [naam, setNaam] = useState("");
   const [prijs, setPrijs] = useState("");
   const [eenheid, setEenheid] = useState("per uur");
-  const [duur, setDuur] = useState(60);
+  const [duur, setDuur] = useState(0);
   const [buffer, setBuffer] = useState(15);
   const [beschrijving, setBeschrijving] = useState("");
   const [loading, setLoading] = useState(false);
