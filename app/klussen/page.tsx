@@ -34,7 +34,7 @@ function datumLabel(iso: string) {
 
 export default function KlussenPage() {
   const router = useRouter();
-  const { userId: storeUserId } = useUserStore();
+  const { userId: storeUserId, activeView } = useUserStore();
   const [userId, setUserId] = useState<string | null>(storeUserId);
   const [filter, setFilter] = useState<Status>("alle");
   const [boekingen, setBoekingen] = useState<Boeking[]>([]);
@@ -50,11 +50,15 @@ export default function KlussenPage() {
     });
   }, [storeUserId]);
 
-  const laad = useCallback(async (uid: string) => {
+  const laad = useCallback(async (uid: string, view: string) => {
     setLoading(true);
+    // Vakman ziet inkomende boekingen (vakman_id), klant ziet eigen boekingen (klant_id)
+    const isVakman = view === "vakman";
     const { data } = await (supabase.from("boekingen") as any)
-      .select("*, vakman:profiles!boekingen_vakman_id_fkey(name)")
-      .eq("klant_id", uid)
+      .select(isVakman
+        ? "*, klant:profiles!boekingen_klant_id_fkey(name)"
+        : "*, vakman:profiles!boekingen_vakman_id_fkey(name)")
+      .eq(isVakman ? "vakman_id" : "klant_id", uid)
       .order("start_tijd", { ascending: false });
 
     const rows = (data ?? []).map((b: any) => ({
@@ -64,13 +68,14 @@ export default function KlussenPage() {
       start_tijd: b.start_tijd,
       bedrag: b.bedrag,
       notities: b.notities,
-      vakmanNaam: b.vakman?.name ?? "Vakman",
+      // Als vakman: toon klantnaam. Als klant: toon vakmansnaam.
+      vakmanNaam: isVakman ? (b.klant?.name ?? "Klant") : (b.vakman?.name ?? "Vakman"),
     }));
     setBoekingen(rows);
     setLoading(false);
   }, []);
 
-  useEffect(() => { if (userId) laad(userId); }, [userId, laad]);
+  useEffect(() => { if (userId) laad(userId, activeView ?? "klant"); }, [userId, activeView, laad]);
 
   const zichtbaar = filter === "alle" ? boekingen : boekingen.filter(b => b.status === filter);
   const totaalUitgegeven = boekingen.filter(b => b.status === "afgerond" || b.status === "betaald").reduce((t, b) => t + (b.bedrag ?? 0), 0);
