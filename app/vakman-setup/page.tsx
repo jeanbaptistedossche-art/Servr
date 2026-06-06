@@ -27,6 +27,14 @@ export default function VakmanSetupPage() {
     if (sid) {
       setAccountId(sid);
       window.history.replaceState({}, "", "/vakman-setup");
+      // Sla stripe_account_id op in Supabase profiles
+      import("@/lib/supabase").then(({ supabase }) => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user?.id) {
+            (supabase.from("profiles") as any).update({ stripe_account_id: sid }).eq("id", session.user.id);
+          }
+        });
+      });
       setStap("klaar");
     }
   }, [setAccountId]);

@@ -136,6 +136,7 @@ function OfferteRij({
       vakmanNaam: offerte.vakman?.name ?? "Vakman",
       vakmanAvatar: "https://i.pravatar.cc/150?img=11",
       vakmanChatId: gesprek.id,
+      vakmanId: offerte.vakman_id,
       klantNaam: useUserStore.getState().name ?? "Klant",
       klantAvatar: "",
       regels: [{
@@ -152,7 +153,8 @@ function OfferteRij({
       notities: opdrachtTitel,
     });
 
-    router.push(`/chat/${gesprek.id}`);
+    // Stuur klant direct naar betaalpagina
+    router.push(`/te-betalen`);
   };
 
   const handleWeiger = async () => {

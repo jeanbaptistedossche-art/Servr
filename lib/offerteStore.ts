@@ -10,6 +10,7 @@ export type VerstuurdeOfferte = {
   vakmanNaam: string;
   vakmanAvatar: string;
   vakmanChatId: string;
+  vakmanId: string;        // Supabase user ID van de vakman
   klantNaam: string;
   klantAvatar: string;
   regels: OfferteRegel[];
@@ -56,6 +57,6 @@ export const useOfferteStore = create<OfferteStoreState>()(
           offertes: state.offertes.map((o) => o.id === id ? { ...o, status: "geweigerd" } : o),
         })),
     }),
-    { name: "servr-offertes-v4" }
+    { name: "servr-offertes-v5" }
   )
 );

@@ -474,6 +474,19 @@ export default function TeBetalenPage() {
     const offerte = openstaand.find(o => o.id === id);
     if (!offerte) { setLoadingSecret(false); return; }
 
+    // Haal vakman's Stripe account ID op uit Supabase
+    let vakmanStripeId: string | null = null;
+    if (offerte.vakmanId) {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const { data } = await (supabase.from("profiles") as any)
+          .select("stripe_account_id")
+          .eq("id", offerte.vakmanId)
+          .single();
+        vakmanStripeId = data?.stripe_account_id ?? null;
+      } catch { /* geen Stripe account gevonden */ }
+    }
+
     try {
       const res = await fetch("/api/stripe/intent", {
         method: "POST",
@@ -481,7 +494,7 @@ export default function TeBetalenPage() {
         body: JSON.stringify({
           amount: offerte.totaal,
           offerteNummer: offerte.nummer,
-          stripeAccountId: vakmanAccountId ?? undefined,
+          stripeAccountId: vakmanStripeId ?? undefined,
         }),
       });
       const data = await res.json();
