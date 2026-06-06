@@ -8,6 +8,7 @@ import { supabase, supabaseReady, type Dienst } from "@/lib/supabase";
 const SERIF = "'Source Serif 4', Georgia, serif";
 
 function duurLabel(min: number) {
+  if (min === 0) return "Op maat";
   const u = Math.floor(min / 60), m = min % 60;
   return u > 0 ? `${u}u${m > 0 ? ` ${m}m` : ""}` : `${m}m`;
 }
@@ -115,6 +116,7 @@ const BUFFER_OPTIES = [
 ];
 
 const DUUR_OPTIES = [
+  { value: 0,   label: "Afhankelijk van de bestelling" },
   { value: 15,  label: "15 min" },
   { value: 30,  label: "30 min" },
   { value: 45,  label: "45 min" },
