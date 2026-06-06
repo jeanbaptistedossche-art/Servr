@@ -283,7 +283,7 @@ function ZoekenInner() {
 
         // Laad vakmensen
         const { data: vakData } = await (supabase.from("vakmensen") as any)
-          .select("id, specialty, beschikbaar, gemiddelde_rating, aantal_reviews, uurtarief")
+          .select("id, specialty, beschikbaar, rating, review_count")
           .eq("beschikbaar", true);
 
         if (cancelled || !vakData?.length) return;
@@ -308,10 +308,10 @@ function ZoekenInner() {
             name: prof.name ?? "Vakman",
             category: v.specialty ?? "Vakman",
             distance: prof.city ?? "",
-            rating: v.gemiddelde_rating ?? 0,
-            reviewCount: v.aantal_reviews ?? 0,
-            priceMin: v.uurtarief ? Math.round(v.uurtarief / 100) : 0,
-            priceMax: v.uurtarief ? Math.round(v.uurtarief / 100) * 2 : 0,
+            rating: v.rating ?? 0,
+            reviewCount: v.review_count ?? 0,
+            priceMin: 0,
+            priceMax: 0,
             available: v.beschikbaar ?? true,
             badges: ["Echt"],
             phone: prof.phone ?? "",
