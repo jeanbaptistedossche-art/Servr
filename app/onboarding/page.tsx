@@ -159,11 +159,11 @@ export default function OnboardingPage() {
         rol: rol as "klant" | "vakman" | "beide",
         specialty: specialty.trim() || undefined,
       });
-      // Vakman → verplichte setup wizard
+      // Direct doorsturen — geen e-mail bevestiging vereist
       if (rol === "vakman" || rol === "beide") {
         router.replace("/vakman-setup");
       } else {
-        setRegSuccess(true);
+        router.replace("/");
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Registratie mislukt";

@@ -38,6 +38,29 @@ export async function register({
     options: { data: { name, rol, specialty: specialty ?? null, city: city ?? null } },
   });
   if (error) throw error;
+
+  // Maak profiel + vakmensen rij direct aan — wacht niet op email bevestiging
+  if (data.user) {
+    await (supabase.from("profiles") as any).upsert({
+      id: data.user.id,
+      name,
+      email,
+      rol,
+      active_view: (rol === "vakman" || rol === "beide") ? "vakman" : "klant",
+      city: city ?? null,
+    });
+    if (rol === "vakman" || rol === "beide") {
+      await (supabase.from("vakmensen") as any).upsert({
+        id: data.user.id,
+        specialty: specialty ?? "Algemeen",
+        beschikbaar: true,
+      });
+    }
+    // Sync naar store zodat gebruiker direct ingelogd is
+    const store = useUserStore.getState();
+    syncStore(store, data.user.id, rol, name, city ?? "Amsterdam");
+  }
+
   return data;
 }
 
