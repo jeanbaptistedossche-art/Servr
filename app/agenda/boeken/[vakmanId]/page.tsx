@@ -50,30 +50,33 @@ export default function BoekenPage({ params }: { params: Promise<{ vakmanId: str
   const { schema: storeSchema } = useAgendaStore();
   const { voegBoeking } = useBookingStore();
 
-  // Probeer eerst mock data, anders laad uit Supabase
-  const mockProvider = PROVIDERS.find(p => p.id === vakmanId);
-  const [vakman, setVakman] = useState(
-    mockProvider
-      ? { naam: mockProvider.name, avatar: mockProvider.avatar, categorie: mockProvider.category, rating: mockProvider.rating }
-      : VAKMAN_FALLBACK
-  );
+  const [vakman, setVakman] = useState(VAKMAN_FALLBACK);
+  const [vakmanGeladen, setVakmanGeladen] = useState(false);
 
   useEffect(() => {
-    if (mockProvider) return; // mock gevonden, niets doen
-    // Laad echte vakman uit Supabase
-    Promise.all([
-      supabase.from("profiles").select("name").eq("id", vakmanId).single(),
-      (supabase.from("vakmensen") as any).select("specialty, gemiddelde_rating").eq("id", vakmanId).single(),
-    ]).then(([{ data: prof }, { data: vak }]) => {
-      if (prof) {
-        setVakman({
-          naam: prof.name ?? "Vakman",
-          avatar: `https://i.pravatar.cc/150?u=${vakmanId}`,
-          categorie: vak?.specialty ?? "Vakman",
-          rating: vak?.gemiddelde_rating ?? 0,
-        });
-      }
-    });
+    // Kijk of het een mock ID is (bijv. "p1", "p2")
+    const mock = PROVIDERS.find(p => p.id === vakmanId);
+    if (mock) {
+      setVakman({ naam: mock.name, avatar: mock.avatar, categorie: mock.category, rating: mock.rating });
+      setVakmanGeladen(true);
+      return;
+    }
+    // Echte UUID — laad uit Supabase
+    async function laad() {
+      await supabaseReady;
+      const [{ data: prof }, { data: vak }] = await Promise.all([
+        supabase.from("profiles").select("name").eq("id", vakmanId).single(),
+        (supabase.from("vakmensen") as any).select("specialty, gemiddelde_rating").eq("id", vakmanId).single(),
+      ]);
+      setVakman({
+        naam: prof?.name ?? "Vakman",
+        avatar: `https://i.pravatar.cc/150?u=${vakmanId}`,
+        categorie: vak?.specialty ?? "Vakman",
+        rating: vak?.gemiddelde_rating ?? 0,
+      });
+      setVakmanGeladen(true);
+    }
+    laad();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vakmanId]);
 
