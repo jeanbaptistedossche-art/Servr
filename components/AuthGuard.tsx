@@ -19,7 +19,7 @@ export default function AuthGuard() {
   useEffect(() => {
     async function check() {
       // Publieke routes — nooit redirecten
-      if (pathname.startsWith("/onboarding")) {
+      if (pathname.startsWith("/onboarding") || pathname.startsWith("/vakman-setup")) {
         setChecked(true);
         return;
       }

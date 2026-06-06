@@ -158,9 +158,13 @@ export default function OnboardingPage() {
         name: naam.trim(),
         rol: rol as "klant" | "vakman" | "beide",
         specialty: specialty.trim() || undefined,
-        city: stad.trim() || undefined,
       });
-      setRegSuccess(true);
+      // Vakman → verplichte setup wizard
+      if (rol === "vakman" || rol === "beide") {
+        router.replace("/vakman-setup");
+      } else {
+        setRegSuccess(true);
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Registratie mislukt";
       if (msg.includes("already registered")) setRegError("Dit e-mailadres is al in gebruik.");
@@ -416,39 +420,7 @@ export default function OnboardingPage() {
       ) : (
         <div style={{ padding: "32px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-          <Input label="Volledige naam" value={naam} onChange={setNaam}
-            placeholder="Voornaam achternaam" autoFocus />
-
-          <Input label="E-mailadres" type="email" value={regEmail} onChange={setRegEmail}
-            placeholder="jouw@email.com" />
-
-          <Input label="Wachtwoord" type="password" value={regPass} onChange={setRegPass}
-            placeholder="Minimaal 6 tekens" />
-
-          <Input label="Herhaal wachtwoord" type="password" value={regPass2} onChange={setRegPass2}
-            placeholder="Zelfde wachtwoord"
-            error={regPass2 && regPass !== regPass2 ? "Wachtwoorden komen niet overeen" : undefined} />
-
-          <Input label="Stad / gemeente" value={stad} onChange={setStad}
-            placeholder="bv. Gent, Brussel, Amsterdam" />
-
-          {/* Specialiteit — alleen voor vakman */}
-          {(rol === "vakman" || rol === "beide") && (
-            <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: "#8A8A83", marginBottom: 8 }}>
-                Specialiteit
-              </label>
-              <select value={specialty} onChange={e => setSpecialty(e.target.value)}
-                style={{ width: "100%", padding: "16px", borderRadius: 14, border: "0.5px solid #E5DDD0", background: "#FBF7F0", fontSize: 16, color: specialty ? "#1A1D1A" : "#8A8A83", outline: "none", fontFamily: "Inter, sans-serif" }}>
-                <option value="">Kies je vakgebied</option>
-                {["Loodgieter","Elektricien","Schilder","Schoonmaak","Timmerman","Tuinman","HVAC","Slotenmaker","Dakdekker","Verhuizen","Algemeen"].map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Rol kiezen */}
+          {/* Rol kiezen — EERST */}
           <div>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8A8A83", marginBottom: 12 }}>
               Ik wil...
@@ -462,7 +434,7 @@ export default function OnboardingPage() {
                 <button key={r} onClick={() => setRol(r)}
                   style={{
                     display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
-                    borderRadius: 12, border: `0.5px solid ${rol === r ? "#2B4030" : "#E5DDD0"}`,
+                    borderRadius: 12, border: `2px solid ${rol === r ? "#2B4030" : "#E5DDD0"}`,
                     background: rol === r ? "rgba(43,64,48,0.06)" : "#FBF7F0",
                     cursor: "pointer", textAlign: "left", transition: "all 0.15s",
                   }}>
@@ -480,6 +452,21 @@ export default function OnboardingPage() {
               ))}
             </div>
           </div>
+
+          <div style={{ height: 1, background: "#E5DDD0" }} />
+
+          <Input label="Volledige naam" value={naam} onChange={setNaam}
+            placeholder="Voornaam achternaam" autoFocus />
+
+          <Input label="E-mailadres" type="email" value={regEmail} onChange={setRegEmail}
+            placeholder="jouw@email.com" />
+
+          <Input label="Wachtwoord" type="password" value={regPass} onChange={setRegPass}
+            placeholder="Minimaal 6 tekens" />
+
+          <Input label="Herhaal wachtwoord" type="password" value={regPass2} onChange={setRegPass2}
+            placeholder="Zelfde wachtwoord"
+            error={regPass2 && regPass !== regPass2 ? "Wachtwoorden komen niet overeen" : undefined} />
 
           {regError && (
             <div style={{ padding: "12px 16px", borderRadius: 12, background: "rgba(201,122,77,0.1)", border: "0.5px solid #C97A4D", fontSize: 13, color: "#C97A4D" }}>

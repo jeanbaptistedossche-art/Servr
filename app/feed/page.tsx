@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Clock } from "lucide-react";
+import { MapPin, Clock, AlertTriangle } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
+import { useStripeConnectStore } from "@/lib/stripeConnectStore";
 
 type Opdracht = {
   id: string;
@@ -16,7 +17,20 @@ type Opdracht = {
   budget: number | null;
   status: string;
   created_at: string;
+  lat: number | null;
+  lng: number | null;
+  afstand_km?: number;
 };
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 const FILTERS = ["Alle", "Loodgieter", "Elektricien", "Schilder", "Schoonmaak", "Timmerman", "Overig"];
 
@@ -67,6 +81,7 @@ function UrgentieBadge({ urgentie }: { urgentie: string }) {
 }
 
 function JobCard({ o, onOfferte }: { o: Opdracht; onOfferte: () => void }) {
+  const afstandLabel = o.afstand_km != null ? `${o.afstand_km} km` : null;
   const emoji = getEmoji(o.categorie);
 
   return (
@@ -137,7 +152,7 @@ function JobCard({ o, onOfferte }: { o: Opdracht; onOfferte: () => void }) {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#8A8A83" }}>
             <MapPin size={11} />
-            {o.adres}
+            {afstandLabel ? `${afstandLabel}${o.adres ? ` · ${o.adres}` : ""}` : (o.adres || "Adres onbekend")}
           </span>
           <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#8A8A83" }}>
             <Clock size={11} />
@@ -171,11 +186,25 @@ function JobCard({ o, onOfferte }: { o: Opdracht; onOfferte: () => void }) {
   );
 }
 
+const RADIUS_KM = 30;
+
 export default function FeedPage() {
   const router = useRouter();
   const [opdrachten, setOpdrachten] = useState<Opdracht[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("Alle");
+  const [vakmanLat, setVakmanLat] = useState<number | null>(null);
+  const [vakmanLng, setVakmanLng] = useState<number | null>(null);
+  const { onboarded } = useStripeConnectStore();
+
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setVakmanLat(pos.coords.latitude); setVakmanLng(pos.coords.longitude); },
+      () => { /* geen locatie beschikbaar */ },
+      { timeout: 5000, maximumAge: 3600000 }
+    );
+  }, []);
 
   const laadOpdrachten = useCallback(async () => {
     await supabaseReady;
@@ -184,9 +213,25 @@ export default function FeedPage() {
       .select("*")
       .eq("status", "open")
       .order("created_at", { ascending: false });
-    setOpdrachten((data as Opdracht[]) ?? []);
+
+    const rijen = (data as Opdracht[]) ?? [];
+
+    // Bereken afstand en filter op straal als locatie bekend
+    const metAfstand = rijen.map((o) => {
+      if (vakmanLat != null && vakmanLng != null && o.lat != null && o.lng != null) {
+        return { ...o, afstand_km: Math.round(haversineKm(vakmanLat, vakmanLng, o.lat, o.lng) * 10) / 10 };
+      }
+      return o;
+    });
+
+    const gefilterd =
+      vakmanLat != null && vakmanLng != null
+        ? metAfstand.filter((o) => o.afstand_km == null || o.afstand_km <= RADIUS_KM)
+        : metAfstand;
+
+    setOpdrachten(gefilterd);
     setLoading(false);
-  }, []);
+  }, [vakmanLat, vakmanLng]);
 
   useEffect(() => {
     laadOpdrachten();
@@ -263,6 +308,27 @@ export default function FeedPage() {
           })}
         </div>
       </div>
+
+      {/* Stripe banner — alleen als niet gekoppeld */}
+      {!onboarded && (
+        <div
+          className="px-5 pt-2 pb-3"
+          style={{ background: "#FFF8F3", borderBottom: "0.5px solid #F5DDD0" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#FEF0E7", borderRadius: 12, padding: "12px 14px" }}>
+            <AlertTriangle size={18} style={{ color: "#C97A4D", flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#1A1D1A", margin: 0 }}>Stripe nog niet gekoppeld</p>
+              <p style={{ fontSize: 12, color: "#8A8A83", margin: "2px 0 0" }}>Je kan opdrachten zien maar nog geen betalingen ontvangen.</p>
+            </div>
+            <button
+              onClick={() => router.push("/vakman-setup")}
+              style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, background: "#C97A4D", color: "white", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer" }}>
+              Instellen
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="px-5 pb-28" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
