@@ -283,8 +283,7 @@ function ZoekenInner() {
 
         // Laad vakmensen
         const { data: vakData } = await (supabase.from("vakmensen") as any)
-          .select("id, specialty, beschikbaar, rating, review_count")
-          .eq("beschikbaar", true);
+          .select("id, specialty, beschikbaar, rating, review_count");
 
         if (cancelled || !vakData?.length) return;
 
