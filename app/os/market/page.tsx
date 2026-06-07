@@ -1,184 +1,159 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { RefreshCw, ExternalLink } from "lucide-react";
+import { useBacklog } from "@/hooks/useBacklog";
+import type { TableRow } from "@/lib/os/parseMarkdownTable";
 
-type Signal = {
-  datum: string;
-  signaal: string;
-  ernst: number;
-  bron: string;
-  actie: string;
-};
-
-function parseSignals(md: string): Signal[] {
-  const section = md.split("## MARKET_SIGNALS")[1]?.split(/^## /m)[0] ?? "";
-  return section
-    .split("\n")
-    .filter(l => l.startsWith("|") && !l.match(/\|[-:]+\|/) && !l.includes("Datum"))
-    .map(row => {
-      const cells = row.split("|").map(c => c.trim()).filter(Boolean);
-      return {
-        datum:   cells[0] ?? "",
-        signaal: cells[1] ?? "",
-        ernst:   parseInt(cells[2] ?? "0") || 0,
-        bron:    cells[3] ?? "",
-        actie:   cells[4] ?? "",
-      };
-    })
-    .filter(s => s.signaal);
+function ernstConfig(score: number) {
+  if (score >= 4) return { bg: "#7f1d1d33", border: "#ef444433", color: "#f87171", label: "HOOG" };
+  if (score === 3) return { bg: "#78350f33", border: "#f59e0b33", color: "#f59e0b", label: "MIDDEL" };
+  return { bg: "#064e3b33", border: "#10b98133", color: "#10b981", label: "LAAG" };
 }
 
-function ErnstBadge({ score }: { score: number }) {
-  const config =
-    score >= 4 ? { bg: "#7f1d1d33", color: "#f87171", label: "Hoog" } :
-    score === 3 ? { bg: "#78350f33", color: "#f59e0b", label: "Middel" } :
-                  { bg: "#14532d33", color: "#4ade80", label: "Laag" };
+function SignalCard({ row }: { row: TableRow }) {
+  const [actionOn, setActionOn] = useState(false);
+
+  const datum   = row["Datum"]    ?? row["datum"]   ?? "";
+  const signaal = row["Signaal"]  ?? row["signaal"] ?? Object.values(row)[1] ?? "";
+  const ernst   = parseInt(row["Ernst"] ?? row["ernst"] ?? "0");
+  const bron    = row["Bron"]     ?? row["bron"]    ?? "";
+  const actie   = row["Actie nodig?"] ?? row["Actie"] ?? row["actie"] ?? "";
+
+  const ec = ernstConfig(ernst);
 
   return (
     <div style={{
-      width: 52, height: 52, borderRadius: 10,
-      background: config.bg, border: `1px solid ${config.color}33`,
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      flexShrink: 0,
+      background: "#111111", border: `1px solid #1f2937`,
+      borderRadius: 10, padding: "14px 16px",
+      display: "flex", flexDirection: "column", gap: 10,
+      animation: "os-fadeup 0.2s ease",
+      position: "relative", overflow: "hidden",
     }}>
-      <span style={{ fontSize: 18, fontWeight: 700, color: config.color, lineHeight: 1 }}>
-        {score || "?"}
-      </span>
-      <span style={{ fontSize: 8, color: config.color, fontWeight: 600, letterSpacing: "0.04em" }}>
-        {config.label.toUpperCase()}
-      </span>
+      {/* Top accent */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: ec.color, opacity: 0.5 }} />
+
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "#f9fafb", margin: 0, lineHeight: 1.4, flex: 1 }}>
+          {signaal || "—"}
+        </p>
+        {ernst > 0 && (
+          <span style={{
+            flexShrink: 0, fontSize: 10, fontWeight: 700,
+            padding: "3px 8px", borderRadius: 6,
+            background: ec.bg, border: `1px solid ${ec.border}`,
+            color: ec.color, letterSpacing: "0.04em",
+          }}>
+            {ernst}/5 · {ec.label}
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {bron && bron !== "—" && (
+          <a
+            href={bron.startsWith("http") ? bron : undefined}
+            target="_blank" rel="noopener noreferrer"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontSize: 11, padding: "2px 8px", borderRadius: 99,
+              background: "#1e3a8a22", border: "1px solid #1e3a8a",
+              color: "#3b82f6", textDecoration: "none",
+            }}
+          >
+            <ExternalLink size={10} />
+            {bron.replace(/^https?:\/\//, "").split("/")[0] || bron}
+          </a>
+        )}
+
+        {actie && actie !== "—" && (
+          <button
+            onClick={() => setActionOn(s => !s)}
+            style={{
+              fontSize: 11, padding: "2px 8px", borderRadius: 99,
+              background: actionOn ? "#064e3b33" : "transparent",
+              border: `1px solid ${actionOn ? "#10b981" : "#374151"}`,
+              color: actionOn ? "#10b981" : "#6b7280",
+              cursor: "pointer",
+            }}
+          >
+            {actionOn ? "✓ Actie gepland" : "Actie nodig?"}
+          </button>
+        )}
+
+        {datum && (
+          <span style={{ marginLeft: "auto", fontSize: 10, color: "#374151" }}>{datum}</span>
+        )}
+      </div>
     </div>
   );
 }
 
 export default function MarketPage() {
-  const [signals, setSignals] = useState<Signal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter]   = useState<"all" | "high" | "med" | "low">("all");
+  const { data, loading, refresh } = useBacklog(60000);
+  const [filter, setFilter] = useState<"all" | "high" | "med" | "low">("all");
 
-  async function load() {
-    setLoading(true);
-    const res = await fetch("/api/os/backlog");
-    const md  = await res.text();
-    setSignals(parseSignals(md));
-    setLoading(false);
-  }
-
-  useEffect(() => { load(); }, []);
-
-  const filtered = signals.filter(s =>
-    filter === "all" ? true :
-    filter === "high" ? s.ernst >= 4 :
-    filter === "med"  ? s.ernst === 3 :
-    s.ernst <= 2
-  ).sort((a, b) => b.ernst - a.ernst);
+  const signals = data.marketSignals.filter(s => {
+    const ernst = parseInt(s["Ernst"] ?? s["ernst"] ?? "0");
+    if (filter === "high") return ernst >= 4;
+    if (filter === "med")  return ernst === 3;
+    if (filter === "low")  return ernst <= 2;
+    return true;
+  }).sort((a, b) => {
+    const ea = parseInt(a["Ernst"] ?? a["ernst"] ?? "0");
+    const eb = parseInt(b["Ernst"] ?? b["ernst"] ?? "0");
+    return eb - ea;
+  });
 
   return (
-    <div style={{ padding: "24px 28px", maxWidth: 820 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "20px 24px", overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexShrink: 0 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#fff", margin: 0 }}>Market Signals</h1>
-          <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>
-            {signals.length} signalen · run DAILY BRIEF om te updaten
+          <h1 style={{ fontSize: 18, fontWeight: 700, color: "#f9fafb", margin: 0 }}>Market Signals</h1>
+          <p style={{ fontSize: 11, color: "#4b5563", margin: "3px 0 0" }}>
+            {data.marketSignals.length} signalen · run DAILY BRIEF om te updaten
           </p>
         </div>
-        <button onClick={load} style={{
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "7px 14px", borderRadius: 7,
-          background: "#111", border: "1px solid #1f1f1f",
-          color: "#9ca3af", fontSize: 12, cursor: "pointer",
-        }}>
+        <button onClick={refresh} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 7, background: "#111111", border: "1px solid #1f2937", color: "#6b7280", fontSize: 12, cursor: "pointer" }}>
           <RefreshCw size={12} /> Refresh
         </button>
       </div>
 
       {/* Filter */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-        {[
-          { key: "all",  label: "Alle" },
-          { key: "high", label: "🔴 Hoog (4-5)" },
-          { key: "med",  label: "🟡 Middel (3)" },
-          { key: "low",  label: "🟢 Laag (1-2)" },
-        ].map(f => (
-          <button key={f.key} onClick={() => setFilter(f.key as typeof filter)} style={{
-            padding: "6px 12px", borderRadius: 6,
-            background: filter === f.key ? "#1e3a8a" : "#111",
-            color: filter === f.key ? "#93c5fd" : "#6b7280",
-            fontSize: 12, fontWeight: filter === f.key ? 600 : 400,
-            cursor: "pointer",
-            border: `1px solid ${filter === f.key ? "#1e3a8a" : "#1f1f1f"}`,
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexShrink: 0 }}>
+        {[["all","Alle"],["high","🔴 Hoog"],["med","🟡 Middel"],["low","🟢 Laag"]] .map(([k, l]) => (
+          <button key={k} onClick={() => setFilter(k as typeof filter)} style={{
+            padding: "5px 12px", borderRadius: 99,
+            background: filter === k ? "#1e3a5f" : "#111111",
+            color: filter === k ? "#3b82f6" : "#6b7280",
+            fontSize: 11, fontWeight: filter === k ? 600 : 400, cursor: "pointer",
+            border: `1px solid ${filter === k ? "#1e3a8a" : "#1f2937"}`,
           }}>
-            {f.label}
+            {l}
           </button>
         ))}
       </div>
 
-      {loading ? (
-        <div style={{ padding: 32, textAlign: "center", color: "#4b5563", fontSize: 13 }}>Laden…</div>
-      ) : filtered.length === 0 ? (
-        <div style={{
-          background: "#111", border: "1px solid #1f1f1f", borderRadius: 10,
-          padding: 40, textAlign: "center",
-        }}>
-          <p style={{ fontSize: 24, marginBottom: 12 }}>📡</p>
-          <p style={{ fontSize: 14, color: "#6b7280", margin: 0 }}>
-            Nog geen market signals — run <strong style={{ color: "#2563eb" }}>DAILY BRIEF</strong> om Scout te activeren
-          </p>
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filtered.map((s, i) => (
-            <div key={i} style={{
-              background: "#111", border: "1px solid #1f1f1f",
-              borderRadius: 10, padding: 16, display: "flex", gap: 14,
-              animation: "fadeIn 0.2s ease",
-            }}>
-              <ErnstBadge score={s.ernst} />
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: "#e5e7eb", margin: 0, lineHeight: 1.4 }}>
-                    {s.signaal}
-                  </p>
-                  <span style={{ fontSize: 10, color: "#4b5563", whiteSpace: "nowrap", marginTop: 2 }}>
-                    {s.datum}
-                  </span>
-                </div>
-
-                {s.bron && s.bron !== "—" && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                    <ExternalLink size={10} style={{ color: "#4b5563" }} />
-                    {s.bron.startsWith("http") ? (
-                      <a href={s.bron} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#2563eb", textDecoration: "none" }}>
-                        {s.bron.replace(/^https?:\/\//, "").split("/")[0]}
-                      </a>
-                    ) : (
-                      <span style={{ fontSize: 11, color: "#6b7280" }}>{s.bron}</span>
-                    )}
-                  </div>
-                )}
-
-                {s.actie && s.actie !== "—" && (
-                  <div style={{
-                    background: s.actie.toLowerCase().includes("ja") || s.actie.toLowerCase().includes("yes")
-                      ? "#7f1d1d22" : "#14532d22",
-                    border: `1px solid ${s.actie.toLowerCase().includes("ja") ? "#f8717133" : "#4ade8033"}`,
-                    borderRadius: 6, padding: "4px 10px", display: "inline-block",
-                  }}>
-                    <span style={{
-                      fontSize: 11, fontWeight: 600,
-                      color: s.actie.toLowerCase().includes("ja") ? "#f87171" : "#4ade80",
-                    }}>
-                      Actie: {s.actie}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Grid */}
+      <div className="os-scroll" style={{ flex: 1, overflowY: "auto" }}>
+        {loading ? (
+          <div style={{ color: "#4b5563", fontSize: 13 }}>Laden…</div>
+        ) : signals.length === 0 ? (
+          <div style={{
+            background: "#111111", border: "1px solid #1f2937", borderRadius: 10,
+            padding: 40, textAlign: "center",
+          }}>
+            <p style={{ fontSize: 24, marginBottom: 10 }}>📡</p>
+            <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>
+              Geen market signals — run <strong style={{ color: "#3b82f6" }}>DAILY BRIEF</strong> om Scout te activeren
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
+            {signals.map((s, i) => <SignalCard key={i} row={s} />)}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

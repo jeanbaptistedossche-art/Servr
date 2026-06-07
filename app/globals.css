@@ -1,5 +1,39 @@
 @import "tailwindcss";
 
+/* ── Servr OS Design System ──────────────────────────────────── */
+:root {
+  --os-bg:          #080808;
+  --os-surface:     #111111;
+  --os-surface-2:   #1a1a1a;
+  --os-border:      #1f2937;
+  --os-text:        #f9fafb;
+  --os-text-muted:  #6b7280;
+  --os-blue:        #3b82f6;
+  --os-green:       #10b981;
+  --os-amber:       #f59e0b;
+  --os-red:         #ef4444;
+  --os-purple:      #7c3aed;
+}
+
+/* OS scrollbars */
+.os-scroll::-webkit-scrollbar         { width: 4px; height: 4px; }
+.os-scroll::-webkit-scrollbar-track   { background: transparent; }
+.os-scroll::-webkit-scrollbar-thumb   { background: #2d2d2d; border-radius: 2px; }
+
+/* OS animations */
+@keyframes os-pulse   { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes os-fadeup  { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes os-bounce1 { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-4px)} }
+@keyframes os-bounce2 { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-4px)} }
+@keyframes os-bounce3 { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-4px)} }
+@keyframes os-marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+@keyframes os-spin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+.os-dot1 { animation: os-bounce1 1.2s infinite 0s; }
+.os-dot2 { animation: os-bounce2 1.2s infinite 0.15s; }
+.os-dot3 { animation: os-bounce3 1.2s infinite 0.3s; }
+.os-active-pulse { animation: os-pulse 2s infinite; }
+
 /* ═══════════════════════════════════════════════════════════════
    SERVR DESIGN SYSTEM v4 — Warm paper · Forest green · Copper
 ═══════════════════════════════════════════════════════════════ */
