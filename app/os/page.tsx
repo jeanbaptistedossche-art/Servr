@@ -1,50 +1,82 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { AgentKey } from "@/lib/os/agentConfig";
 import { useAgentChat } from "@/hooks/useAgentChat";
+import { useOSContext } from "@/contexts/OSContext";
+import { useOSEventBus } from "@/contexts/OSEventBusContext";
+import { processIntent } from "@/lib/os/intentProcessor";
 import ChatZone from "@/components/os/ChatZone";
-import AppPreview from "@/components/os/AppPreview";
+import AppPreviewPanel from "@/components/os/AppPreviewPanel";
+import AgentSwitchToast from "@/components/os/AgentSwitchToast";
 
 export default function OSPage() {
-  const [activeAgent, setActiveAgent] = useState<AgentKey>("ceo");
+  const { activeAgent, setActiveAgent, updateAgentInfo } = useOSContext();
+  const { emit } = useOSEventBus();
   const [splitOpen, setSplitOpen] = useState(false);
-  const [lastNavigate, setLastNavigate] = useState<string | undefined>();
-  const [lastHighlight, setLastHighlight] = useState<string | undefined>();
+  const [toastAgent, setToastAgent] = useState<AgentKey | null>(null);
 
-  // Read active agent from layout window global
+  const { getMessages, getStatus, getLastActive, sendMessage, resolveBeslissing, clearHistory } = useAgentChat();
+
+  const messages  = getMessages(activeAgent);
+  const status    = getStatus(activeAgent);
+  const lastActive = getLastActive(activeAgent);
+
+  // Sync agent status back to context (so sidebar shows live status)
   useEffect(() => {
-    if (typeof window !== "undefined" && window.__osActiveAgent) {
-      setActiveAgent(window.__osActiveAgent);
+    updateAgentInfo(activeAgent, { status, lastActive });
+  }, [activeAgent, status, lastActive, updateAgentInfo]);
+
+  // When agent emits navigate/highlight, forward to event bus → AppPreviewPanel
+  useEffect(() => {
+    const last = messages.findLast(m => m.role === "agent" && !m.streaming);
+    if (!last) return;
+    if (last.navigate) {
+      emit("NAVIGATE", last.navigate);
+      setSplitOpen(true); // auto-open preview on navigate
     }
-  }, []);
-
-  const { messages, status, lastActive, sendMessage, resolveBeslissing, clearHistory } = useAgentChat(activeAgent);
-
-  // Update layout sidebar agent info
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.__osSetAgentInfo) {
-      window.__osSetAgentInfo(activeAgent, { status, lastActive });
+    if (last.highlight) {
+      emit("HIGHLIGHT", last.highlight);
+      setSplitOpen(true);
     }
-  }, [activeAgent, status, lastActive]);
+  }, [messages, emit]);
 
-  // Track navigate/highlight from latest agent message
-  useEffect(() => {
-    const last = messages.findLast(m => m.role === "agent");
-    if (last?.navigate) setLastNavigate(last.navigate);
-    if (last?.highlight) setLastHighlight(last.highlight);
-  }, [messages]);
+  // Agent handoff handler — called by useAgentChat after SWITCH_AGENT tag
+  const handleAgentSwitch = useCallback((newAgent: AgentKey) => {
+    setToastAgent(newAgent);
+    // Actual switch happens after toast dismisses (2.2s)
+    setTimeout(() => {
+      setActiveAgent(newAgent);
+    }, 500); // small offset so toast is visible before content changes
+  }, [setActiveAgent]);
 
-  // Override active agent from layout global
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const interval = setInterval(() => {
-      if (window.__osActiveAgent && window.__osActiveAgent !== activeAgent) {
-        setActiveAgent(window.__osActiveAgent);
+  // Process user message for intents before sending
+  const handleSend = useCallback((cmd: string) => {
+    // Check natural language intents
+    const intents = processIntent(cmd);
+    for (const intent of intents) {
+      if (intent.type === "NAVIGATE") {
+        emit("NAVIGATE", intent.payload);
+        setSplitOpen(true);
       }
-    }, 300);
-    return () => clearInterval(interval);
-  }, [activeAgent]);
+      if (intent.type === "SWITCH_AGENT") {
+        // Switch agent and send there instead
+        setActiveAgent(intent.payload);
+        sendMessage(intent.payload, cmd, handleAgentSwitch);
+        return;
+      }
+      if (intent.type === "OPEN_PREVIEW") {
+        setSplitOpen(true);
+      }
+    }
+    sendMessage(activeAgent, cmd, handleAgentSwitch);
+  }, [activeAgent, sendMessage, emit, handleAgentSwitch, setActiveAgent]);
+
+  const handleResolveBeslissing = useCallback((msgId: string, choice: string) => {
+    resolveBeslissing(activeAgent, msgId);
+    // Send the choice as a follow-up message
+    sendMessage(activeAgent, choice, handleAgentSwitch);
+  }, [activeAgent, resolveBeslissing, sendMessage, handleAgentSwitch]);
 
   return (
     <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
@@ -52,20 +84,22 @@ export default function OSPage() {
         agentKey={activeAgent}
         status={status}
         messages={messages}
-        onSend={sendMessage}
-        onResolveBeslissing={resolveBeslissing}
-        onClear={clearHistory}
+        onSend={handleSend}
+        onResolveBeslissing={handleResolveBeslissing}
+        onClear={() => clearHistory(activeAgent)}
         onToggleSplit={() => setSplitOpen(s => !s)}
         splitOpen={splitOpen}
-        lastNavigate={lastNavigate}
       />
+
       {splitOpen && (
-        <AppPreview
-          onClose={() => setSplitOpen(false)}
-          navigateTo={lastNavigate}
-          highlightSelector={lastHighlight}
-        />
+        <AppPreviewPanel onClose={() => setSplitOpen(false)} />
       )}
+
+      {/* Agent switch toast */}
+      <AgentSwitchToast
+        agentKey={toastAgent}
+        onDone={() => setToastAgent(null)}
+      />
     </div>
   );
 }

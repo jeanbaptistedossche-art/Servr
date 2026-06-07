@@ -1,49 +1,25 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Menu } from "lucide-react";
 import type { AgentKey } from "@/lib/os/agentConfig";
-import { AGENT_KEYS } from "@/lib/os/agentConfig";
-import type { AgentStatus } from "@/hooks/useAgentChat";
 import Sidebar from "@/components/os/Sidebar";
 import ActivityBar from "@/components/os/ActivityBar";
 import { useBacklog } from "@/hooks/useBacklog";
+import { OSContextProvider, useOSContext } from "@/contexts/OSContext";
+import { OSEventBusProvider } from "@/contexts/OSEventBusContext";
 
-export type AgentInfo = { status: AgentStatus; lastActive: string };
-
-// Expose agent state to child pages via a simple context-like pattern using window
-declare global {
-  interface Window {
-    __osActiveAgent: AgentKey;
-    __osSetActiveAgent: (k: AgentKey) => void;
-    __osSetAgentInfo: (k: AgentKey, info: AgentInfo) => void;
-  }
-}
-
-const DEFAULT_INFOS = (): Record<AgentKey, AgentInfo> =>
-  Object.fromEntries(AGENT_KEYS.map(k => [k, { status: "idle" as AgentStatus, lastActive: "—" }])) as Record<AgentKey, AgentInfo>;
-
-export default function OSLayout({ children }: { children: React.ReactNode }) {
-  const [activeAgent, setActiveAgent] = useState<AgentKey>("ceo");
-  const [agentInfos, setAgentInfos] = useState<Record<AgentKey, AgentInfo>>(DEFAULT_INFOS());
+// Inner layout reads from context
+function OSLayoutInner({ children }: { children: React.ReactNode }) {
+  const { activeAgent, setActiveAgent, agentInfos } = useOSContext();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: backlog } = useBacklog(60000);
-
-  // Expose to child pages
-  if (typeof window !== "undefined") {
-    window.__osActiveAgent = activeAgent;
-    window.__osSetActiveAgent = setActiveAgent;
-    window.__osSetAgentInfo = (k, info) =>
-      setAgentInfos(prev => ({ ...prev, [k]: info }));
-  }
-
-  const handleSelectAgent = useCallback((key: AgentKey) => {
-    setActiveAgent(key);
-    // navigate to /os chat page
-    window.location.href = "/os";
-  }, []);
-
   const openCount = backlog.sprintQueue.length + backlog.inProgress.length;
+
+  function handleSelectAgent(key: AgentKey) {
+    setActiveAgent(key);
+    setMobileOpen(false);
+  }
 
   return (
     <>
@@ -53,19 +29,8 @@ export default function OSLayout({ children }: { children: React.ReactNode }) {
         display: "flex", flexDirection: "column",
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       }}>
-        {/* Main row: sidebar + content */}
         <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
           {/* Desktop sidebar */}
-          <div style={{ display: "none" }} className="md-sidebar">
-            <Sidebar
-              activeAgent={activeAgent}
-              agentInfos={agentInfos}
-              onSelectAgent={handleSelectAgent}
-              openTaskCount={openCount}
-            />
-          </div>
-
-          {/* Always-visible sidebar on md+ — using inline style media workaround */}
           <div id="os-sidebar-desktop" style={{ flexShrink: 0 }}>
             <Sidebar
               activeAgent={activeAgent}
@@ -94,15 +59,15 @@ export default function OSLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          {/* Main content */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {/* Mobile topbar */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "10px 14px", borderBottom: "1px solid #1a1a1a",
-              background: "#111111",
-            }}
+            <div
               id="os-mobile-bar"
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px", borderBottom: "1px solid #1a1a1a",
+                background: "#111111",
+              }}
             >
               <button onClick={() => setMobileOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280" }}>
                 <Menu size={18} />
@@ -117,7 +82,6 @@ export default function OSLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        {/* Activity bar */}
         <ActivityBar />
       </div>
 
@@ -130,5 +94,15 @@ export default function OSLayout({ children }: { children: React.ReactNode }) {
         }
       `}</style>
     </>
+  );
+}
+
+export default function OSLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <OSContextProvider>
+      <OSEventBusProvider>
+        <OSLayoutInner>{children}</OSLayoutInner>
+      </OSEventBusProvider>
+    </OSContextProvider>
   );
 }

@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
       agentName: string;
       history: HistoryMessage[];
     };
+    console.log(`[OS/run] agentName="${agentName}" command="${command?.slice(0, 60)}"`);
 
     if (!command?.trim()) return new Response("Geen commando", { status: 400 });
 
@@ -101,10 +102,17 @@ YOU MUST ALWAYS:
 10. When you reference code, always use inline code or a code block
 11. Never explain what you ARE — just act like it
 
-SPECIAL COMMANDS YOU CAN SEND:
-[NAVIGATE: /path/in/app]
-[HIGHLIGHT: .css-selector-or-element-description]
-[BESLISSING: your question here | OPTIE_A: first option | OPTIE_B: second option]
+SPECIAL COMMANDS YOU CAN SEND (emit these anywhere in your response):
+[NAVIGATE: /path/in/app]           → opens that route in the live app preview
+[HIGHLIGHT: .css-selector]         → highlights a UI element in the preview
+[SWITCH_AGENT: cto]                → hands off to another agent (ceo/cto/scout/validator)
+[BESLISSING: question | OPTIE_A: first option | OPTIE_B: second option]  → shows decision card
+
+WHEN TO USE SWITCH_AGENT:
+- CTO: when the question is purely technical (code, bugs, architecture)
+- Scout: when the question is about market research or competitors
+- Validator: when you need to score a feature or red-team an idea
+- CEO: for strategy, priorities, and synthesizing work from other agents
 
 AGENT PERSONA:
 ${agentPersona(agentName)}

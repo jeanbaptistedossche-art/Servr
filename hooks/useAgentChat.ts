@@ -2,7 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { AgentKey } from "@/lib/os/agentConfig";
-import { parseStreamChunk } from "@/lib/os/streamParser";
+import { parseStreamText } from "@/lib/os/streamParser";
+
+export type AgentStatus = "idle" | "active" | "done";
 
 export type Message = {
   id: string;
@@ -13,46 +15,69 @@ export type Message = {
   streaming?: boolean;
   navigate?: string;
   highlight?: string;
+  switchAgent?: AgentKey;
   beslissing?: { question: string; optionA: string; optionB: string };
   beslissingResolved?: boolean;
 };
 
 const STORAGE_KEY = (agent: AgentKey) => `servr-os-chat-${agent}`;
-const MAX_HISTORY = 40;
+const MAX_STORED = 40;
 
 function loadHistory(agentKey: AgentKey): Message[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY(agentKey));
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+    return JSON.parse(localStorage.getItem(STORAGE_KEY(agentKey)) ?? "[]");
+  } catch { return []; }
 }
 
 function saveHistory(agentKey: AgentKey, messages: Message[]) {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY(agentKey), JSON.stringify(messages.slice(-MAX_HISTORY)));
+    localStorage.setItem(STORAGE_KEY(agentKey), JSON.stringify(messages.slice(-MAX_STORED)));
   } catch {}
 }
 
-export type AgentStatus = "idle" | "active" | "done";
+type Histories = Record<AgentKey, Message[]>;
 
-export function useAgentChat(agentKey: AgentKey) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [status, setStatus] = useState<AgentStatus>("idle");
-  const [lastActive, setLastActive] = useState<string>("—");
+export function useAgentChat() {
+  // Separate history per agent — key change from before
+  const [histories, setHistories] = useState<Histories>(() => ({
+    ceo:       loadHistory("ceo"),
+    cto:       loadHistory("cto"),
+    scout:     loadHistory("scout"),
+    validator: loadHistory("validator"),
+  }));
+
+  const [statusMap, setStatusMap] = useState<Record<AgentKey, AgentStatus>>({
+    ceo: "idle", cto: "idle", scout: "idle", validator: "idle",
+  });
+
+  const [lastActiveMap, setLastActiveMap] = useState<Record<AgentKey, string>>({
+    ceo: "—", cto: "—", scout: "—", validator: "—",
+  });
+
   const abortRef = useRef<AbortController | null>(null);
 
-  // Load from localStorage on mount / agent switch
-  useEffect(() => {
-    setMessages(loadHistory(agentKey));
-    setStatus("idle");
-  }, [agentKey]);
+  const getMessages = useCallback((key: AgentKey) => histories[key] ?? [], [histories]);
+  const getStatus   = useCallback((key: AgentKey) => statusMap[key] ?? "idle", [statusMap]);
+  const getLastActive = useCallback((key: AgentKey) => lastActiveMap[key] ?? "—", [lastActiveMap]);
 
-  const sendMessage = useCallback(async (command: string) => {
-    if (!command.trim() || status === "active") return;
+  function setAgentMessages(key: AgentKey, updater: (prev: Message[]) => Message[]) {
+    setHistories(prev => {
+      const next = { ...prev, [key]: updater(prev[key] ?? []) };
+      saveHistory(key, next[key]);
+      return next;
+    });
+  }
+
+  const sendMessage = useCallback(async (
+    agentKey: AgentKey,
+    command: string,
+    onSwitchAgent?: (key: AgentKey) => void
+  ) => {
+    if (!command.trim() || statusMap[agentKey] === "active") return;
+
+    const now = new Date().toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" });
 
     const userMsg: Message = {
       id: `u-${Date.now()}`,
@@ -71,33 +96,37 @@ export function useAgentChat(agentKey: AgentKey) {
       streaming: true,
     };
 
-    setMessages(prev => {
-      const next = [...prev, userMsg, agentMsg];
-      saveHistory(agentKey, next);
-      return next;
-    });
-    setStatus("active");
-    const now = new Date().toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" });
-    setLastActive(now);
+    setAgentMessages(agentKey, prev => [...prev, userMsg, agentMsg]);
+    setStatusMap(prev => ({ ...prev, [agentKey]: "active" }));
+    setLastActiveMap(prev => ({ ...prev, [agentKey]: now }));
 
-    // Build history for API (exclude the empty agent msg we just added)
-    const history = loadHistory(agentKey)
-      .filter(m => m.role === "user" || (m.role === "agent" && m.content))
+    // Build history for API (last 20 messages, exclude empty streaming ones)
+    const apiHistory = (histories[agentKey] ?? [])
+      .filter(m => m.content && m.content.trim())
       .slice(-20)
-      .map(m => ({ role: m.role === "user" ? "user" : "assistant" as const, content: m.content }));
+      .map(m => ({
+        role: m.role === "user" ? "user" as const : "assistant" as const,
+        content: m.content,
+      }));
 
+    abortRef.current?.abort();
     abortRef.current = new AbortController();
+
     let fullText = "";
 
     try {
       const res = await fetch("/api/os/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command, agentName: agentKey, history }),
+        // THE FIX: agentName is explicitly set from the agentKey parameter
+        body: JSON.stringify({ agentName: agentKey, command, history: apiHistory }),
         signal: abortRef.current.signal,
       });
 
-      if (!res.ok || !res.body) throw new Error(await res.text());
+      if (!res.ok || !res.body) {
+        const err = await res.text();
+        throw new Error(err || "Serverfout");
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -106,52 +135,49 @@ export function useAgentChat(agentKey: AgentKey) {
         const { done, value } = await reader.read();
         if (done) break;
         fullText += decoder.decode(value, { stream: true });
-
-        const parsed = parseStreamChunk(fullText);
-
-        setMessages(prev => prev.map(m =>
-          m.id === agentMsgId
-            ? { ...m, content: parsed.text, navigate: parsed.navigate, highlight: parsed.highlight, beslissing: parsed.beslissing, streaming: true }
+        const parsed = parseStreamText(fullText);
+        setAgentMessages(agentKey, prev =>
+          prev.map(m => m.id === agentMsgId
+            ? { ...m, content: parsed.text, navigate: parsed.navigate, highlight: parsed.highlight, switchAgent: parsed.switchAgent, beslissing: parsed.beslissing, streaming: true }
             : m
-        ));
+          )
+        );
       }
 
-      const finalParsed = parseStreamChunk(fullText);
-      setMessages(prev => {
-        const next = prev.map(m =>
-          m.id === agentMsgId
-            ? { ...m, content: finalParsed.text, navigate: finalParsed.navigate, highlight: finalParsed.highlight, beslissing: finalParsed.beslissing, streaming: false }
-            : m
-        );
-        saveHistory(agentKey, next);
-        return next;
-      });
-      setStatus("done");
+      const finalParsed = parseStreamText(fullText);
+      setAgentMessages(agentKey, prev =>
+        prev.map(m => m.id === agentMsgId
+          ? { ...m, content: finalParsed.text, navigate: finalParsed.navigate, highlight: finalParsed.highlight, switchAgent: finalParsed.switchAgent, beslissing: finalParsed.beslissing, streaming: false }
+          : m
+        )
+      );
+      setStatusMap(prev => ({ ...prev, [agentKey]: "done" }));
+
+      // Agent handoff — with delay so message finishes rendering
+      if (finalParsed.switchAgent && onSwitchAgent) {
+        setTimeout(() => onSwitchAgent(finalParsed.switchAgent!), 1800);
+      }
+
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       const msg = err instanceof Error ? err.message : "Onbekende fout";
-      setMessages(prev => {
-        const next = prev.map(m =>
-          m.id === agentMsgId
-            ? { ...m, content: `❌ ${msg}`, streaming: false }
-            : m
-        );
-        saveHistory(agentKey, next);
-        return next;
-      });
-      setStatus("idle");
+      setAgentMessages(agentKey, prev =>
+        prev.map(m => m.id === agentMsgId ? { ...m, content: `❌ ${msg}`, streaming: false } : m)
+      );
+      setStatusMap(prev => ({ ...prev, [agentKey]: "idle" }));
     }
-  }, [agentKey, status]);
+  }, [histories, statusMap]);
 
-  const resolveBeslissing = useCallback((msgId: string, chosen: string) => {
-    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, beslissingResolved: true } : m));
-    sendMessage(chosen);
-  }, [sendMessage]);
+  const resolveBeslissing = useCallback((agentKey: AgentKey, msgId: string) => {
+    setAgentMessages(agentKey, prev =>
+      prev.map(m => m.id === msgId ? { ...m, beslissingResolved: true } : m)
+    );
+  }, []);
 
-  const clearHistory = useCallback(() => {
-    setMessages([]);
-    if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY(agentKey));
-  }, [agentKey]);
+  const clearHistory = useCallback((agentKey: AgentKey) => {
+    setAgentMessages(agentKey, () => []);
+    setStatusMap(prev => ({ ...prev, [agentKey]: "idle" }));
+  }, []);
 
-  return { messages, status, lastActive, sendMessage, resolveBeslissing, clearHistory };
+  return { getMessages, getStatus, getLastActive, sendMessage, resolveBeslissing, clearHistory };
 }
