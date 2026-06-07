@@ -1,3 +1,15 @@
+/**
+ * DEPRECATED — gebruik Supabase queries. Zie lib/supabase.ts
+ *
+ * Nog in gebruik door:
+ * - app/agenda/boeken/[vakmanId]/page.tsx  (PRIORITIES: hoog)
+ * - app/leaderboard/page.tsx               (prioriteit: laag)
+ * - app/favorieten/page.tsx                (prioriteit: laag)
+ * - app/aanvraag/page.tsx                  (prioriteit: laag)
+ *
+ * app/provider/[id]/page.tsx → al gefixed, gebruikt Supabase
+ */
+
 export type Provider = {
   id: string;
   name: string;

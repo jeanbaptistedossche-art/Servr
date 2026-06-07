@@ -109,11 +109,17 @@ export async function POST(req: NextRequest) {
         `klant betaald: €${klantBetaald} | vakman ontvangt: €${vakmanOntvangt} | offerte: ${offerte}`
       );
 
-      // TODO: als Supabase beschikbaar → schrijf naar notificaties tabel
-      // const { supabase, supabaseReady } = await import("@/lib/supabase");
-      // if (supabaseReady) {
-      //   await supabase.from("notificaties").insert({ ... });
-      // }
+      // Schrijf betaald=true naar Supabase boekingen tabel
+      try {
+        const { supabase, supabaseReady } = await import("@/lib/supabase");
+        if (supabaseReady && intent.id) {
+          await (supabase.from("boekingen") as any)
+            .update({ betaald: true, status: "gepland" })
+            .eq("stripe_intent", intent.id);
+        }
+      } catch (err) {
+        console.error("[webhook] Supabase update mislukt:", err);
+      }
     }
   }
 
