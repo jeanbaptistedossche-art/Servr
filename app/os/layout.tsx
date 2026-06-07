@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
 import type { AgentKey } from "@/lib/os/agentConfig";
 import Sidebar from "@/components/os/Sidebar";
@@ -14,11 +15,13 @@ function OSLayoutInner({ children }: { children: React.ReactNode }) {
   const { activeAgent, setActiveAgent, agentInfos } = useOSContext();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { data: backlog } = useBacklog(60000);
+  const router = useRouter();
   const openCount = backlog.sprintQueue.length + backlog.inProgress.length;
 
   function handleSelectAgent(key: AgentKey) {
     setActiveAgent(key);
     setMobileOpen(false);
+    router.push("/os"); // altijd naar de chat pagina navigeren
   }
 
   return (

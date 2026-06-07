@@ -40,13 +40,12 @@ function saveHistory(agentKey: AgentKey, messages: Message[]) {
 type Histories = Record<AgentKey, Message[]>;
 
 export function useAgentChat() {
-  // Separate history per agent — key change from before
-  const [histories, setHistories] = useState<Histories>(() => ({
-    ceo:       loadHistory("ceo"),
-    cto:       loadHistory("cto"),
-    scout:     loadHistory("scout"),
-    validator: loadHistory("validator"),
-  }));
+  // Visible state starts EMPTY elke sessie — geen oude chats zichtbaar.
+  // localStorage wordt bewaard als stille API-context: de agent heeft geheugen,
+  // maar de gebruiker ziet alleen berichten van de huidige sessie.
+  const [histories, setHistories] = useState<Histories>({
+    ceo: [], cto: [], scout: [], validator: [],
+  });
 
   const [statusMap, setStatusMap] = useState<Record<AgentKey, AgentStatus>>({
     ceo: "idle", cto: "idle", scout: "idle", validator: "idle",
@@ -100,9 +99,16 @@ export function useAgentChat() {
     setStatusMap(prev => ({ ...prev, [agentKey]: "active" }));
     setLastActiveMap(prev => ({ ...prev, [agentKey]: now }));
 
-    // Build history for API (last 20 messages, exclude empty streaming ones)
-    const apiHistory = (histories[agentKey] ?? [])
-      .filter(m => m.content && m.content.trim())
+    // API-context: lees uit localStorage (stille geheugen) + huidige sessie berichten.
+    // Zo heeft de agent geheugen van vorige sessies zonder dat de gebruiker die ziet.
+    const storedHistory = loadHistory(agentKey);
+    const currentVisible = (histories[agentKey] ?? []).filter(m => m.content?.trim() && !m.streaming);
+    const combined = [...storedHistory, ...currentVisible];
+    // Dedup op id, neem laatste 20
+    const seen = new Set<string>();
+    const apiHistory = combined
+      .filter(m => { if (seen.has(m.id)) return false; seen.add(m.id); return true; })
+      .filter(m => m.content?.trim())
       .slice(-20)
       .map(m => ({
         role: m.role === "user" ? "user" as const : "assistant" as const,
