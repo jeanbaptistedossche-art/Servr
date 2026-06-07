@@ -12,7 +12,6 @@
 ## SPRINT_QUEUE
 | Prio | Taak | Aanvrager | Context | Acceptance criteria |
 |------|------|-----------|---------|---------------------|
-| 1 | Location-based filtering afwerken | Jean-Baptiste | Gebruikers moeten vakmensen zien op basis van hun locatie | Zoekresultaten gefilterd op postcode/gemeente, radius instelbaar |
 
 ---
 
@@ -37,6 +36,7 @@
 ## DONE
 | Taak | PR | Deploy | Datum |
 |------|-----|--------|-------|
+| Location-based filtering afwerken | [c7e6229](https://github.com/jeanbaptistedossche-art/Servr/commit/c7e6229) | pushed to main | 2026-06-07 |
 
 ---
 
