@@ -16,6 +16,7 @@ export type Message = {
   navigate?: string;
   highlight?: string;
   switchAgent?: AgentKey;
+  askAgent?: { key: AgentKey; question: string };
   beslissing?: { question: string; optionA: string; optionB: string };
   beslissingResolved?: boolean;
 };
@@ -72,7 +73,7 @@ export function useAgentChat() {
   const sendMessage = useCallback(async (
     agentKey: AgentKey,
     command: string,
-    onSwitchAgent?: (key: AgentKey) => void
+    onSwitchAgent?: (key: AgentKey, autoQuestion?: string) => void
   ) => {
     if (!command.trim() || statusMap[agentKey] === "active") return;
 
@@ -144,7 +145,7 @@ export function useAgentChat() {
         const parsed = parseStreamText(fullText);
         setAgentMessages(agentKey, prev =>
           prev.map(m => m.id === agentMsgId
-            ? { ...m, content: parsed.text, navigate: parsed.navigate, highlight: parsed.highlight, switchAgent: parsed.switchAgent, beslissing: parsed.beslissing, streaming: true }
+            ? { ...m, content: parsed.text, navigate: parsed.navigate, highlight: parsed.highlight, switchAgent: parsed.switchAgent, askAgent: parsed.askAgent, beslissing: parsed.beslissing, streaming: true }
             : m
           )
         );
@@ -153,13 +154,20 @@ export function useAgentChat() {
       const finalParsed = parseStreamText(fullText);
       setAgentMessages(agentKey, prev =>
         prev.map(m => m.id === agentMsgId
-          ? { ...m, content: finalParsed.text, navigate: finalParsed.navigate, highlight: finalParsed.highlight, switchAgent: finalParsed.switchAgent, beslissing: finalParsed.beslissing, streaming: false }
+          ? { ...m, content: finalParsed.text, navigate: finalParsed.navigate, highlight: finalParsed.highlight, switchAgent: finalParsed.switchAgent, askAgent: finalParsed.askAgent, beslissing: finalParsed.beslissing, streaming: false }
           : m
         )
       );
       setStatusMap(prev => ({ ...prev, [agentKey]: "done" }));
 
-      // Agent handoff — with delay so message finishes rendering
+      // ASK_AGENT: switch + automatisch vraag doorsturen (meeting flow)
+      if (finalParsed.askAgent && onSwitchAgent) {
+        const { key, question } = finalParsed.askAgent;
+        setTimeout(() => onSwitchAgent(key, question), 1200);
+        return;
+      }
+
+      // SWITCH_AGENT: alleen switchen, geen vraag
       if (finalParsed.switchAgent && onSwitchAgent) {
         setTimeout(() => onSwitchAgent(finalParsed.switchAgent!), 1800);
       }

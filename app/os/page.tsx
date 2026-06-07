@@ -19,7 +19,7 @@ function OSPageInner() {
   const { activeAgent, setActiveAgent, updateAgentInfo } = useOSContext();
   const { emit } = useOSEventBus();
   const [splitOpen, setSplitOpen] = useState(false);
-  const [toastAgent, setToastAgent] = useState<AgentKey | null>(null);
+  const [toast, setToast] = useState<{ key: AgentKey; question?: string } | null>(null);
   const autoSentRef = useRef(false);
 
   const { getMessages, getStatus, getLastActive, sendMessage, resolveBeslissing, clearHistory } = useAgentChat();
@@ -47,14 +47,24 @@ function OSPageInner() {
     }
   }, [messages, emit]);
 
-  // Agent handoff handler — called by useAgentChat after SWITCH_AGENT tag
-  const handleAgentSwitch = useCallback((newAgent: AgentKey) => {
-    setToastAgent(newAgent);
-    // Actual switch happens after toast dismisses (2.2s)
+  // Agent handoff handler — called by useAgentChat after SWITCH_AGENT / ASK_AGENT tag
+  // autoQuestion: als CEO [ASK_AGENT: scout | vraag] gebruikt, wordt die vraag automatisch gestuurd
+  const handleAgentSwitch = useCallback((newAgent: AgentKey, autoQuestion?: string) => {
+    setToast({ key: newAgent, question: autoQuestion });
     setTimeout(() => {
       setActiveAgent(newAgent);
-    }, 500); // small offset so toast is visible before content changes
-  }, [setActiveAgent]);
+      // ASK_AGENT flow: stuur de vraag automatisch door na de switch
+      if (autoQuestion) {
+        setTimeout(() => {
+          sendMessage(newAgent, autoQuestion, handleAgentSwitchRef.current);
+        }, 600);
+      }
+    }, 500);
+  }, [setActiveAgent, sendMessage]); // eslint-disable-line
+
+  // Ref zodat de callback zichzelf kan doorgeven zonder stale closure
+  const handleAgentSwitchRef = useRef(handleAgentSwitch);
+  useEffect(() => { handleAgentSwitchRef.current = handleAgentSwitch; }, [handleAgentSwitch]);
 
   // Process user message for intents before sending
   const handleSend = useCallback((cmd: string) => {
@@ -66,22 +76,21 @@ function OSPageInner() {
         setSplitOpen(true);
       }
       if (intent.type === "SWITCH_AGENT") {
-        // Switch agent and send there instead
         setActiveAgent(intent.payload);
-        sendMessage(intent.payload, cmd, handleAgentSwitch);
+        sendMessage(intent.payload, cmd, handleAgentSwitchRef.current);
         return;
       }
       if (intent.type === "OPEN_PREVIEW") {
         setSplitOpen(true);
       }
     }
-    sendMessage(activeAgent, cmd, handleAgentSwitch);
-  }, [activeAgent, sendMessage, emit, handleAgentSwitch, setActiveAgent]);
+    sendMessage(activeAgent, cmd, handleAgentSwitchRef.current);
+  }, [activeAgent, sendMessage, emit, setActiveAgent]);
 
   const handleResolveBeslissing = useCallback((msgId: string, choice: string) => {
     resolveBeslissing(activeAgent, msgId);
-    sendMessage(activeAgent, choice, handleAgentSwitch);
-  }, [activeAgent, resolveBeslissing, sendMessage, handleAgentSwitch]);
+    sendMessage(activeAgent, choice, handleAgentSwitchRef.current);
+  }, [activeAgent, resolveBeslissing, sendMessage]);
 
   // Auto-send from URL params (?agent=cto&cmd=Fix: ...)
   // Used by the Launch checklist "Fix met agent" buttons
@@ -100,7 +109,7 @@ function OSPageInner() {
     setActiveAgent(key);
     const decoded = decodeURIComponent(cmdParam);
     setTimeout(() => {
-      sendMessage(key, decoded, handleAgentSwitch);
+      sendMessage(key, decoded, handleAgentSwitchRef.current);
       // Clean URL so refreshing doesn't re-send
       router.replace("/os");
     }, 300);
@@ -125,8 +134,9 @@ function OSPageInner() {
 
       {/* Agent switch toast */}
       <AgentSwitchToast
-        agentKey={toastAgent}
-        onDone={() => setToastAgent(null)}
+        agentKey={toast?.key ?? null}
+        autoQuestion={toast?.question}
+        onDone={() => setToast(null)}
       />
     </div>
   );

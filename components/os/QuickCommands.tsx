@@ -1,7 +1,8 @@
 const COMMANDS = [
+  "MEETING",
   "DAILY BRIEF",
-  "AUDIT",
   "SPRINT",
+  "AUDIT",
   "RED TEAM",
   "SHIP IT: ",
 ];
