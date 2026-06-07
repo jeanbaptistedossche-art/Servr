@@ -137,36 +137,52 @@ function paginaBestaatCheck(id: string, naam: string, pad: string): CheckResult 
   }
 }
 
+// Wrap elke check zodat een crash in één check de rest niet blokkeert
+async function safe(fn: () => Promise<CheckResult> | CheckResult): Promise<CheckResult> {
+  try {
+    return await fn();
+  } catch (err) {
+    return {
+      id: `crash_${Date.now()}`,
+      naam: "Check crash",
+      status: "warning",
+      detail: `Onverwachte fout: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+}
+
 // ─── Hoofd functie ────────────────────────────────────────────────────────────
 
 export async function checkLaunchReadiness(): Promise<LaunchReport> {
   const checks: CheckResult[] = await Promise.all([
     // Supabase
-    supabaseConnectieCheck(),
-    vakmanBeschikbaarCheck(),
+    safe(supabaseConnectieCheck),
+    safe(vakmanBeschikbaarCheck),
 
-    // Stripe
-    envCheck("stripe_secret", "Stripe Secret Key", "STRIPE_SECRET_KEY", "your_stripe_secret_key", "Haal op via stripe.com/dashboard → Developers → API keys"),
-    envCheck("stripe_publishable", "Stripe Publishable Key", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "your_stripe_publishable_key"),
-    envCheck("stripe_webhook", "Stripe Webhook Secret", "STRIPE_WEBHOOK_SECRET", undefined, "Maak webhook aan op stripe.com/dashboard → Developers → Webhooks. URL: https://jouw-app.vercel.app/api/stripe/webhook"),
-    stripeIntentCheck(),
+    // Stripe env (snel, geen externe API call)
+    safe(() => envCheck("stripe_secret", "Stripe Secret Key", "STRIPE_SECRET_KEY", "your_stripe_secret_key", "Haal op via stripe.com/dashboard → Developers → API keys")),
+    safe(() => envCheck("stripe_publishable", "Stripe Publishable Key", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "your_stripe_publishable_key")),
+    safe(() => envCheck("stripe_webhook", "Stripe Webhook Secret", "STRIPE_WEBHOOK_SECRET", undefined, "Maak webhook aan op stripe.com/dashboard → Developers → Webhooks. URL: https://servr-nine.vercel.app/api/stripe/webhook — Events: payment_intent.succeeded")),
+
+    // Stripe API test (alleen als key aanwezig)
+    safe(stripeIntentCheck),
 
     // Push
-    envCheck("vapid_public", "VAPID Public Key", "NEXT_PUBLIC_VAPID_PUBLIC_KEY"),
-    envCheck("vapid_private", "VAPID Private Key", "VAPID_PRIVATE_KEY"),
+    safe(() => envCheck("vapid_public", "VAPID Public Key", "NEXT_PUBLIC_VAPID_PUBLIC_KEY")),
+    safe(() => envCheck("vapid_private", "VAPID Private Key", "VAPID_PRIVATE_KEY")),
 
     // Supabase keys
-    envCheck("supabase_url", "Supabase URL", "NEXT_PUBLIC_SUPABASE_URL", "your_supabase_url"),
-    envCheck("supabase_anon", "Supabase Anon Key", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "your_supabase_anon_key"),
-    envCheck("supabase_service", "Supabase Service Role Key", "SUPABASE_SERVICE_ROLE_KEY", "your_service_role_key", "Haal op via supabase.com → project → Settings → API → service_role"),
+    safe(() => envCheck("supabase_url", "Supabase URL", "NEXT_PUBLIC_SUPABASE_URL", "your_supabase_url")),
+    safe(() => envCheck("supabase_anon", "Supabase Anon Key", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "your_supabase_anon_key")),
+    safe(() => envCheck("supabase_service", "Supabase Service Role Key", "SUPABASE_SERVICE_ROLE_KEY", "your_service_role_key", "Haal op via supabase.com → project → Settings → API → service_role")),
 
     // Pagina's
-    paginaBestaatCheck("privacy_page", "Privacy policy pagina", "/privacybeleid"),
-    paginaBestaatCheck("terms_page", "Algemene voorwaarden pagina", "/voorwaarden"),
+    safe(() => paginaBestaatCheck("privacy_page", "Privacy policy pagina", "/privacybeleid")),
+    safe(() => paginaBestaatCheck("terms_page", "Algemene voorwaarden pagina", "/voorwaarden")),
 
     // Mock data checks
-    mockDataImportCheck("provider/[id]", "app/provider/[id]/page.tsx"),
-    mockDataImportCheck("agenda/boeken/[id]", "app/agenda/boeken/[vakmanId]/page.tsx"),
+    safe(() => mockDataImportCheck("provider/[id]", "app/provider/[id]/page.tsx")),
+    safe(() => mockDataImportCheck("agenda/boeken/[id]", "app/agenda/boeken/[vakmanId]/page.tsx")),
   ]);
 
   const pasCount = checks.filter(c => c.status === "pass").length;

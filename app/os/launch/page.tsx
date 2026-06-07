@@ -191,6 +191,14 @@ export default function LaunchPage() {
     return true;
   }) ?? [];
 
+  // Statische snelle-fix items — altijd klikbaar, ook tijdens laden
+  const SNELLE_FIXES: { id: string; naam: string; detail: string; fix: string; agent: "cto" | "ceo" }[] = [
+    { id: "stripe_secret",   naam: "Stripe Secret Key",         detail: "STRIPE_SECRET_KEY ontbreekt in Vercel",           fix: "Haal op via stripe.com/dashboard → Developers → API keys → sk_live_...", agent: "cto" },
+    { id: "stripe_webhook",  naam: "Stripe Webhook Secret",     detail: "STRIPE_WEBHOOK_SECRET ontbreekt",                 fix: "Maak een webhook aan op stripe.com/dashboard → Developers → Webhooks. URL: https://servr-nine.vercel.app/api/stripe/webhook — Events: payment_intent.succeeded", agent: "cto" },
+    { id: "supabase_service", naam: "Supabase Service Role Key", detail: "SUPABASE_SERVICE_ROLE_KEY staat op placeholder",  fix: "Haal op via supabase.com → project → Settings → API → service_role (geheim!)", agent: "cto" },
+    { id: "vakman_beschikbaar", naam: "Testdata aanmaken",      detail: "Nog geen vakman met beschikbaar=true in de DB",   fix: "Maak een testaccount aan via /vakman-setup of insert direct in Supabase dashboard", agent: "ceo" },
+  ];
+
   return (
     <div style={{ height: "100%", overflowY: "auto", background: "#080808", padding: "24px 20px 40px" }} className="os-scroll">
 
@@ -212,6 +220,45 @@ export default function LaunchPage() {
           <RefreshCw size={13} style={{ animation: loading ? "os-spin 1s linear infinite" : "none" }} />
           Hercheck
         </button>
+      </div>
+
+      {/* Snelle fix knoppen — altijd zichtbaar, ook tijdens laden */}
+      <div style={{ marginBottom: 20 }}>
+        <p style={{ color: "#4b5563", fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", margin: "0 0 10px" }}>
+          Bekende issues — klik om te fixen met een agent
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {SNELLE_FIXES.map(fix => (
+            <button
+              key={fix.id}
+              onClick={() => {
+                const cmd = encodeURIComponent(`FIX CHECK: ${fix.naam}\n\nProbleem: ${fix.detail}\n\nFix instructie: ${fix.fix}\n\nGeef me een concrete stap-voor-stap aanpak.`);
+                router.push(`/os?agent=${fix.agent}&cmd=${cmd}`);
+              }}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: "#111", border: "1px solid #1f2937",
+                borderLeft: "3px solid #ef4444",
+                borderRadius: 10, padding: "10px 14px",
+                cursor: "pointer", textAlign: "left", width: "100%",
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ color: "#f9fafb", fontSize: 13, fontWeight: 600, margin: 0 }}>{fix.naam}</p>
+                <p style={{ color: "#6b7280", fontSize: 11, margin: "2px 0 0" }}>{fix.detail}</p>
+              </div>
+              <span style={{
+                display: "flex", alignItems: "center", gap: 4,
+                fontSize: 10, fontWeight: 600,
+                padding: "4px 10px", borderRadius: 6,
+                background: "#1e3a5f", border: "1px solid #1e3a8a",
+                color: "#60a5fa", marginLeft: 12, whiteSpace: "nowrap", flexShrink: 0,
+              }}>
+                <Wrench size={10} /> Fix met {fix.agent === "cto" ? "⚙️ CTO" : "🧠 CEO"}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Score bar */}
