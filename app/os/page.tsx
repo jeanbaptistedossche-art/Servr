@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
 import type { AgentKey } from "@/lib/os/agentConfig";
+import { AGENT_KEYS } from "@/lib/os/agentConfig";
 import { useAgentChat } from "@/hooks/useAgentChat";
 import { useOSContext } from "@/contexts/OSContext";
 import { useOSEventBus } from "@/contexts/OSEventBusContext";
@@ -10,11 +13,14 @@ import ChatZone from "@/components/os/ChatZone";
 import AppPreviewPanel from "@/components/os/AppPreviewPanel";
 import AgentSwitchToast from "@/components/os/AgentSwitchToast";
 
-export default function OSPage() {
+function OSPageInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { activeAgent, setActiveAgent, updateAgentInfo } = useOSContext();
   const { emit } = useOSEventBus();
   const [splitOpen, setSplitOpen] = useState(false);
   const [toastAgent, setToastAgent] = useState<AgentKey | null>(null);
+  const autoSentRef = useRef(false);
 
   const { getMessages, getStatus, getLastActive, sendMessage, resolveBeslissing, clearHistory } = useAgentChat();
 
@@ -74,9 +80,31 @@ export default function OSPage() {
 
   const handleResolveBeslissing = useCallback((msgId: string, choice: string) => {
     resolveBeslissing(activeAgent, msgId);
-    // Send the choice as a follow-up message
     sendMessage(activeAgent, choice, handleAgentSwitch);
   }, [activeAgent, resolveBeslissing, sendMessage, handleAgentSwitch]);
+
+  // Auto-send from URL params (?agent=cto&cmd=Fix: ...)
+  // Used by the Launch checklist "Fix met agent" buttons
+  useEffect(() => {
+    if (autoSentRef.current) return;
+    const agentParam = searchParams.get("agent");
+    const cmdParam   = searchParams.get("cmd");
+    if (!agentParam || !cmdParam) return;
+
+    const key = agentParam as AgentKey;
+    if (!AGENT_KEYS.includes(key)) return;
+
+    autoSentRef.current = true;
+
+    // Switch agent first, then send after a tick so chat is ready
+    setActiveAgent(key);
+    const decoded = decodeURIComponent(cmdParam);
+    setTimeout(() => {
+      sendMessage(key, decoded, handleAgentSwitch);
+      // Clean URL so refreshing doesn't re-send
+      router.replace("/os");
+    }, 300);
+  }, [searchParams, setActiveAgent, sendMessage, handleAgentSwitch, router]);
 
   return (
     <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
@@ -101,5 +129,13 @@ export default function OSPage() {
         onDone={() => setToastAgent(null)}
       />
     </div>
+  );
+}
+
+export default function OSPage() {
+  return (
+    <Suspense fallback={null}>
+      <OSPageInner />
+    </Suspense>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Rocket, ExternalLink } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { RefreshCw, CheckCircle2, XCircle, AlertTriangle, Rocket, ExternalLink, Wrench } from "lucide-react";
 import type { CheckResult, LaunchReport } from "@/lib/launchChecker";
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
@@ -144,11 +145,28 @@ function LaunchModal({ onClose }: { onClose: () => void }) {
 // ─── Hoofd component ──────────────────────────────────────────────────────────
 
 export default function LaunchPage() {
+  const router = useRouter();
   const [report, setReport] = useState<LaunchReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showLaunchModal, setShowLaunchModal] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "fail" | "pass">("all");
+
+  function stuurNaarAgent(check: CheckResult) {
+    // Bepaal welke agent het beste past
+    const agent = ["stripe_secret", "stripe_publishable", "stripe_webhook", "stripe_intent"].includes(check.id)
+      ? "cto"
+      : ["supabase_connectie", "supabase_url", "supabase_anon", "supabase_service"].includes(check.id)
+      ? "cto"
+      : ["vakman_beschikbaar"].includes(check.id)
+      ? "ceo"
+      : "cto";
+
+    const cmd = encodeURIComponent(
+      `FIX CHECK: ${check.naam}\n\nProbleem: ${check.detail}\n\nFix instructie: ${check.fixInstructions ?? "Analyseer en los op."}\n\nGeef me een concrete stap-voor-stap aanpak.`
+    );
+    router.push(`/os?agent=${agent}&cmd=${cmd}`);
+  }
 
   const laadReport = useCallback(async () => {
     setLoading(true);
@@ -275,7 +293,26 @@ export default function LaunchPage() {
                   </p>
                 )}
               </div>
-              <StatusBol status={check.status} />
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+                <StatusBol status={check.status} />
+                {check.status !== "pass" && (
+                  <button
+                    onClick={() => stuurNaarAgent(check)}
+                    title="Laat een agent dit fixen"
+                    style={{
+                      display: "flex", alignItems: "center", gap: 4,
+                      fontSize: 10, fontWeight: 600,
+                      padding: "3px 8px", borderRadius: 6,
+                      background: "#1e3a5f",
+                      border: "1px solid #1e3a8a",
+                      color: "#60a5fa", cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <Wrench size={10} /> Fix met agent
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
