@@ -65,7 +65,7 @@ export default function BoekenPage({ params }: { params: Promise<{ vakmanId: str
     async function laad() {
       await supabaseReady;
       const [{ data: prof }, { data: vak }] = await Promise.all([
-        supabase.from("profiles").select("name").eq("id", vakmanId).single(),
+        (supabase.from("profiles") as any).select("name").eq("id", vakmanId).single(),
         (supabase.from("vakmensen") as any).select("specialty, gemiddelde_rating").eq("id", vakmanId).single(),
       ]);
       setVakman({

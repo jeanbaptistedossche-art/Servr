@@ -151,6 +151,7 @@ function OffertesMaakInner() {
         nummer,
         datum,
         geldigTot,
+        vakmanId: useUserStore.getState().userId ?? "unknown",
         vakmanNaam: bedrijf.handelsnaam,
         vakmanAvatar: "https://i.pravatar.cc/150?img=11",
         vakmanChatId: "p1",
