@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { Columns2, Trash2, Send } from "lucide-react";
 import type { AgentKey } from "@/lib/os/agentConfig";
 import { AGENTS } from "@/lib/os/agentConfig";
@@ -9,6 +9,8 @@ import AgentAvatar from "./AgentAvatar";
 import StatusBadge from "./StatusBadge";
 import MessageBubble from "./MessageBubble";
 import QuickCommands from "./QuickCommands";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { useVoiceOutput } from "@/hooks/useVoiceOutput";
 import type { AgentStatus } from "@/hooks/useAgentChat";
 
 type Props = {
@@ -25,16 +27,43 @@ type Props = {
 
 export default function ChatZone({
   agentKey, status, messages, onSend,
-  onResolveBeslissing, onClear, onToggleSplit, splitOpen, lastNavigate,
+  onResolveBeslissing, onClear, onToggleSplit, splitOpen,
 }: Props) {
   const [input, setInput] = useState("");
+  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(false);
+  const [voiceLang, setVoiceLang] = useState<"nl-BE" | "en-US">("nl-BE");
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const agent = AGENTS[agentKey];
+  const lastSpokenId = useRef<string | null>(null);
+
+  const { speak } = useVoiceOutput();
+
+  const handleTranscript = useCallback((text: string) => {
+    setInput(text);
+    // Auto-send after brief pause
+    setTimeout(() => {
+      if (text.trim() && status !== "active") {
+        setInput("");
+        onSend(text.trim());
+      }
+    }, 800);
+  }, [onSend, status]);
+
+  const { isListening, isSupported, interimText, toggleListening } = useVoiceInput(handleTranscript, voiceLang);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Voice output: speak last agent message when done streaming
+  useEffect(() => {
+    if (!voiceOutputEnabled) return;
+    const last = [...messages].reverse().find(m => m.role === "agent" && !m.streaming && m.content);
+    if (!last || last.id === lastSpokenId.current) return;
+    lastSpokenId.current = last.id;
+    speak(last.content, agentKey);
+  }, [messages, voiceOutputEnabled, agentKey, speak]);
 
   function send() {
     const cmd = input.trim();
@@ -49,16 +78,12 @@ export default function ChatZone({
   }
 
   return (
-    <div style={{
-      flex: 1, display: "flex", flexDirection: "column",
-      overflow: "hidden", minWidth: 0,
-    }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
       {/* Chat header */}
       <div style={{
         height: 48, padding: "0 16px",
         display: "flex", alignItems: "center", gap: 10,
-        background: "#111111", borderBottom: "1px solid #1a1a1a",
-        flexShrink: 0,
+        background: "#111111", borderBottom: "1px solid #1a1a1a", flexShrink: 0,
       }}>
         <AgentAvatar agentKey={agentKey} size={28} pulse={status === "active"} />
         <div>
@@ -69,7 +94,23 @@ export default function ChatZone({
         </div>
         <StatusBadge status={status} />
 
-        <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+          {/* Voice output toggle */}
+          <button
+            onClick={() => setVoiceOutputEnabled(v => !v)}
+            title={voiceOutputEnabled ? "Voice output uit" : "Voice output aan"}
+            style={{
+              background: voiceOutputEnabled ? "#1a2a1a" : "none",
+              border: `1px solid ${voiceOutputEnabled ? "#22c55e" : "#1f2937"}`,
+              borderRadius: 6, cursor: "pointer",
+              color: voiceOutputEnabled ? "#22c55e" : "#4b5563",
+              padding: "4px 8px", fontSize: 13,
+              transition: "all 0.15s",
+            }}
+          >
+            {voiceOutputEnabled ? "🔊" : "🔇"}
+          </button>
+
           <button
             onClick={onClear}
             title="Clear chat"
@@ -91,8 +132,7 @@ export default function ChatZone({
               borderRadius: 6, cursor: "pointer",
               color: splitOpen ? "#3b82f6" : "#4b5563",
               padding: "4px 8px", display: "flex", alignItems: "center", gap: 4,
-              fontSize: 11, fontWeight: 500,
-              transition: "all 0.15s",
+              fontSize: 11, fontWeight: 500, transition: "all 0.15s",
             }}
           >
             <Columns2 size={13} />
@@ -101,14 +141,52 @@ export default function ChatZone({
         </div>
       </div>
 
+      {/* Listening banner */}
+      {isListening && (
+        <div style={{
+          background: "#0d1a0d", borderBottom: "1px solid #14532d",
+          padding: "8px 16px", display: "flex", alignItems: "center", gap: 10,
+          flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} style={{
+                width: 3, borderRadius: 2, background: "#22c55e",
+                height: `${Math.sin(i * 0.9) * 8 + 12}px`,
+                animation: `waveBar 0.5s ease-in-out ${i * 0.06}s infinite alternate`,
+              }} />
+            ))}
+          </div>
+          <span style={{ color: "#22c55e", fontSize: 12, fontWeight: 600 }}>🎙️ Aan het luisteren...</span>
+          {interimText && (
+            <span style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic" }}>"{interimText}"</span>
+          )}
+          {/* Lang toggle */}
+          <button
+            onClick={() => setVoiceLang(l => l === "nl-BE" ? "en-US" : "nl-BE")}
+            style={{
+              marginLeft: "auto", background: "none", border: "1px solid #14532d",
+              borderRadius: 4, padding: "2px 8px", color: "#22c55e", fontSize: 11,
+              cursor: "pointer",
+            }}
+          >
+            {voiceLang === "nl-BE" ? "🇧🇪 NL" : "🇬🇧 EN"}
+          </button>
+          <style>{`
+            @keyframes waveBar {
+              from { transform: scaleY(0.4); }
+              to { transform: scaleY(1.4); }
+            }
+          `}</style>
+        </div>
+      )}
+
       {/* Messages */}
       <div
         className="os-scroll"
         style={{
-          flex: 1, overflowY: "auto",
-          padding: "24px 20px",
-          background: "#080808",
-          display: "flex", flexDirection: "column",
+          flex: 1, overflowY: "auto", padding: "24px 20px",
+          background: "#080808", display: "flex", flexDirection: "column",
         }}
       >
         {messages.length === 0 && (
@@ -119,17 +197,18 @@ export default function ChatZone({
           }}>
             <span style={{ fontSize: 40, marginBottom: 12 }}>{agent.emoji}</span>
             <p style={{ fontSize: 14, color: "#6b7280", margin: "0 0 6px" }}>
-              Chat with {agent.name}
+              Chat met {agent.name}
             </p>
             <p style={{ fontSize: 12, color: "#374151" }}>{agent.placeholder}</p>
+            {isSupported && (
+              <p style={{ fontSize: 11, color: "#1f2937", marginTop: 12 }}>
+                🎙️ Klik op microfoon om in te spreken · 🎙️ "Hey Servr" voor hands-free
+              </p>
+            )}
           </div>
         )}
         {messages.map(m => (
-          <MessageBubble
-            key={m.id}
-            message={m}
-            onResolveBeslissing={onResolveBeslissing}
-          />
+          <MessageBubble key={m.id} message={m} onResolveBeslissing={onResolveBeslissing} />
         ))}
         <div ref={endRef} />
       </div>
@@ -144,12 +223,12 @@ export default function ChatZone({
           <div style={{
             flex: 1, display: "flex", alignItems: "center",
             background: "#1a1a1a", borderRadius: 10,
-            border: "1px solid #1f2937",
-            padding: "0 12px",
+            border: `1px solid ${isListening ? "#22c55e" : "#1f2937"}`,
+            padding: "0 12px", transition: "border-color 0.2s",
           }}>
             <input
               ref={inputRef}
-              value={input}
+              value={interimText || input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
               placeholder={agent.placeholder}
@@ -161,16 +240,35 @@ export default function ChatZone({
               }}
             />
           </div>
+
+          {/* Mic button */}
+          {isSupported && (
+            <button
+              onClick={toggleListening}
+              title={isListening ? "Stop luisteren" : "Spreek je bericht in"}
+              style={{
+                padding: "0 14px", borderRadius: 10, border: "none",
+                background: isListening ? "#14532d" : "#1a1a1a",
+                color: isListening ? "#22c55e" : "#6b7280",
+                cursor: "pointer", fontSize: 16,
+                animation: isListening ? "pulse 1.5s ease-in-out infinite" : "none",
+                transition: "all 0.15s",
+              }}
+            >
+              {isListening ? "⏹️" : "🎙️"}
+            </button>
+          )}
+
+          {/* Send button */}
           <button
             onClick={send}
-            disabled={!input.trim() || status === "active"}
+            disabled={(!input.trim() && !interimText) || status === "active"}
             style={{
               padding: "0 16px", borderRadius: 10, border: "none",
-              background: (!input.trim() || status === "active") ? "#1a1a1a" : "#1d4ed8",
-              color: (!input.trim() || status === "active") ? "#374151" : "#fff",
-              cursor: (!input.trim() || status === "active") ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center",
-              transition: "all 0.15s",
+              background: ((!input.trim() && !interimText) || status === "active") ? "#1a1a1a" : "#1d4ed8",
+              color: ((!input.trim() && !interimText) || status === "active") ? "#374151" : "#fff",
+              cursor: ((!input.trim() && !interimText) || status === "active") ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", transition: "all 0.15s",
             }}
           >
             <Send size={15} />

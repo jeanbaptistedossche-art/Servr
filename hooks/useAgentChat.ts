@@ -166,6 +166,19 @@ export function useAgentChat() {
       );
       setStatusMap(prev => ({ ...prev, [agentKey]: "done" }));
 
+      // LEARN: schrijf learnings naar knowledge base
+      if (finalParsed.learns?.length) {
+        for (const { file, content } of finalParsed.learns) {
+          const timestamp = new Date().toLocaleString("nl-BE", { dateStyle: "short", timeStyle: "short" });
+          const entry = `\n## ${timestamp}\n${content}\n`;
+          fetch("/api/os/knowledge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ file: `agents/${file}`, content: entry, append: true }),
+          }).catch(() => {});
+        }
+      }
+
       // ASK_AGENT: switch + automatisch vraag doorsturen (meeting flow)
       if (finalParsed.askAgent && onSwitchAgent) {
         const { key, question } = finalParsed.askAgent;

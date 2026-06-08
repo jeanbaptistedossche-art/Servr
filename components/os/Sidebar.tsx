@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Terminal, ListChecks, FileText, BarChart2, Rocket } from "lucide-react";
+import { Terminal, ListChecks, FileText, BarChart2, Rocket, Brain } from "lucide-react";
 import type { AgentKey } from "@/lib/os/agentConfig";
 import { AGENTS, AGENT_KEYS } from "@/lib/os/agentConfig";
 import type { AgentStatus } from "@/hooks/useAgentChat";
@@ -27,6 +27,7 @@ const NAV = [
   { href: "/os/state",   icon: FileText,   label: "State" },
   { href: "/os/market",  icon: BarChart2,  label: "Market" },
   { href: "/os/launch",  icon: Rocket,     label: "Launch" },
+  { href: "/os/brain",   icon: Brain,      label: "Brain" },
 ];
 
 export default function Sidebar({ activeAgent, agentInfos, onSelectAgent, openTaskCount, onClose }: Props) {

@@ -12,6 +12,8 @@ import { processIntent } from "@/lib/os/intentProcessor";
 import ChatZone from "@/components/os/ChatZone";
 import AppPreviewPanel from "@/components/os/AppPreviewPanel";
 import AgentSwitchToast from "@/components/os/AgentSwitchToast";
+import WakeWordIndicator from "@/components/os/WakeWordIndicator";
+import { useWakeWord } from "@/hooks/useWakeWord";
 
 function OSPageInner() {
   const searchParams = useSearchParams();
@@ -23,6 +25,19 @@ function OSPageInner() {
   const autoSentRef = useRef(false);
 
   const { getMessages, getStatus, getLastActive, sendMessage, resolveBeslissing, clearHistory } = useAgentChat();
+
+  const { isAwake, isListeningForCommand, transcript, wakeWordMode, setWakeWordMode } = useWakeWord({
+    enabled: true,
+    onWakeWordDetected: () => {},
+    onCommand: (command, targetAgent) => {
+      const target = targetAgent ?? activeAgent;
+      sendMessage(target, command, handleAgentSwitchRef.current);
+    },
+    onAgentSwitch: (agent) => {
+      setActiveAgent(agent);
+      router.push("/os");
+    },
+  });
 
   const messages  = getMessages(activeAgent);
   const status    = getStatus(activeAgent);
@@ -137,6 +152,15 @@ function OSPageInner() {
         agentKey={toast?.key ?? null}
         autoQuestion={toast?.question}
         onDone={() => setToast(null)}
+      />
+
+      {/* Wake word indicator */}
+      <WakeWordIndicator
+        wakeWordMode={wakeWordMode}
+        isAwake={isAwake}
+        isListeningForCommand={isListeningForCommand}
+        transcript={transcript}
+        onToggle={() => setWakeWordMode(m => !m)}
       />
     </div>
   );

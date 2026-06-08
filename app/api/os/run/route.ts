@@ -11,6 +11,34 @@ function readFile(filename: string): string {
   catch { return `(${filename} niet gevonden)`; }
 }
 
+const AGENT_KNOWLEDGE_FILES: Record<string, string[]> = {
+  ceo:      ["knowledge/shared/servr-context.md", "knowledge/shared/jean-baptiste-prefs.md", "knowledge/agents/ceo/decisions.md", "knowledge/agents/ceo/patterns.md", "knowledge/agents/ceo/context.md", "knowledge/shared/weekly-summary.md"],
+  cto:      ["knowledge/shared/servr-context.md", "knowledge/agents/cto/architecture.md", "knowledge/agents/cto/tech-debt.md", "knowledge/agents/cto/bugs-fixed.md", "knowledge/agents/cto/learnings.md"],
+  scout:    ["knowledge/shared/servr-context.md", "knowledge/agents/scout/competitors.md", "knowledge/agents/scout/market-signals.md", "knowledge/agents/scout/sources.md"],
+  validator:["knowledge/shared/servr-context.md", "knowledge/agents/validator/decisions.md", "knowledge/agents/validator/patterns.md"],
+  cfo:      ["knowledge/shared/servr-context.md", "knowledge/agents/cfo/metrics-history.md", "knowledge/agents/cfo/benchmarks.md"],
+  growth:   ["knowledge/shared/servr-context.md", "knowledge/agents/growth/experiments.md", "knowledge/agents/growth/channels.md"],
+  legal:    ["knowledge/shared/servr-context.md", "knowledge/agents/legal/checklist.md"],
+  security: ["knowledge/shared/servr-context.md", "knowledge/agents/security/audit-history.md"],
+  ops:      ["knowledge/shared/servr-context.md"],
+  ux:       ["knowledge/shared/servr-context.md"],
+  dna:      ["knowledge/shared/servr-context.md", "knowledge/shared/jean-baptiste-prefs.md", "knowledge/agents/dna/founder-profile.md", "knowledge/agents/ceo/decisions.md", "knowledge/agents/validator/decisions.md"],
+  scenario: ["knowledge/shared/servr-context.md", "knowledge/agents/scout/competitors.md"],
+  launch:   ["knowledge/shared/servr-context.md", "knowledge/agents/launch/checklist-status.md"],
+};
+
+function loadAgentKnowledge(agentName: string): string {
+  const files = AGENT_KNOWLEDGE_FILES[agentName] ?? ["knowledge/shared/servr-context.md"];
+  let out = "## JOUW KNOWLEDGE BASE (wat je eerder hebt geleerd)\n\n";
+  for (const f of files) {
+    try {
+      const content = fs.readFileSync(path.join(process.cwd(), f), "utf-8");
+      if (content.trim()) out += `### ${f}\n${content}\n\n`;
+    } catch {}
+  }
+  return out;
+}
+
 function agentPersona(agentName: string): string {
   if (agentName === "ceo") return `
 You are the CEO of Servr. You think like a founder who has built and sold companies before.
@@ -191,7 +219,23 @@ export async function POST(req: NextRequest) {
     let agentPromptBase = agentFileRaw;
     try { agentPromptBase = matter(agentFileRaw).content; } catch {}
 
+    const agentKnowledge = loadAgentKnowledge(agentName);
+
     const systemPrompt = `${agentPromptBase}
+
+---
+
+${agentKnowledge}
+
+---
+
+LEREN EN ONTHOUDEN:
+Als je iets nieuws leert over Jean-Baptiste, Servr, de markt, of de codebase, sla het op via:
+[LEARN: agents/cto/learnings | wat je geleerd hebt]
+[LEARN: agents/scout/competitors | nieuwe concurrent info]
+[LEARN: shared/jean-baptiste-prefs | voorkeur die je ontdekt hebt]
+[LEARN: agents/dna/founder-profile | patroon dat je opmerkt]
+Gebruik [LEARN:] sparingly — alleen voor echt nieuwe inzichten, niet voor elk gesprek.
 
 ---
 
