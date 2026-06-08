@@ -55,11 +55,31 @@ function getSR(): SR | null {
   );
 }
 
+async function requestMicPermission(): Promise<boolean> {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(t => t.stop());
+    return true;
+  } catch { return false; }
+}
+
 export function useWakeWord({ onWakeWordDetected, onCommand, onAgentSwitch, enabled }: UseWakeWordOptions) {
   const [isAwake, setIsAwake] = useState(false);
   const [isListeningForCommand, setIsListeningForCommand] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [wakeWordMode, setWakeWordMode] = useState(false);
+
+  // Toggle met permissie check
+  const toggleWakeWordMode = useCallback(async () => {
+    if (wakeWordMode) {
+      setWakeWordMode(false);
+      return;
+    }
+    // Vraag permissie voor activeren
+    const ok = await requestMicPermission();
+    if (ok) setWakeWordMode(true);
+    else alert("Microfoon toegang geweigerd. Geef toestemming in je browser instellingen.");
+  }, [wakeWordMode]);
 
   const wakeRecRef = useRef<SpeechRecognition | null>(null);
   const cmdRecRef = useRef<SpeechRecognition | null>(null);
@@ -173,5 +193,5 @@ export function useWakeWord({ onWakeWordDetected, onCommand, onAgentSwitch, enab
     return () => { active = false; wakeRecRef.current?.stop(); };
   }, [wakeWordMode, enabled, handleWake]);
 
-  return { isAwake, isListeningForCommand, transcript, wakeWordMode, setWakeWordMode };
+  return { isAwake, isListeningForCommand, transcript, wakeWordMode, setWakeWordMode, toggleWakeWordMode };
 }

@@ -26,7 +26,7 @@ function OSPageInner() {
 
   const { getMessages, getStatus, getLastActive, sendMessage, resolveBeslissing, clearHistory } = useAgentChat();
 
-  const { isAwake, isListeningForCommand, transcript, wakeWordMode, setWakeWordMode } = useWakeWord({
+  const { isAwake, isListeningForCommand, transcript, wakeWordMode, toggleWakeWordMode } = useWakeWord({
     enabled: true,
     onWakeWordDetected: () => {},
     onCommand: (command, targetAgent) => {
@@ -160,7 +160,7 @@ function OSPageInner() {
         isAwake={isAwake}
         isListeningForCommand={isListeningForCommand}
         transcript={transcript}
-        onToggle={() => setWakeWordMode(m => !m)}
+        onToggle={toggleWakeWordMode}
       />
     </div>
   );

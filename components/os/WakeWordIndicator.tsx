@@ -97,22 +97,26 @@ export default function WakeWordIndicator({
     }}>
       <button
         onClick={onToggle}
-        title={wakeWordMode ? 'Wake word actief — klik om uit te zetten' : 'Klik om "Hey Servr" te activeren'}
+        title={wakeWordMode ? 'Wake word actief — klik om uit te zetten' : 'Klik om microfoon te activeren\n"Hey Servr" om te praten'}
         style={{
-          width: 48, height: 48, borderRadius: "50%",
-          background: wakeWordMode ? "#7c3aed" : "#111",
+          width: 52, height: 52, borderRadius: "50%",
+          background: wakeWordMode ? "#7c3aed" : "#1a1a1a",
           border: `2px solid ${wakeWordMode ? "#7c3aed" : "#374151"}`,
-          cursor: "pointer", fontSize: 20,
+          cursor: "pointer", fontSize: 22,
           display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: wakeWordMode ? "0 0 16px #7c3aed66" : "none",
+          boxShadow: wakeWordMode ? "0 0 20px #7c3aed66" : "0 2px 8px rgba(0,0,0,0.5)",
           animation: wakeWordMode ? "wakeIdle 2s ease-in-out infinite" : "none",
           transition: "all 0.2s",
         }}
       >
         🎙️
       </button>
-      <span style={{ color: wakeWordMode ? "#7c3aed" : "#374151", fontSize: 9, letterSpacing: "0.05em", fontWeight: 600 }}>
-        {wakeWordMode ? "HEY SERVR" : "OFF"}
+      <span style={{
+        color: wakeWordMode ? "#7c3aed" : "#4b5563",
+        fontSize: 9, letterSpacing: "0.05em", fontWeight: 700,
+        textAlign: "center",
+      }}>
+        {wakeWordMode ? "HEY SERVR" : "MIC UIT"}
       </span>
       <style>{`
         @keyframes wakeIdle {
