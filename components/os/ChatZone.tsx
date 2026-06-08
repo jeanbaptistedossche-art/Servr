@@ -38,7 +38,7 @@ export default function ChatZone({
     if (status !== "active") onSend(cmd);
   });
 
-  const isListening = micState === "listening" || micState === "awake";
+  const isListening = micState === "listening";
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -58,14 +58,12 @@ export default function ChatZone({
 
   const micLabel = () => {
     if (micState === "permission-denied") return "❌";
-    if (micState === "awake") return "⚡";
     if (micState === "listening") return "⏹️";
     return "🎙️";
   };
 
   const micColor = () => {
     if (micState === "permission-denied") return { bg: "#1a0808", color: "#ef4444" };
-    if (micState === "awake") return { bg: "#1a1500", color: "#eab308" };
     if (micState === "listening") return { bg: "#0d1a0d", color: "#22c55e" };
     return { bg: "#1a1a1a", color: "#6b7280" };
   };
@@ -110,29 +108,26 @@ export default function ChatZone({
       {/* Luisterbalk */}
       {isListening && (
         <div style={{
-          background: micState === "awake" ? "#1a1500" : "#0d1a0d",
-          borderBottom: `1px solid ${micState === "awake" ? "#854d0e" : "#14532d"}`,
+          background: "#0d1a0d",
+          borderBottom: "1px solid #14532d",
           padding: "8px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
         }}>
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} style={{
                 width: 3, borderRadius: 2,
-                background: micState === "awake" ? "#eab308" : "#22c55e",
+                background: "#22c55e",
                 height: `${Math.sin(i * 0.9) * 8 + 12}px`,
                 animation: `waveBar 0.5s ease-in-out ${i * 0.06}s infinite alternate`,
               }} />
             ))}
           </div>
           <span style={{
-            color: micState === "awake" ? "#eab308" : "#22c55e",
-            fontSize: 12, fontWeight: 600,
+            color: rawTranscript ? "#f9fafb" : "#22c55e",
+            fontSize: 12, fontWeight: rawTranscript ? 400 : 600,
           }}>
-            {micState === "awake" ? "⚡ Zeg je vraag..." : "🎙️ Luistert naar \"Hey Servr...\""}
+            {rawTranscript ? `"${rawTranscript}"` : "🎙️ Spreek je vraag in..."}
           </span>
-          {rawTranscript && (
-            <span style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic" }}>"{rawTranscript}"</span>
-          )}
           <style>{`@keyframes waveBar { from { transform: scaleY(0.4); } to { transform: scaleY(1.4); } }`}</style>
         </div>
       )}
@@ -166,7 +161,7 @@ export default function ChatZone({
                 background: "#111", border: "1px solid #1f2937", borderRadius: 8,
                 padding: "10px 16px", fontSize: 11, color: "#6b7280",
               }}>
-                🎙️ Klik op de microfoon en zeg <strong style={{ color: "#9ca3af" }}>"Hey Servr, ..."</strong>
+                🎙️ Klik op de microfoon en spreek je vraag in
               </div>
             )}
           </div>

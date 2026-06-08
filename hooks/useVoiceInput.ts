@@ -13,27 +13,15 @@ function getSR(): SR | null {
   );
 }
 
-// Alle mogelijke varianten van "hey servr" — breed net
-const WAKE_WORDS = [
-  "hey servr", "hey server", "hé servr", "hey serv",
-  "oke servr", "ok servr", "yo servr", "hey surf",
-  "hey serve", "hey survr", "hey serfr", "hey cervr",
-  // Nederlandse uitspraak varianten
-  "ee servr", "ee server", "he server", "he servr",
-  // Zonder 'hey'
-  "servr", "server,", "serv,",
-];
-
-export type MicState = "off" | "permission-denied" | "listening" | "awake";
+export type MicState = "off" | "permission-denied" | "listening";
 
 export function useVoiceInput(onCommand: (text: string) => void) {
   const [micState, setMicState] = useState<MicState>("off");
-  const [rawTranscript, setRawTranscript] = useState(""); // wat Edge ECHT hoort
+  const [rawTranscript, setRawTranscript] = useState("");
   const [isSupported, setIsSupported] = useState(false);
 
   const recRef = useRef<SpeechRecognition | null>(null);
   const activeRef = useRef(false);
-  const awakeRef = useRef(false);
   const onCommandRef = useRef(onCommand);
   onCommandRef.current = onCommand;
 
@@ -49,76 +37,48 @@ export function useVoiceInput(onCommand: (text: string) => void) {
 
     const rec = new SR();
     rec.lang = "nl-BE";
-    rec.continuous = true;
+    rec.continuous = false;      // één zin per keer — meest stabiel in Edge
     rec.interimResults = true;
-    rec.maxAlternatives = 3; // meer alternatieven = betere kans op match
+    rec.maxAlternatives = 1;
 
     rec.onresult = (ev: SpeechRecognitionEvent) => {
+      let interim = "";
+      let final = "";
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const isFinal = ev.results[i].isFinal;
+        const t = ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) final += t;
+        else interim += t;
+      }
 
-        // Controleer ALLE alternatieven
-        const transcripts: string[] = [];
-        for (let j = 0; j < ev.results[i].length; j++) {
-          transcripts.push(ev.results[i][j].transcript.toLowerCase().trim());
-        }
-        const bestTranscript = transcripts[0];
+      // Toon wat Edge hoort in real-time
+      setRawTranscript(interim || final);
 
-        // Toon altijd wat Edge hoort (debug + UX)
-        setRawTranscript(bestTranscript);
-
-        // Zoek wake word in alle alternatieven
-        const hitWord = transcripts.reduce<string | undefined>((found, t) => {
-          if (found) return found;
-          return WAKE_WORDS.find(w => t.includes(w));
-        }, undefined);
-
-        if (hitWord) {
-          // Wake word gevonden — extraheer command
-          const cmdSource = transcripts.find(t => t.includes(hitWord)) ?? bestTranscript;
-          const cmd = cmdSource
-            .replace(hitWord, "")
-            .replace(/^[,.\s]+/, "")
-            .trim();
-
-          if (cmd.length > 2 && isFinal) {
-            // "hey servr doe een audit" — alles in één zin
-            awakeRef.current = false;
-            setMicState("listening");
-            setRawTranscript("");
-            onCommandRef.current(cmd);
-          } else if (cmd.length > 2) {
-            awakeRef.current = true;
-            setMicState("awake");
-          } else {
-            // Alleen wake word, wacht op volgende zin
-            awakeRef.current = true;
-            setMicState("awake");
-            setRawTranscript("Zeg je vraag...");
-          }
-        } else if (awakeRef.current && isFinal && bestTranscript.length > 2) {
-          // Wakker en dit is het commando
-          awakeRef.current = false;
-          setMicState("listening");
-          setRawTranscript("");
-          onCommandRef.current(bestTranscript);
-        }
+      // Stuur wanneer final
+      if (final.trim().length > 1) {
+        setRawTranscript("");
+        onCommandRef.current(final.trim());
       }
     };
 
     rec.onerror = (ev: SpeechRecognitionErrorEvent) => {
       if (ev.error === "not-allowed") {
         activeRef.current = false;
-        awakeRef.current = false;
         setMicState("permission-denied");
         setRawTranscript("");
         return;
       }
-      if (activeRef.current) setTimeout(() => startRecognition(), 500);
+      // no-speech of ander: herstart automatisch
+      if (activeRef.current && ev.error !== "aborted") {
+        setTimeout(() => startRecognition(), 300);
+      }
     };
 
     rec.onend = () => {
-      if (activeRef.current) setTimeout(() => startRecognition(), 150);
+      setRawTranscript("");
+      // Herstart automatisch zolang mic aan is
+      if (activeRef.current) {
+        setTimeout(() => startRecognition(), 200);
+      }
     };
 
     recRef.current = rec;
@@ -131,6 +91,7 @@ export function useVoiceInput(onCommand: (text: string) => void) {
     const SR = getSR();
     if (!SR) return;
 
+    // Trigger permission popup in Edge
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(t => t.stop());
@@ -140,7 +101,6 @@ export function useVoiceInput(onCommand: (text: string) => void) {
     }
 
     activeRef.current = true;
-    awakeRef.current = false;
     setMicState("listening");
     setRawTranscript("");
     startRecognition();
@@ -148,7 +108,6 @@ export function useVoiceInput(onCommand: (text: string) => void) {
 
   const stop = useCallback(() => {
     activeRef.current = false;
-    awakeRef.current = false;
     try { recRef.current?.stop(); } catch {}
     recRef.current = null;
     setMicState("off");
@@ -160,10 +119,5 @@ export function useVoiceInput(onCommand: (text: string) => void) {
     else stop();
   }, [micState, start, stop]);
 
-  // Stuur handmatig een commando (vanuit tekst input)
-  const sendManual = useCallback((text: string) => {
-    if (text.trim()) onCommandRef.current(text.trim());
-  }, []);
-
-  return { micState, rawTranscript, isSupported, toggle, stop, sendManual };
+  return { micState, rawTranscript, isSupported, toggle, stop };
 }
