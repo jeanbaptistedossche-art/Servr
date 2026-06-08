@@ -34,7 +34,7 @@ export default function ChatZone({
   const agent = AGENTS[agentKey];
 
   // Voice: één handler — commando wordt direct verstuurd
-  const { micState, interimText, isSupported, toggle } = useVoiceInput((cmd) => {
+  const { micState, rawTranscript, isSupported, toggle } = useVoiceInput((cmd) => {
     if (status !== "active") onSend(cmd);
   });
 
@@ -130,8 +130,8 @@ export default function ChatZone({
           }}>
             {micState === "awake" ? "⚡ Zeg je vraag..." : "🎙️ Luistert naar \"Hey Servr...\""}
           </span>
-          {interimText && (
-            <span style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic" }}>"{interimText}"</span>
+          {rawTranscript && (
+            <span style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic" }}>"{rawTranscript}"</span>
           )}
           <style>{`@keyframes waveBar { from { transform: scaleY(0.4); } to { transform: scaleY(1.4); } }`}</style>
         </div>
@@ -192,7 +192,7 @@ export default function ChatZone({
           }}>
             <input
               ref={inputRef}
-              value={interimText || input}
+              value={rawTranscript || input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
               placeholder={agent.placeholder}
@@ -229,12 +229,12 @@ export default function ChatZone({
           {/* Verzenden */}
           <button
             onClick={send}
-            disabled={(!input.trim() && !interimText) || status === "active"}
+            disabled={(!input.trim() && !rawTranscript) || status === "active"}
             style={{
               padding: "0 16px", borderRadius: 10, border: "none",
-              background: ((!input.trim() && !interimText) || status === "active") ? "#1a1a1a" : "#1d4ed8",
-              color: ((!input.trim() && !interimText) || status === "active") ? "#374151" : "#fff",
-              cursor: ((!input.trim() && !interimText) || status === "active") ? "not-allowed" : "pointer",
+              background: ((!input.trim() && !rawTranscript) || status === "active") ? "#1a1a1a" : "#1d4ed8",
+              color: ((!input.trim() && !rawTranscript) || status === "active") ? "#374151" : "#fff",
+              cursor: ((!input.trim() && !rawTranscript) || status === "active") ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center",
             }}
           >
