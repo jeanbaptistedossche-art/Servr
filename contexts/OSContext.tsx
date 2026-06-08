@@ -20,6 +20,15 @@ const DEFAULT_INFOS = (): Record<AgentKey, AgentInfo> => ({
   cto:       { status: "idle", lastActive: "—" },
   scout:     { status: "idle", lastActive: "—" },
   validator: { status: "idle", lastActive: "—" },
+  cfo:       { status: "idle", lastActive: "—" },
+  ux:        { status: "idle", lastActive: "—" },
+  growth:    { status: "idle", lastActive: "—" },
+  legal:     { status: "idle", lastActive: "—" },
+  security:  { status: "idle", lastActive: "—" },
+  ops:       { status: "idle", lastActive: "—" },
+  dna:       { status: "idle", lastActive: "—" },
+  scenario:  { status: "idle", lastActive: "—" },
+  launch:    { status: "idle", lastActive: "—" },
 });
 
 export function OSContextProvider({ children }: { children: ReactNode }) {

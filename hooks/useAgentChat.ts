@@ -46,14 +46,20 @@ export function useAgentChat() {
   // maar de gebruiker ziet alleen berichten van de huidige sessie.
   const [histories, setHistories] = useState<Histories>({
     ceo: [], cto: [], scout: [], validator: [],
+    cfo: [], ux: [], growth: [], legal: [],
+    security: [], ops: [], dna: [], scenario: [], launch: [],
   });
 
   const [statusMap, setStatusMap] = useState<Record<AgentKey, AgentStatus>>({
     ceo: "idle", cto: "idle", scout: "idle", validator: "idle",
+    cfo: "idle", ux: "idle", growth: "idle", legal: "idle",
+    security: "idle", ops: "idle", dna: "idle", scenario: "idle", launch: "idle",
   });
 
   const [lastActiveMap, setLastActiveMap] = useState<Record<AgentKey, string>>({
     ceo: "—", cto: "—", scout: "—", validator: "—",
+    cfo: "—", ux: "—", growth: "—", legal: "—",
+    security: "—", ops: "—", dna: "—", scenario: "—", launch: "—",
   });
 
   const abortRef = useRef<AbortController | null>(null);
