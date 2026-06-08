@@ -30,7 +30,7 @@ export default function ChatZone({
   onResolveBeslissing, onClear, onToggleSplit, splitOpen,
 }: Props) {
   const [input, setInput] = useState("");
-  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(false);
+  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(false); // altijd uit tenzij gebruiker aanzet
   const [voiceLang, setVoiceLang] = useState<"nl-BE" | "en-US">("nl-BE");
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -95,22 +95,6 @@ export default function ChatZone({
         <StatusBadge status={status} />
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-          {/* Voice output toggle */}
-          <button
-            onClick={() => setVoiceOutputEnabled(v => !v)}
-            title={voiceOutputEnabled ? "Voice output uit" : "Voice output aan"}
-            style={{
-              background: voiceOutputEnabled ? "#1a2a1a" : "none",
-              border: `1px solid ${voiceOutputEnabled ? "#22c55e" : "#1f2937"}`,
-              borderRadius: 6, cursor: "pointer",
-              color: voiceOutputEnabled ? "#22c55e" : "#4b5563",
-              padding: "4px 8px", fontSize: 13,
-              transition: "all 0.15s",
-            }}
-          >
-            {voiceOutputEnabled ? "🔊" : "🔇"}
-          </button>
-
           <button
             onClick={onClear}
             title="Clear chat"
@@ -256,6 +240,23 @@ export default function ChatZone({
               }}
             >
               {isListening ? "⏹️" : "🎙️"}
+            </button>
+          )}
+
+          {/* Voice output — klein, verstopt, alleen voor wie het wil */}
+          {isSupported && (
+            <button
+              onClick={() => setVoiceOutputEnabled(v => !v)}
+              title={voiceOutputEnabled ? "Agent stopt met praten — klik om uit te zetten" : "Agent praat terug (optioneel)"}
+              style={{
+                padding: "0 10px", borderRadius: 10, border: "none",
+                background: voiceOutputEnabled ? "#1a2a1a" : "#1a1a1a",
+                color: voiceOutputEnabled ? "#22c55e" : "#374151",
+                cursor: "pointer", fontSize: 13,
+                transition: "all 0.15s",
+              }}
+            >
+              {voiceOutputEnabled ? "🔊" : "🔇"}
             </button>
           )}
 
