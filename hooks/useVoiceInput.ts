@@ -13,87 +13,133 @@ function getSR(): SR | null {
   );
 }
 
-// Vraagt micro permissie via getUserMedia — triggert de browser popup in Edge/Chrome
-async function requestMicPermission(): Promise<boolean> {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // Stop direct — we willen enkel de permissie, niet opnemen
-    stream.getTracks().forEach(t => t.stop());
-    return true;
-  } catch {
-    return false;
-  }
-}
+const WAKE_WORDS = ["hey servr", "hey server", "hé servr", "hey serv", "oke servr", "ok servr"];
 
-export function useVoiceInput(onTranscript: (text: string) => void, lang = "nl-BE") {
-  const [isListening, setIsListening] = useState(false);
-  const [isSupported, setIsSupported] = useState(false);
-  const [permissionGranted, setPermissionGranted] = useState(false);
+export type MicState = "off" | "permission-denied" | "listening" | "awake";
+
+export function useVoiceInput(onCommand: (text: string) => void, lang = "nl-BE") {
+  const [micState, setMicState] = useState<MicState>("off");
   const [interimText, setInterimText] = useState("");
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const [isSupported, setIsSupported] = useState(false);
+  const recRef = useRef<SpeechRecognition | null>(null);
+  const activeRef = useRef(false);
 
-  // Check support on mount
   useEffect(() => {
     if (getSR()) setIsSupported(true);
-    // Check if permission already granted
-    navigator.permissions?.query({ name: "microphone" as PermissionName })
-      .then(status => { if (status.state === "granted") setPermissionGranted(true); })
-      .catch(() => {});
   }, []);
 
-  const startListening = useCallback(async () => {
-    const SR = getSR();
-    if (!SR) { setIsSupported(false); return; }
-
-    // Vraag permissie als nog niet gegeven
-    if (!permissionGranted) {
-      const ok = await requestMicPermission();
-      if (!ok) return;
-      setPermissionGranted(true);
-    }
-
-    recognitionRef.current?.stop();
-
-    const recognition = new SR();
-    recognition.lang = lang;
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend   = () => { setIsListening(false); setInterimText(""); };
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let final = "";
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) final += t;
-        else interim += t;
-      }
-      setInterimText(interim);
-      if (final) { setInterimText(""); onTranscript(final); }
-    };
-
-    recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
-      console.warn("Speech error:", e.error);
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-    try { recognition.start(); } catch {}
-  }, [onTranscript, lang, permissionGranted]);
-
-  const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
+  const stop = useCallback(() => {
+    activeRef.current = false;
+    recRef.current?.stop();
+    recRef.current = null;
+    setMicState("off");
     setInterimText("");
   }, []);
 
-  const toggleListening = useCallback(() => {
-    if (isListening) stopListening();
-    else startListening();
-  }, [isListening, startListening, stopListening]);
+  const startLoop = useCallback(() => {
+    const SR = getSR();
+    if (!SR || !activeRef.current) return;
 
-  return { isListening, isSupported, permissionGranted, interimText, toggleListening, startListening, stopListening };
+    const rec = new SR();
+    rec.lang = lang;
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+
+    rec.onresult = (ev: SpeechRecognitionEvent) => {
+      let final = "";
+      let interim = "";
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const t = ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) final += t;
+        else interim += t;
+      }
+
+      const display = final || interim;
+
+      // Check voor wake word in de transcript
+      const lower = display.toLowerCase();
+      const hitWord = WAKE_WORDS.find(w => lower.includes(w));
+
+      if (hitWord) {
+        // Extraheer het command na het wake word
+        let cmd = lower.replace(hitWord, "").replace(/^[,.\s]+/, "").trim();
+        if (!cmd && final) {
+          // Wake word zonder command — wacht op volgend resultaat
+          setMicState("awake");
+          setInterimText("Spreek je vraag in...");
+          return;
+        }
+        if (cmd) {
+          setInterimText(cmd);
+          if (final) {
+            setInterimText("");
+            onCommand(cmd);
+          }
+        }
+      } else {
+        setInterimText(display);
+        if (final && final.trim().length > 2) {
+          // Geen wake word — stuur direct (als al in awake state)
+          if (micState === "awake") {
+            setInterimText("");
+            onCommand(final.trim());
+          }
+        }
+      }
+    };
+
+    rec.onend = () => {
+      setInterimText("");
+      if (activeRef.current) {
+        // Herstart automatisch
+        setTimeout(() => startLoop(), 150);
+      }
+    };
+
+    rec.onerror = (ev: SpeechRecognitionErrorEvent) => {
+      if (ev.error === "not-allowed") {
+        setMicState("permission-denied");
+        activeRef.current = false;
+        return;
+      }
+      // Bij andere errors: herstart
+      if (activeRef.current) setTimeout(() => startLoop(), 500);
+    };
+
+    recRef.current = rec;
+    try {
+      rec.start();
+      setMicState("listening");
+    } catch { }
+  }, [lang, onCommand, micState]);
+
+  const start = useCallback(async () => {
+    const SR = getSR();
+    if (!SR) return;
+
+    // Vraag micro permissie
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(t => t.stop()); // stop direct, we willen enkel permissie
+    } catch {
+      setMicState("permission-denied");
+      return;
+    }
+
+    activeRef.current = true;
+    startLoop();
+  }, [startLoop]);
+
+  const toggle = useCallback(() => {
+    if (micState === "off" || micState === "permission-denied") {
+      start();
+    } else {
+      stop();
+    }
+  }, [micState, start, stop]);
+
+  const setAwake = useCallback(() => setMicState("awake"), []);
+
+  return { micState, interimText, isSupported, toggle, stop, setAwake };
 }

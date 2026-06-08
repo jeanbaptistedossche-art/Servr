@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Columns2, Trash2, Send } from "lucide-react";
 import type { AgentKey } from "@/lib/os/agentConfig";
 import { AGENTS } from "@/lib/os/agentConfig";
@@ -10,7 +10,6 @@ import StatusBadge from "./StatusBadge";
 import MessageBubble from "./MessageBubble";
 import QuickCommands from "./QuickCommands";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
-import { useVoiceOutput } from "@/hooks/useVoiceOutput";
 import type { AgentStatus } from "@/hooks/useAgentChat";
 
 type Props = {
@@ -30,40 +29,20 @@ export default function ChatZone({
   onResolveBeslissing, onClear, onToggleSplit, splitOpen,
 }: Props) {
   const [input, setInput] = useState("");
-  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(false); // altijd uit tenzij gebruiker aanzet
-  const [voiceLang, setVoiceLang] = useState<"nl-BE" | "en-US">("nl-BE");
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const agent = AGENTS[agentKey];
-  const lastSpokenId = useRef<string | null>(null);
 
-  const { speak } = useVoiceOutput();
+  // Voice: één handler — commando wordt direct verstuurd
+  const { micState, interimText, isSupported, toggle } = useVoiceInput((cmd) => {
+    if (status !== "active") onSend(cmd);
+  });
 
-  const handleTranscript = useCallback((text: string) => {
-    setInput(text);
-    // Auto-send after brief pause
-    setTimeout(() => {
-      if (text.trim() && status !== "active") {
-        setInput("");
-        onSend(text.trim());
-      }
-    }, 800);
-  }, [onSend, status]);
-
-  const { isListening, isSupported, interimText, toggleListening } = useVoiceInput(handleTranscript, voiceLang);
+  const isListening = micState === "listening" || micState === "awake";
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // Voice output: speak last agent message when done streaming
-  useEffect(() => {
-    if (!voiceOutputEnabled) return;
-    const last = [...messages].reverse().find(m => m.role === "agent" && !m.streaming && m.content);
-    if (!last || last.id === lastSpokenId.current) return;
-    lastSpokenId.current = last.id;
-    speak(last.content, agentKey);
-  }, [messages, voiceOutputEnabled, agentKey, speak]);
 
   function send() {
     const cmd = input.trim();
@@ -77,9 +56,23 @@ export default function ChatZone({
     inputRef.current?.focus();
   }
 
+  const micLabel = () => {
+    if (micState === "permission-denied") return "❌";
+    if (micState === "awake") return "⚡";
+    if (micState === "listening") return "⏹️";
+    return "🎙️";
+  };
+
+  const micColor = () => {
+    if (micState === "permission-denied") return { bg: "#1a0808", color: "#ef4444" };
+    if (micState === "awake") return { bg: "#1a1500", color: "#eab308" };
+    if (micState === "listening") return { bg: "#0d1a0d", color: "#22c55e" };
+    return { bg: "#1a1a1a", color: "#6b7280" };
+  };
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-      {/* Chat header */}
+      {/* Header */}
       <div style={{
         height: 48, padding: "0 16px",
         display: "flex", alignItems: "center", gap: 10,
@@ -93,86 +86,72 @@ export default function ChatZone({
           <p style={{ fontSize: 10, color: "#4b5563", margin: 0 }}>{agent.description}</p>
         </div>
         <StatusBadge status={status} />
-
-        <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
-          <button
-            onClick={onClear}
-            title="Clear chat"
-            style={{
-              background: "none", border: "1px solid #1f2937",
-              borderRadius: 6, cursor: "pointer", color: "#4b5563",
-              padding: "4px 8px", display: "flex", alignItems: "center",
-              transition: "all 0.15s",
-            }}
-          >
+        <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+          <button onClick={onClear} title="Clear chat" style={{
+            background: "none", border: "1px solid #1f2937", borderRadius: 6,
+            cursor: "pointer", color: "#4b5563", padding: "4px 8px",
+            display: "flex", alignItems: "center",
+          }}>
             <Trash2 size={13} />
           </button>
-          <button
-            onClick={onToggleSplit}
-            title="Split view"
-            style={{
-              background: splitOpen ? "#1e3a5f" : "none",
-              border: `1px solid ${splitOpen ? "#3b82f6" : "#1f2937"}`,
-              borderRadius: 6, cursor: "pointer",
-              color: splitOpen ? "#3b82f6" : "#4b5563",
-              padding: "4px 8px", display: "flex", alignItems: "center", gap: 4,
-              fontSize: 11, fontWeight: 500, transition: "all 0.15s",
-            }}
-          >
-            <Columns2 size={13} />
-            Split
+          <button onClick={onToggleSplit} title="Split view" style={{
+            background: splitOpen ? "#1e3a5f" : "none",
+            border: `1px solid ${splitOpen ? "#3b82f6" : "#1f2937"}`,
+            borderRadius: 6, cursor: "pointer",
+            color: splitOpen ? "#3b82f6" : "#4b5563",
+            padding: "4px 8px", display: "flex", alignItems: "center", gap: 4,
+            fontSize: 11, fontWeight: 500,
+          }}>
+            <Columns2 size={13} /> Split
           </button>
         </div>
       </div>
 
-      {/* Listening banner */}
+      {/* Luisterbalk */}
       {isListening && (
         <div style={{
-          background: "#0d1a0d", borderBottom: "1px solid #14532d",
-          padding: "8px 16px", display: "flex", alignItems: "center", gap: 10,
-          flexShrink: 0,
+          background: micState === "awake" ? "#1a1500" : "#0d1a0d",
+          borderBottom: `1px solid ${micState === "awake" ? "#854d0e" : "#14532d"}`,
+          padding: "8px 16px", display: "flex", alignItems: "center", gap: 10, flexShrink: 0,
         }}>
           <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} style={{
-                width: 3, borderRadius: 2, background: "#22c55e",
+                width: 3, borderRadius: 2,
+                background: micState === "awake" ? "#eab308" : "#22c55e",
                 height: `${Math.sin(i * 0.9) * 8 + 12}px`,
                 animation: `waveBar 0.5s ease-in-out ${i * 0.06}s infinite alternate`,
               }} />
             ))}
           </div>
-          <span style={{ color: "#22c55e", fontSize: 12, fontWeight: 600 }}>🎙️ Aan het luisteren...</span>
+          <span style={{
+            color: micState === "awake" ? "#eab308" : "#22c55e",
+            fontSize: 12, fontWeight: 600,
+          }}>
+            {micState === "awake" ? "⚡ Zeg je vraag..." : "🎙️ Luistert naar \"Hey Servr...\""}
+          </span>
           {interimText && (
             <span style={{ color: "#9ca3af", fontSize: 11, fontStyle: "italic" }}>"{interimText}"</span>
           )}
-          {/* Lang toggle */}
-          <button
-            onClick={() => setVoiceLang(l => l === "nl-BE" ? "en-US" : "nl-BE")}
-            style={{
-              marginLeft: "auto", background: "none", border: "1px solid #14532d",
-              borderRadius: 4, padding: "2px 8px", color: "#22c55e", fontSize: 11,
-              cursor: "pointer",
-            }}
-          >
-            {voiceLang === "nl-BE" ? "🇧🇪 NL" : "🇬🇧 EN"}
-          </button>
-          <style>{`
-            @keyframes waveBar {
-              from { transform: scaleY(0.4); }
-              to { transform: scaleY(1.4); }
-            }
-          `}</style>
+          <style>{`@keyframes waveBar { from { transform: scaleY(0.4); } to { transform: scaleY(1.4); } }`}</style>
+        </div>
+      )}
+
+      {/* Permissie geweigerd melding */}
+      {micState === "permission-denied" && (
+        <div style={{
+          background: "#1a0808", borderBottom: "1px solid #7f1d1d",
+          padding: "8px 16px", fontSize: 11, color: "#fca5a5", flexShrink: 0,
+        }}>
+          ❌ Microfoon geblokkeerd. Klik op het slotje 🔒 in de adresbalk → Microfoon → Toestaan → herlaad de pagina.
         </div>
       )}
 
       {/* Messages */}
-      <div
-        className="os-scroll"
-        style={{
-          flex: 1, overflowY: "auto", padding: "24px 20px",
-          background: "#080808", display: "flex", flexDirection: "column",
-        }}
-      >
+      <div className="os-scroll" style={{
+        flex: 1, overflowY: "auto", padding: "24px 20px",
+        background: "#080808", display: "flex", flexDirection: "column",
+      }}>
         {messages.length === 0 && (
           <div style={{
             flex: 1, display: "flex", flexDirection: "column",
@@ -180,14 +159,15 @@ export default function ChatZone({
             color: "#374151", textAlign: "center",
           }}>
             <span style={{ fontSize: 40, marginBottom: 12 }}>{agent.emoji}</span>
-            <p style={{ fontSize: 14, color: "#6b7280", margin: "0 0 6px" }}>
-              Chat met {agent.name}
-            </p>
-            <p style={{ fontSize: 12, color: "#374151" }}>{agent.placeholder}</p>
-            {isSupported && (
-              <p style={{ fontSize: 11, color: "#1f2937", marginTop: 12 }}>
-                🎙️ Klik op microfoon om in te spreken · 🎙️ "Hey Servr" voor hands-free
-              </p>
+            <p style={{ fontSize: 14, color: "#6b7280", margin: "0 0 4px" }}>Chat met {agent.name}</p>
+            <p style={{ fontSize: 12, color: "#374151", margin: "0 0 16px" }}>{agent.placeholder}</p>
+            {isSupported && micState === "off" && (
+              <div style={{
+                background: "#111", border: "1px solid #1f2937", borderRadius: 8,
+                padding: "10px 16px", fontSize: 11, color: "#6b7280",
+              }}>
+                🎙️ Klik op de microfoon en zeg <strong style={{ color: "#9ca3af" }}>"Hey Servr, ..."</strong>
+              </div>
             )}
           </div>
         )}
@@ -197,7 +177,7 @@ export default function ChatZone({
         <div ref={endRef} />
       </div>
 
-      {/* Input area */}
+      {/* Input */}
       <div style={{
         background: "#0d0d0d", borderTop: "1px solid #1a1a1a",
         padding: "12px 16px", flexShrink: 0,
@@ -207,7 +187,7 @@ export default function ChatZone({
           <div style={{
             flex: 1, display: "flex", alignItems: "center",
             background: "#1a1a1a", borderRadius: 10,
-            border: `1px solid ${isListening ? "#22c55e" : "#1f2937"}`,
+            border: `1px solid ${isListening ? "#22c55e44" : "#1f2937"}`,
             padding: "0 12px", transition: "border-color 0.2s",
           }}>
             <input
@@ -225,42 +205,28 @@ export default function ChatZone({
             />
           </div>
 
-          {/* Mic button */}
+          {/* Mic knop */}
           {isSupported && (
             <button
-              onClick={toggleListening}
-              title={isListening ? "Stop luisteren" : "Spreek je bericht in"}
+              onClick={toggle}
+              title={
+                micState === "off" ? 'Klik om te luisteren — zeg dan "Hey Servr, ..."'
+                : micState === "permission-denied" ? "Microfoon geblokkeerd — zie melding hierboven"
+                : "Stop luisteren"
+              }
               style={{
-                padding: "0 14px", borderRadius: 10, border: "none",
-                background: isListening ? "#14532d" : "#1a1a1a",
-                color: isListening ? "#22c55e" : "#6b7280",
+                padding: "0 16px", borderRadius: 10, border: "none",
+                background: micColor().bg,
+                color: micColor().color,
                 cursor: "pointer", fontSize: 16,
-                animation: isListening ? "pulse 1.5s ease-in-out infinite" : "none",
                 transition: "all 0.15s",
               }}
             >
-              {isListening ? "⏹️" : "🎙️"}
+              {micLabel()}
             </button>
           )}
 
-          {/* Voice output — klein, verstopt, alleen voor wie het wil */}
-          {isSupported && (
-            <button
-              onClick={() => setVoiceOutputEnabled(v => !v)}
-              title={voiceOutputEnabled ? "Agent stopt met praten — klik om uit te zetten" : "Agent praat terug (optioneel)"}
-              style={{
-                padding: "0 10px", borderRadius: 10, border: "none",
-                background: voiceOutputEnabled ? "#1a2a1a" : "#1a1a1a",
-                color: voiceOutputEnabled ? "#22c55e" : "#374151",
-                cursor: "pointer", fontSize: 13,
-                transition: "all 0.15s",
-              }}
-            >
-              {voiceOutputEnabled ? "🔊" : "🔇"}
-            </button>
-          )}
-
-          {/* Send button */}
+          {/* Verzenden */}
           <button
             onClick={send}
             disabled={(!input.trim() && !interimText) || status === "active"}
@@ -269,7 +235,7 @@ export default function ChatZone({
               background: ((!input.trim() && !interimText) || status === "active") ? "#1a1a1a" : "#1d4ed8",
               color: ((!input.trim() && !interimText) || status === "active") ? "#374151" : "#fff",
               cursor: ((!input.trim() && !interimText) || status === "active") ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", transition: "all 0.15s",
+              display: "flex", alignItems: "center",
             }}
           >
             <Send size={15} />
