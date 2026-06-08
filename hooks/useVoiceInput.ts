@@ -22,6 +22,7 @@ export function useVoiceInput(onCommand: (text: string) => void) {
 
   const recRef = useRef<SpeechRecognition | null>(null);
   const activeRef = useRef(false);
+  const collectedRef = useRef(""); // alles wat Edge tot nu toe heeft herkend
   const onCommandRef = useRef(onCommand);
   onCommandRef.current = onCommand;
 
@@ -33,28 +34,35 @@ export function useVoiceInput(onCommand: (text: string) => void) {
     const SR = getSR();
     if (!SR || !activeRef.current) return;
 
-    try { recRef.current?.stop(); } catch {}
+    try { recRef.current?.abort(); } catch {}
+
+    collectedRef.current = "";
 
     const rec = new SR();
     rec.lang = "nl-BE";
-    rec.continuous = false;      // één zin per keer — meest stabiel in Edge
+    rec.continuous = false;
     rec.interimResults = true;
     rec.maxAlternatives = 1;
 
     rec.onresult = (ev: SpeechRecognitionEvent) => {
       let interim = "";
       let final = "";
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+
+      for (let i = 0; i < ev.results.length; i++) {
         const t = ev.results[i][0].transcript;
         if (ev.results[i].isFinal) final += t;
         else interim += t;
       }
 
-      // Toon wat Edge hoort in real-time
+      // Sla alles op wat final is
+      if (final) collectedRef.current = final.trim();
+
+      // Toon live wat Edge hoort
       setRawTranscript(interim || final);
 
-      // Stuur wanneer final
+      // Stuur meteen als final beschikbaar (snelste pad)
       if (final.trim().length > 1) {
+        collectedRef.current = "";
         setRawTranscript("");
         onCommandRef.current(final.trim());
       }
@@ -67,22 +75,33 @@ export function useVoiceInput(onCommand: (text: string) => void) {
         setRawTranscript("");
         return;
       }
-      // no-speech of ander: herstart automatisch
-      if (activeRef.current && ev.error !== "aborted") {
-        setTimeout(() => startRecognition(), 300);
-      }
-    };
-
-    rec.onend = () => {
-      setRawTranscript("");
-      // Herstart automatisch zolang mic aan is
-      if (activeRef.current) {
+      // no-speech: herstart stil
+      if (activeRef.current && (ev.error === "no-speech" || ev.error === "network")) {
         setTimeout(() => startRecognition(), 200);
       }
     };
 
+    // onend: ALTIJD gestuurd (ook als onresult final miste)
+    rec.onend = () => {
+      const leftover = collectedRef.current.trim();
+      collectedRef.current = "";
+      setRawTranscript("");
+
+      if (leftover.length > 1) {
+        // Edge stuurde onend voor final result — stuur hier alsnog
+        onCommandRef.current(leftover);
+      }
+
+      // Herstart voor volgend commando
+      if (activeRef.current) {
+        setTimeout(() => startRecognition(), 250);
+      }
+    };
+
     recRef.current = rec;
-    try { rec.start(); } catch {
+    try {
+      rec.start();
+    } catch {
       if (activeRef.current) setTimeout(() => startRecognition(), 500);
     }
   }, []);
@@ -91,7 +110,6 @@ export function useVoiceInput(onCommand: (text: string) => void) {
     const SR = getSR();
     if (!SR) return;
 
-    // Trigger permission popup in Edge
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(t => t.stop());
@@ -103,12 +121,14 @@ export function useVoiceInput(onCommand: (text: string) => void) {
     activeRef.current = true;
     setMicState("listening");
     setRawTranscript("");
+    collectedRef.current = "";
     startRecognition();
   }, [startRecognition]);
 
   const stop = useCallback(() => {
     activeRef.current = false;
-    try { recRef.current?.stop(); } catch {}
+    collectedRef.current = "";
+    try { recRef.current?.abort(); } catch {}
     recRef.current = null;
     setMicState("off");
     setRawTranscript("");
