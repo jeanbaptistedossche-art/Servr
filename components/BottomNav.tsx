@@ -31,9 +31,7 @@ export default function BottomNav() {
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    // Read email directly from Supabase session — more reliable than store
-    import("@/lib/supabase").then(({ supabase, supabaseReady }) => {
-      if (!supabaseReady) return;
+    import("@/lib/supabase").then(({ supabase }) => {
       supabase.auth.getSession().then(({ data }) => {
         setSessionEmail(data.session?.user?.email ?? null);
       });
