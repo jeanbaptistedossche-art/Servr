@@ -1,38 +1,119 @@
 @import "tailwindcss";
 
-/* ── Servr OS Design System ──────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   SERVR OS — AI COCKPIT DESIGN SYSTEM
+══════════════════════════════════════════════════════════════ */
 :root {
-  --os-bg:          #080808;
-  --os-surface:     #111111;
-  --os-surface-2:   #1a1a1a;
-  --os-border:      #1f2937;
-  --os-text:        #f9fafb;
-  --os-text-muted:  #6b7280;
-  --os-blue:        #3b82f6;
-  --os-green:       #10b981;
-  --os-amber:       #f59e0b;
-  --os-red:         #ef4444;
-  --os-purple:      #7c3aed;
+  /* Legacy OS vars */
+  --os-bg:          #000007;
+  --os-surface:     #070a18;
+  --os-surface-2:   #0c1020;
+  --os-border:      rgba(255,255,255,.06);
+  --os-text:        #eef0ff;
+  --os-text-muted:  rgba(238,240,255,.35);
+  --os-blue:        #4880ff;
+  --os-green:       #00e096;
+  --os-amber:       #ffaa30;
+  --os-red:         #ff3c5a;
+  --os-purple:      #9060ff;
+
+  /* Servr OS v5 full palette */
+  --void:    #000007;
+  --s1:      #070a18;
+  --s2:      #0c1020;
+  --s3:      #111525;
+  --ink:     #eef0ff;
+  --ink-2:   rgba(238,240,255,.6);
+  --ink-3:   rgba(238,240,255,.28);
+  --ink-4:   rgba(238,240,255,.1);
+  --ink-5:   rgba(238,240,255,.05);
+  --blue:    #4880ff;
+  --blue-x:  rgba(72,128,255,.12);
+  --cyan:    #00dcff;
+  --purple:  #9060ff;
+  --green:   #00e096;
+  --amber:   #ffaa30;
+  --red:     #ff3c5a;
+  --pink:    #ff5faa;
 }
 
 /* OS scrollbars */
 .os-scroll::-webkit-scrollbar         { width: 4px; height: 4px; }
 .os-scroll::-webkit-scrollbar-track   { background: transparent; }
-.os-scroll::-webkit-scrollbar-thumb   { background: #2d2d2d; border-radius: 2px; }
+.os-scroll::-webkit-scrollbar-thumb   { background: rgba(72,128,255,.3); border-radius: 2px; }
 
-/* OS animations */
-@keyframes os-pulse   { 0%,100%{opacity:1} 50%{opacity:0.4} }
-@keyframes os-fadeup  { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+/* ── Servr OS Animations ──────────────────────────────────────── */
+@keyframes os-pulse        { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.65)} }
+@keyframes os-fadeup       { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes os-spin         { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes os-spin-rev     { from{transform:rotate(360deg)} to{transform:rotate(0deg)} }
+@keyframes os-marquee      { 0%{transform:translateX(55vw)} 100%{transform:translateX(-100%)} }
+@keyframes os-breathe      { 0%,100%{opacity:.9;transform:scale(1)} 50%{opacity:.4;transform:scale(.65)} }
+@keyframes os-pulse-ring   { 0%{transform:scale(.9);opacity:.8} 100%{transform:scale(2);opacity:0} }
+@keyframes os-scan         { 0%{transform:translateY(-2px)} 100%{transform:translateY(100%)} }
+@keyframes os-orbital      { from{transform:rotate(0deg) translateX(var(--r,60px))} to{transform:rotate(360deg) translateX(var(--r,60px))} }
+@keyframes os-drift        { 0%{transform:translate(0,0)} 33%{transform:translate(20px,-15px)} 66%{transform:translate(-10px,25px)} 100%{transform:translate(0,0)} }
+@keyframes os-counter-in   { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+@keyframes os-hover-lift   { to{transform:translateY(-2px)} }
+@keyframes os-glow-pulse   { 0%,100%{box-shadow:0 0 20px rgba(72,128,255,.15)} 50%{box-shadow:0 0 40px rgba(72,128,255,.35)} }
+@keyframes os-waveform     { 0%{d:path("M0,50 Q25,30 50,50 Q75,70 100,50")} 50%{d:path("M0,50 Q25,70 50,50 Q75,30 100,50")} 100%{d:path("M0,50 Q25,30 50,50 Q75,70 100,50")} }
+@keyframes os-ticker       { 0%{transform:translateX(100vw)} 100%{transform:translateX(-100%)} }
 @keyframes os-bounce1 { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-4px)} }
 @keyframes os-bounce2 { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-4px)} }
 @keyframes os-bounce3 { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-4px)} }
-@keyframes os-marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
-@keyframes os-spin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes os-slide-left   { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+@keyframes os-slide-right  { from{opacity:0;transform:translateX(12px)} to{opacity:1;transform:translateX(0)} }
+@keyframes os-particle-flow { 0%{stroke-dashoffset:100} 100%{stroke-dashoffset:0} }
+@keyframes os-bar-fill     { from{width:0} to{width:var(--tw,60%)} }
 
 .os-dot1 { animation: os-bounce1 1.2s infinite 0s; }
 .os-dot2 { animation: os-bounce2 1.2s infinite 0.15s; }
 .os-dot3 { animation: os-bounce3 1.2s infinite 0.3s; }
-.os-active-pulse { animation: os-pulse 2s infinite; }
+.os-active-pulse { animation: os-breathe 2.4s infinite; }
+.os-spin  { animation: os-spin 10s linear infinite; }
+.os-spin-rev { animation: os-spin-rev 14s linear infinite; }
+.os-scan-line { animation: os-scan 2.5s linear infinite; }
+.os-fadeup { animation: os-fadeup .4s cubic-bezier(.2,.7,.3,1) both; }
+.os-slide-left  { animation: os-slide-left .4s cubic-bezier(.2,.7,.3,1) both; }
+.os-slide-right { animation: os-slide-right .4s cubic-bezier(.2,.7,.3,1) both; }
+
+/* Glass card base */
+.os-card {
+  background: rgba(5,8,20,.88);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: border-color .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s cubic-bezier(.2,.7,.3,1), transform .3s cubic-bezier(.2,.7,.3,1);
+}
+.os-card:hover {
+  border-color: rgba(72,128,255,.22);
+  box-shadow: 0 0 60px rgba(72,128,255,.08);
+}
+.os-card-active {
+  border-color: rgba(72,128,255,.22) !important;
+  box-shadow: 0 0 60px rgba(72,128,255,.08) !important;
+}
+
+/* Primary button */
+.os-btn-primary {
+  background: linear-gradient(135deg, #2060ff, #7030ff);
+  box-shadow: 0 4px 16px rgba(60,100,255,.45);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .3s cubic-bezier(.2,.7,.3,1);
+}
+.os-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(60,100,255,.6);
+}
+
+/* Font helpers */
+.os-mono { font-family: 'JetBrains Mono', 'Fira Mono', monospace; }
+.os-sans { font-family: 'Space Grotesk', system-ui, sans-serif; }
 
 /* ═══════════════════════════════════════════════════════════════
    SERVR DESIGN SYSTEM v4 — Warm paper · Forest green · Copper
