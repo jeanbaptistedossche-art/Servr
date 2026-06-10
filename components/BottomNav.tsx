@@ -20,9 +20,11 @@ type NavItem = {
   isSpoed?: boolean;
 };
 
+const FOUNDER_EMAIL = process.env.NEXT_PUBLIC_FOUNDER_EMAIL;
+
 export default function BottomNav() {
   const pathname = usePathname();
-  const { activeView, isLoggedIn, unreadBerichten } = useUserStore();
+  const { activeView, isLoggedIn, unreadBerichten, email } = useUserStore();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -30,22 +32,26 @@ export default function BottomNav() {
   if (!mounted || hide || !isLoggedIn) return null;
 
   const isVakman = activeView === "vakman";
+  const isFounder = !!FOUNDER_EMAIL && email === FOUNDER_EMAIL;
+
+  const baseVakman: NavItem[] = [
+    { href: "/agenda",     icon: CalendarDays,   label: "Vandaag" },
+    { href: "/feed",       icon: ClipboardList,  label: "Opdrachten" },
+    { href: "/panic",      icon: Zap,            label: "Spoed", isSpoed: true },
+    { href: "/berichten",  icon: MessageCircle,  label: "Berichten" },
+  ];
+  const baseKlant: NavItem[] = [
+    { href: "/",           icon: Home,           label: "Home" },
+    { href: "/search",     icon: Search,         label: "Zoeken" },
+    { href: "/panic",      icon: Zap,            label: "Spoed", isSpoed: true },
+    { href: "/berichten",  icon: MessageCircle,  label: "Berichten" },
+  ];
+
+  const osItem: NavItem = { href: "/os", icon: Terminal, label: "OS" };
 
   const navItems: NavItem[] = isVakman
-    ? [
-        { href: "/agenda",     icon: CalendarDays,   label: "Vandaag" },
-        { href: "/feed",       icon: ClipboardList,  label: "Opdrachten" },
-        { href: "/panic",      icon: Zap,            label: "Spoed", isSpoed: true },
-        { href: "/berichten",  icon: MessageCircle,  label: "Berichten" },
-        { href: "/os",         icon: Terminal,       label: "OS" },
-      ]
-    : [
-        { href: "/",           icon: Home,           label: "Home" },
-        { href: "/search",     icon: Search,         label: "Zoeken" },
-        { href: "/panic",      icon: Zap,            label: "Spoed", isSpoed: true },
-        { href: "/berichten",  icon: MessageCircle,  label: "Berichten" },
-        { href: "/os",         icon: Terminal,       label: "OS" },
-      ];
+    ? (isFounder ? [...baseVakman, osItem] : baseVakman)
+    : (isFounder ? [...baseKlant, osItem] : baseKlant);
 
   return (
     <nav

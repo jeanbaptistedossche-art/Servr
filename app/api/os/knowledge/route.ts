@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { requireFounderApi } from "@/lib/os/requireFounderApi";
 
 const KNOWLEDGE_ROOT = path.join(process.cwd(), "knowledge");
 
@@ -13,6 +14,9 @@ function safePath(file: string): string | null {
 
 // GET ?file=agents/cto/learnings.md
 export async function GET(req: NextRequest) {
+  const deny = await requireFounderApi();
+  if (deny) return deny;
+
   const file = req.nextUrl.searchParams.get("file");
   if (!file) return NextResponse.json({ error: "file parameter required" }, { status: 400 });
 
@@ -45,6 +49,9 @@ export async function HEAD() {
 
 // POST { file, content, append }
 export async function POST(req: NextRequest) {
+  const deny = await requireFounderApi();
+  if (deny) return deny;
+
   try {
     const { file, content, append = true } = await req.json();
     if (!file || content === undefined) {

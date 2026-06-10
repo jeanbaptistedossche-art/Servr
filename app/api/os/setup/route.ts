@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { requireFounderApi } from "@/lib/os/requireFounderApi";
 
 const REQUIRED_KEYS = [
   "NEXT_PUBLIC_SUPABASE_URL",
@@ -69,6 +70,9 @@ async function triggerVercelDeploy(token: string, projectId: string, teamId?: st
 }
 
 export async function POST(req: NextRequest) {
+  const deny = await requireFounderApi();
+  if (deny) return deny;
+
   try {
     const body = await req.json();
 

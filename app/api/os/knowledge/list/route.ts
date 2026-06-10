@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { requireFounderApi } from "@/lib/os/requireFounderApi";
 
 const KNOWLEDGE_ROOT = path.join(process.cwd(), "knowledge");
 
@@ -25,6 +26,9 @@ function listFiles(dir: string, base = ""): { path: string; mtime: number }[] {
 }
 
 export async function GET() {
+  const deny = await requireFounderApi();
+  if (deny) return deny;
+
   const files = listFiles(KNOWLEDGE_ROOT);
   return NextResponse.json({ files });
 }

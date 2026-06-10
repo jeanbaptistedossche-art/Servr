@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import matter from "gray-matter";
 import fs from "fs";
 import path from "path";
+import { requireFounderApi } from "@/lib/os/requireFounderApi";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -200,6 +201,9 @@ Rapport formaat: 🚀 LAUNCH READINESS met score X/Y, Open blockers, Nice to hav
 type HistoryMessage = { role: "user" | "assistant"; content: string };
 
 export async function POST(req: NextRequest) {
+  const deny = await requireFounderApi();
+  if (deny) return deny;
+
   try {
     const { command, agentName = "ceo", history = [] } = await req.json() as {
       command: string;

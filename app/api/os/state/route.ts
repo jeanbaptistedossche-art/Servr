@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import { parseMarkdownTable } from "@/lib/os/parseMarkdownTable";
+import { requireFounderApi } from "@/lib/os/requireFounderApi";
 
 const ROOT = process.cwd();
 const STATE_PATH   = path.join(ROOT, "STATE.md");
@@ -24,6 +25,9 @@ function parseAgentActivity(stateMd: string) {
 }
 
 export async function GET() {
+  const deny = await requireFounderApi();
+  if (deny) return deny;
+
   const stateMd   = readSafe(STATE_PATH);
   const backlogMd = readSafe(BACKLOG_PATH);
 
@@ -43,6 +47,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const deny = await requireFounderApi();
+  if (deny) return deny;
+
   try {
     const { file, content } = await req.json() as { file: "STATE" | "BACKLOG"; content: string };
     const targetPath = file === "BACKLOG" ? BACKLOG_PATH : STATE_PATH;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import fs from "fs";
 import path from "path";
+import { requireFounderApi } from "@/lib/os/requireFounderApi";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -33,6 +34,9 @@ function getThisWeekSessions(): string {
 }
 
 export async function GET() {
+  const deny = await requireFounderApi();
+  if (deny) return deny;
+
   try {
     const sessions = getThisWeekSessions();
     const weekNum = Math.ceil((new Date().getDate()) / 7);
