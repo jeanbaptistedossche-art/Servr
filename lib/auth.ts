@@ -98,6 +98,7 @@ export async function login(email: string, password: string) {
         });
       }
       syncStore(store, data.user.id, rol, naam, city ?? "Amsterdam");
+      store.setProfile({ email: data.user.email ?? "" });
     }
   }
   return data;
@@ -145,6 +146,7 @@ export async function restoreSession() {
     });
   }
   syncStore(store, session.user.id, rol, naam, city ?? "Amsterdam");
+  store.setProfile({ email: session.user.email ?? "" });
   return true;
 }
 
