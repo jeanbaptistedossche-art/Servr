@@ -1,7 +1,8 @@
 export type AgentKey =
   | "ceo" | "cto" | "scout" | "validator"
   | "marketing" | "data" | "finance" | "operations"
-  | "trust" | "meta";
+  | "trust" | "meta"
+  | "cfo" | "ux" | "growth" | "legal" | "security" | "ops" | "dna" | "scenario" | "launch";
 
 export type AgentConfig = {
   name: string;
@@ -132,6 +133,96 @@ export const AGENTS: Record<AgentKey, AgentConfig> = {
     tools: [], platforms: [], aiTools: [],
     status: "IDLE", currentTask: "Scheduled: Sunday 20:00 — prompt review", progress: 0,
     logLine: "↳ last: improved Scout recall by 23%",
+  },
+  cfo: {
+    name: "CFO",
+    emoji: "💰",
+    color: "#0ea5e9",
+    placeholder: "Metrics, revenue, WAT, unit economics...",
+    description: "Metrics & finance",
+    tools: [], platforms: [], aiTools: [],
+    status: "IDLE", currentTask: "Awaiting financial query", progress: 0,
+    logLine: "↳ MRR €4.820 — 18 months runway",
+  },
+  ux: {
+    name: "UX",
+    emoji: "🎨",
+    color: "#ec4899",
+    placeholder: "Friction, onboarding, gebruikerservaring...",
+    description: "UX & friction",
+    tools: [], platforms: [], aiTools: [],
+    status: "IDLE", currentTask: "Awaiting UX audit request", progress: 0,
+    logLine: "↳ last: onboarding flow scored 4.2/5",
+  },
+  growth: {
+    name: "Growth",
+    emoji: "📣",
+    color: "#f59e0b",
+    placeholder: "Acquisitie, kanalen, experimenten...",
+    description: "Groei & acquisitie",
+    tools: [], platforms: [], aiTools: [],
+    status: "IDLE", currentTask: "Awaiting growth experiment request", progress: 0,
+    logLine: "↳ last: A/B test variant B +18%",
+  },
+  legal: {
+    name: "Legal",
+    emoji: "⚖️",
+    color: "#6366f1",
+    placeholder: "GDPR, voorwaarden, Belgisch recht...",
+    description: "Legal & compliance",
+    tools: [], platforms: [], aiTools: [],
+    status: "IDLE", currentTask: "Awaiting legal query", progress: 0,
+    logLine: "↳ GDPR compliance check: OK",
+  },
+  security: {
+    name: "Security",
+    emoji: "🔐",
+    color: "#ef4444",
+    placeholder: "RLS, auth, Stripe security, vulnerabilities...",
+    description: "Security & RLS",
+    tools: [], platforms: [], aiTools: [],
+    status: "IDLE", currentTask: "Awaiting security audit request", progress: 0,
+    logLine: "↳ last: RLS audit — 0 issues",
+  },
+  ops: {
+    name: "Ops",
+    emoji: "🔧",
+    color: "#14b8a6",
+    placeholder: "Uptime, errors, Vercel logs, performance...",
+    description: "Ops & monitoring",
+    tools: [], platforms: [], aiTools: [],
+    status: "IDLE", currentTask: "Passive monitoring", progress: 0,
+    logLine: "↳ uptime 99.8%",
+  },
+  dna: {
+    name: "DNA",
+    emoji: "🧬",
+    color: "#a855f7",
+    placeholder: "Analyseer mijn beslissingspatronen...",
+    description: "Founder patronen",
+    tools: [], platforms: [], aiTools: [],
+    status: "IDLE", currentTask: "Awaiting pattern analysis", progress: 0,
+    logLine: "↳ last: 3 decision patterns identified",
+  },
+  scenario: {
+    name: "Scenario",
+    emoji: "🔮",
+    color: "#64748b",
+    placeholder: "Wat als Werkspot gratis wordt? Simuleer een crisis...",
+    description: "Crisis simulaties",
+    tools: [], platforms: [], aiTools: [],
+    status: "IDLE", currentTask: "Awaiting scenario simulation", progress: 0,
+    logLine: "↳ last: pricing crisis simulated",
+  },
+  launch: {
+    name: "Launch",
+    emoji: "🚀",
+    color: "#22c55e",
+    placeholder: "47-punten checklist voor go/no-go...",
+    description: "Launch checklist",
+    tools: [], platforms: [], aiTools: [],
+    status: "IDLE", currentTask: "Awaiting launch check", progress: 0,
+    logLine: "↳ last: 44/47 points passed",
   },
 };
 

@@ -19,6 +19,15 @@ const AGENT_LOGS: Record<AgentKey, string[]> = {
   operations: ["09:15 — Health check passed (5m interval)", "09:10 — Vercel: 99.8% uptime", "09:05 — Supabase: 12ms avg query", "09:00 — BetterUptime: all green", "08:55 — PagerDuty: 0 incidents"],
   trust:      ["09:00 — Passive monitoring active", "08:30 — Stripe Radar: 0 blocks", "08:00 — Sardine: 0 suspicious users", "Yesterday — Sift: 1 false positive cleared", "Monday — No incidents this week"],
   meta:       ["Sunday 20:00 — Scheduled: prompt review", "Last Sunday — Scout recall improved +23%", "2 weeks ago — Marketing tone updated", "3 weeks ago — Validator scorecard refined", "1 month ago — CEO delegation logic improved"],
+  cfo:        ["Awaiting financial query", "Last: MRR analysis", "Last week: runway model"],
+  ux:         ["Awaiting UX audit", "Last: onboarding scored 4.2/5"],
+  growth:     ["Awaiting growth experiment", "Last: A/B test +18%"],
+  legal:      ["Awaiting legal query", "Last: GDPR compliance OK"],
+  security:   ["Passive monitoring", "Last: RLS audit — 0 issues"],
+  ops:        ["Health: nominal", "Last: zero incidents"],
+  dna:        ["Awaiting pattern analysis", "Last: 3 patterns identified"],
+  scenario:   ["Awaiting scenario", "Last: pricing crisis simulated"],
+  launch:     ["Awaiting launch check", "Last: 44/47 points passed"],
 };
 
 export default function AgentsPage() {

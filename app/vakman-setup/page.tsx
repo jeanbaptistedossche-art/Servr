@@ -136,8 +136,57 @@ export default function VakmanSetupPage() {
 
         <div style={{ marginTop: "auto", paddingTop: 24 }}>
           <button
-            onClick={() => {
-              if (specialiteit) setProfile({ specialty: specialiteit });
+            onClick={async () => {
+              if (!specialiteit) return;
+              setProfile({ specialty: specialiteit });
+
+              // Schrijf naar Supabase
+              try {
+                const { supabase, supabaseReady } = await import("@/lib/supabase");
+                if (supabaseReady) {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (session?.user) {
+                    const uid = session.user.id;
+
+                    // Update profiel
+                    await (supabase.from("profiles") as any)
+                      .update({ rol: "vakman", active_view: "vakman" })
+                      .eq("id", uid);
+
+                    // Upsert vakmensen record
+                    await (supabase.from("vakmensen") as any).upsert({
+                      id: uid,
+                      specialty: specialiteit,
+                      beschikbaar: true,
+                      radius_km: 25,
+                    }, { onConflict: "id" });
+
+                    // Maak standaard dienst aan als die nog niet bestaat
+                    const { data: bestaande } = await supabase
+                      .from("diensten")
+                      .select("id")
+                      .eq("vakman_id", uid)
+                      .limit(1);
+                    if (!bestaande?.length) {
+                      await (supabase.from("diensten") as any).insert({
+                        vakman_id: uid,
+                        naam: specialiteit,
+                        prijs: 7500, // €75/u in centen
+                        eenheid: "per uur",
+                        duur_minuten: 60,
+                        buffer_minuten: 15,
+                        categorie: specialiteit.toLowerCase(),
+                        btw: false,
+                        btw_percentage: 0,
+                        actief: true,
+                      });
+                    }
+                  }
+                }
+              } catch {
+                // Ga toch door — Stripe setup is belangrijker
+              }
+
               setStap("stripe");
             }}
             disabled={!specialiteit}

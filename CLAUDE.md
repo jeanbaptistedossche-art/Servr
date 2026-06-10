@@ -16,14 +16,41 @@
 - Prioriteit: eerst bouwen, dan optimaliseren
 
 ## Trigger commando's
-| Commando | Wat er gebeurt |
-|---|---|
-| `DAILY BRIEF` | Scout zoekt nieuws, Validator filtert, CEO vat samen |
-| `SHIP IT: [feature]` | CTO bouwt, Validator checkt fit, CEO keurt goed |
-| `WAR ROOM: [probleem]` | Alle 3 agents actief, CEO modereert |
-| `AUDIT` | CTO reviewt codebase, Scout checkt markt, Validator scoort roadmap |
-| `RED TEAM` | Validator probeert businessmodel kapot te maken |
-| `SPRINT` | CEO maakt weekplan, verdeelt taken over agents |
+| Commando | Agent | Wat er gebeurt |
+|---|---|---|
+| `DAILY BRIEF` | CEO | Scout zoekt nieuws, Validator filtert, CEO vat samen |
+| `SHIP IT: [feature]` | CEO/CTO | CTO bouwt, Validator checkt fit, CEO keurt goed |
+| `WAR ROOM: [probleem]` | CEO | Alle agents actief, CEO modereert |
+| `AUDIT` | CEO | CTO reviewt codebase, Scout checkt markt, Validator scoort roadmap |
+| `RED TEAM` | Validator | Validator probeert businessmodel kapot te maken |
+| `SPRINT` | CEO | CEO maakt weekplan, verdeelt taken over agents |
+| `LAUNCH CHECK` | Launch | Volledige launch readiness check, score + blockers |
+| `MEETING` | CEO | Gestructureerde multi-agent meeting via [ASK_AGENT:] |
+| `wat als [scenario]` | Scenario | Simuleert toekomstige crisis of kans |
+| `analyseer mijn patronen` | DNA | Patroonherkenning in Jean-Baptiste's beslissingen |
+| `check security` | Security | RLS, auth, Stripe webhook security audit |
+| `check de UX van [pagina]` | UX | Friction analyse + concrete fixes |
+| `hoeveel kost [kanaal]` | Growth | Acquisitie strategie + experiment voorstel |
+| `wat zijn onze metrics` | CFO | WAT, GMV, conversie, churn rapport |
+| `check GDPR` | Legal | Compliance check Belgisch recht |
+| `check errors` | Ops | Vercel logs, Supabase health, incident rapport |
+
+## Beschikbare agents (.claude/agents/)
+| Agent | Bestand | Focus |
+|---|---|---|
+| CEO | ceo-agent.md | Strategie, coördinatie, beslissingen |
+| CTO | cto-agent.md | Code, infra, bugs, features |
+| Scout | scout-agent.md | Markt, concurrenten, trends |
+| Validator | validator-agent.md | Feature fit, RED TEAM |
+| CFO | cfo-agent.md | Metrics, revenue, unit economics |
+| UX | ux-agent.md | Friction, onboarding, gebruikerservaring |
+| Growth | growth-agent.md | Acquisitie, experimenten, kanalen |
+| Legal | legal-agent.md | GDPR, voorwaarden, Belgisch recht |
+| Security | security-agent.md | RLS, auth, Stripe security |
+| Ops | ops-agent.md | Uptime, errors, performance |
+| DNA | dna-agent.md | Beslissingspatronen founder |
+| Scenario | scenario-agent.md | Crisis simulaties, "wat als" |
+| Launch | launch-agent.md | Launch readiness, GO LIVE |
 
 ## Communicatieprotocol
 1. CEO leest altijd eerst STATE.md en BACKLOG.md
