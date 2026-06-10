@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import OSAccessButton from "@/components/OSAccessButton";
 import ThemeProvider from "@/components/ThemeProvider";
 import AuthGuard from "@/components/AuthGuard";
 import PushSubscriber from "@/components/PushSubscriber";
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
         </main>
         <BottomNav />
+        <OSAccessButton />
       </body>
     </html>
   );

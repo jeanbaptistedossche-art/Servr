@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 
-const HIDDEN_ON = ["/onboarding", "/chat"];
+const HIDDEN_ON = ["/onboarding", "/chat", "/os"];
 
 const SERIF = "'Source Serif 4', Georgia, serif";
 
