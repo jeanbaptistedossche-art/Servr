@@ -24,15 +24,27 @@ const FOUNDER_EMAIL = process.env.NEXT_PUBLIC_FOUNDER_EMAIL;
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { activeView, isLoggedIn, unreadBerichten, email } = useUserStore();
+  const { activeView, isLoggedIn, unreadBerichten } = useUserStore();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    // Read email directly from Supabase session — more reliable than store
+    import("@/lib/supabase").then(({ supabase, supabaseReady }) => {
+      if (!supabaseReady) return;
+      supabase.auth.getSession().then(({ data }) => {
+        setSessionEmail(data.session?.user?.email ?? null);
+      });
+    });
+  }, [isLoggedIn]);
 
   const hide = HIDDEN_ON.some(p => pathname.startsWith(p));
   if (!mounted || hide || !isLoggedIn) return null;
 
   const isVakman = activeView === "vakman";
-  const isFounder = !!FOUNDER_EMAIL && email === FOUNDER_EMAIL;
+  const isFounder = !!FOUNDER_EMAIL && sessionEmail === FOUNDER_EMAIL;
 
   const baseVakman: NavItem[] = [
     { href: "/agenda",     icon: CalendarDays,   label: "Vandaag" },
