@@ -18,8 +18,13 @@ export default function AuthGuard() {
 
   useEffect(() => {
     async function check() {
-      // Publieke routes — nooit redirecten
-      if (pathname.startsWith("/onboarding") || pathname.startsWith("/vakman-setup")) {
+      // Publieke routes — nooit redirecten (OS is standalone, geen login vereist)
+      if (pathname.startsWith("/onboarding") || pathname.startsWith("/vakman-setup") || pathname.startsWith("/os") || pathname === "/os") {
+        setChecked(true);
+        return;
+      }
+      // Extra safety: never redirect OS
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/os")) {
         setChecked(true);
         return;
       }
