@@ -34,6 +34,7 @@ export default function VandaagPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [boekingen, setBoekingen] = useState<BoekingRow[]>([]);
+  const [weekOmzet, setWeekOmzet] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [bezig, setBezig] = useState<string | null>(null); // id van actieve boeking
 
@@ -55,6 +56,19 @@ export default function VandaagPage() {
 
     const rows = (data ?? []) as BoekingRow[];
     setBoekingen(rows);
+
+    // Week-inkomsten: betaalde boekingen van maandag t/m nu (na -7% Servr fee)
+    const maandag = new Date(vandaag);
+    maandag.setDate(maandag.getDate() - ((maandag.getDay() + 6) % 7));
+    const { data: weekData } = await supabase
+      .from("boekingen")
+      .select("bedrag")
+      .eq("vakman_id", userId)
+      .eq("betaald", true)
+      .gte("start_tijd", maandag.toISOString());
+    const som = ((weekData ?? []) as { bedrag: number | null }[])
+      .reduce((t, b) => t + (b.bedrag ?? 0), 0);
+    setWeekOmzet(Math.round(som * 0.93));
     // Markeer de eerst-bezig/gepland als actief
     const actief = rows.find(b => b.status === "bezig") ?? rows[0] ?? null;
     if (actief) setBezig(actief.id);
@@ -145,9 +159,8 @@ export default function VandaagPage() {
   const nuBezig = zichtbaar.find(b => b.id === bezig);
   const daarna = zichtbaar.filter(b => b.id !== bezig);
 
-  // Omzetberekening
-  const omzet = boekingen.reduce((t, b) => t + (b.bedrag ?? 0), 0);
-  const reisKm = boekingen.length * 2.5; // schatting
+  // Omzet vandaag — wat de vakman ontvangt (na -7% Servr fee)
+  const omzet = Math.round(boekingen.reduce((t, b) => t + (b.bedrag ?? 0), 0) * 0.93);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", background: "#F5EFE5" }}>
@@ -186,9 +199,9 @@ export default function VandaagPage() {
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", background: "#E5DDD0", gap: "0.5px", borderRadius: 12, overflow: "hidden", marginBottom: 26 }}>
           {[
-            { label: "Klussen", value: String(zichtbaar.length), color: "#1A1D1A" },
-            { label: "Reizen",  value: `${reisKm.toFixed(0)} km`, color: "#1A1D1A" },
-            { label: "Omzet",   value: formatEuro(omzet), color: "#2B4030" },
+            { label: "Klussen vandaag", value: String(zichtbaar.length), color: "#1A1D1A" },
+            { label: "Vandaag",  value: formatEuro(omzet), color: "#2B4030" },
+            { label: "Deze week", value: formatEuro(weekOmzet), color: "#2B4030" },
           ].map(s => (
             <div key={s.label} style={{ background: "#FBF7F0", padding: "14px 10px" }}>
               <p style={{ fontSize: 11, color: "#8A8A83", margin: 0 }}>{s.label}</p>

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 import {
-  supabase, supabaseReady, formatEuro, wazeUrl, afstandKm,
+  supabase, supabaseReady, formatEuro, wazeUrl, afstandKm, stuurNotificatie,
   type Opdracht, type Offerte,
 } from "@/lib/supabase";
 import { accepteerOfferte, weigerOfferte, annuleerOpdracht } from "@/lib/flow";
@@ -52,7 +52,7 @@ type OfferteRij = Offerte & {
   vakman: { name: string; vakmensen: { specialty: string | null; rating: number; review_count: number } | null } | null;
 };
 
-type Boekinkje = { id: string; status: string; betaald: boolean };
+type Boekinkje = { id: string; status: string; betaald: boolean; vakman_id: string; bedrag: number | null };
 
 export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -86,7 +86,7 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
 
       const { data: b } = await supabase
         .from("boekingen")
-        .select("id, status, betaald")
+        .select("id, status, betaald, vakman_id, bedrag")
         .eq("opdracht_id", id)
         .neq("status", "geannuleerd")
         .order("created_at", { ascending: false })
@@ -149,10 +149,86 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
     if (!opdracht || busy) return;
     if (!confirm("Weet je zeker dat je deze opdracht wil annuleren?")) return;
     setBusy(true);
+    // Betaalde boeking → via Stripe refund-route; anders gewoon annuleren
+    if (boeking?.betaald) {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/stripe/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
+        body: JSON.stringify({ boekingId: boeking.id }),
+      });
+      const d = await res.json();
+      setBusy(false);
+      if (d.error) { alert(d.error); return; }
+      alert(d.status === "geschil"
+        ? "De klus is al gestart — we hebben een geschil geopend en nemen contact op."
+        : "Geannuleerd. Je betaling wordt volledig teruggestort.");
+      laad();
+      return;
+    }
     const err = await annuleerOpdracht(opdracht);
     setBusy(false);
     if (err) { alert(err); return; }
     laad();
+  };
+
+  // ── Klant bevestigt afronding: review verplicht → uitbetaling ──
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [score, setScore] = useState(0);
+  const [reviewTekst, setReviewTekst] = useState("");
+
+  const handleBevestig = async () => {
+    if (!userId || !boeking || score === 0 || busy) return;
+    setBusy(true);
+    try {
+      // 1. Boeking bevestigen
+      const { error: e1 } = await supabase
+        .from("boekingen")
+        .update({ status: "bevestigd", bevestigd_at: new Date().toISOString() } as never)
+        .eq("id", boeking.id)
+        .eq("status", "afgerond");
+      if (e1) throw new Error(e1.message);
+
+      // 2. Review opslaan (verplicht vóór uitbetaling)
+      const { error: e2 } = await supabase.from("reviews").insert({
+        boeking_id: boeking.id,
+        klant_id: userId,
+        vakman_id: boeking.vakman_id,
+        score,
+        tekst: reviewTekst.trim() || null,
+        reviewer_rol: "klant",
+      } as never);
+      if (e2 && !e2.message.includes("duplicate")) throw new Error(e2.message);
+
+      // 3. Escrow vrijgeven
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/stripe/uitbetalen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
+        body: JSON.stringify({ boekingId: boeking.id }),
+      });
+      const d = await res.json();
+      if (d.error) {
+        // Bevestiging + review staan al — uitbetaling kan later opnieuw
+        alert("Bevestigd! Uitbetaling kon nog niet verwerkt worden: " + d.error);
+      }
+
+      // 4. Vakman uitnodigen om jou ook te beoordelen
+      stuurNotificatie({
+        user_id: boeking.vakman_id,
+        type: "review_ontvangen",
+        titel: `Nieuwe review: ${"★".repeat(score)}`,
+        bericht: `${opdracht?.titel ?? "Je klus"} is bevestigd. Beoordeel de klant ook via Reviews.`,
+        link: "/reviews",
+      });
+
+      setReviewOpen(false);
+      laad();
+    } catch (err) {
+      alert("Bevestigen mislukt: " + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setBusy(false);
+    }
   };
 
   // ── Loading / niet gevonden ─────────────────────────────────
@@ -331,6 +407,68 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
                       Betaal nu
                     </Link>
                   )}
+                </div>
+                {boeking.status === "afgerond" && (
+                  <button onClick={() => setReviewOpen(true)} className="touch-scale" style={{
+                    width: "100%", marginTop: 12, padding: "14px 0", background: "#2B4030",
+                    color: "#F5EFE5", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer",
+                  }}>
+                    ✓ Bevestig afronding & beoordeel
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Bevestig + review sheet */}
+            {reviewOpen && boeking && (
+              <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(26,29,26,0.45)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+                onClick={() => setReviewOpen(false)}>
+                <div className="animate-slide-up" onClick={e => e.stopPropagation()} style={{
+                  width: "100%", maxWidth: 480, background: "#FBF7F0",
+                  borderRadius: "20px 20px 0 0", padding: "24px 20px 40px",
+                }}>
+                  <h3 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 400, margin: "0 0 4px", color: "#1A1D1A" }}>
+                    Hoe was de klus?
+                  </h3>
+                  <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 18px" }}>
+                    Na je beoordeling geven we {formatEuro((boeking.bedrag ?? 0) * 0.93)} vrij aan de vakman.
+                  </p>
+
+                  {/* Sterren */}
+                  <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 18 }}>
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <button key={s} onClick={() => setScore(s)} className="touch-scale" style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
+                        <Star size={34} style={{
+                          color: s <= score ? "#C97A4D" : "#E5DDD0",
+                          fill: s <= score ? "#C97A4D" : "transparent",
+                          transition: "all 0.15s",
+                        }} />
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea
+                    value={reviewTekst}
+                    onChange={e => setReviewTekst(e.target.value)}
+                    placeholder="Vertel kort hoe het ging (optioneel)…"
+                    rows={3}
+                    style={{
+                      width: "100%", padding: "12px 14px", background: "#F5EFE5",
+                      border: "0.5px solid #E5DDD0", borderRadius: 10, fontSize: 14,
+                      resize: "none", marginBottom: 16, fontFamily: "Inter, sans-serif",
+                    }}
+                  />
+
+                  <button onClick={handleBevestig} disabled={score === 0 || busy} className="touch-scale" style={{
+                    width: "100%", padding: "15px 0", borderRadius: 12, border: "none", cursor: "pointer",
+                    background: score === 0 || busy ? "#8A8A83" : "#2B4030", color: "#F5EFE5",
+                    fontSize: 15, fontWeight: 600,
+                  }}>
+                    {busy ? "Verwerken…" : score === 0 ? "Kies eerst een score" : "Bevestig & geef vrij"}
+                  </button>
+                  <p style={{ fontSize: 11, color: "#8A8A83", textAlign: "center", margin: "10px 0 0" }}>
+                    Niet tevreden? Open eerst een gesprek met je vakman of annuleer voor een geschil.
+                  </p>
                 </div>
               </div>
             )}
