@@ -47,6 +47,16 @@ export default function VakmanHomePage() {
   const [beschikbaar, setBeschikbaar] = useState<boolean | null>(null);
   const [radiusKm, setRadiusKm] = useState(30);
   const [loading, setLoading] = useState(true);
+  const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Locatie non-blocking ophalen — permissieprompt mag de pagina nooit blokkeren
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      p => setPos({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => {}, { timeout: 5000, maximumAge: 3600000 }
+    );
+  }, []);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -96,7 +106,7 @@ export default function VakmanHomePage() {
       .gte("start_tijd", maandag.toISOString());
     setWeekOmzet(Math.round(((week ?? []) as { bedrag: number | null }[]).reduce((t, b) => t + (b.bedrag ?? 0), 0) * 0.93));
 
-    // Nieuwe opdrachten in de buurt (max 3)
+    // Nieuwe opdrachten in de buurt (max 3) — afstand alleen als locatie al bekend is
     const { data: opd } = await supabase
       .from("opdrachten")
       .select("id, titel, categorie, budget, lat, lng, created_at")
@@ -104,19 +114,17 @@ export default function VakmanHomePage() {
       .order("created_at", { ascending: false })
       .limit(20);
     let rijen = ((opd ?? []) as MiniOpdracht[]);
-    try {
-      const pos = await new Promise<GeolocationPosition>((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 4000, maximumAge: 3600000 }));
+    if (pos) {
       rijen = rijen
         .map(o => o.lat != null && o.lng != null
-          ? { ...o, afstand_km: Math.round(afstandKm(pos.coords.latitude, pos.coords.longitude, o.lat, o.lng) * 10) / 10 }
+          ? { ...o, afstand_km: Math.round(afstandKm(pos.lat, pos.lng, o.lat, o.lng) * 10) / 10 }
           : o)
         .filter(o => o.afstand_km == null || o.afstand_km <= radiusKm)
         .sort((a, b) => (a.afstand_km ?? 999) - (b.afstand_km ?? 999));
-    } catch { /* geen locatie — toon nieuwste */ }
+    }
     setNieuwe(rijen.slice(0, 3));
     setLoading(false);
-  }, [userId, radiusKm]);
+  }, [userId, radiusKm, pos]);
 
   useEffect(() => { if (mounted) laad(); }, [mounted, laad]);
 
