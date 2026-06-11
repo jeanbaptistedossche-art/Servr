@@ -18,7 +18,7 @@ const SERIF = "'Source Serif 4', Georgia, serif";
 // ── Vakman tools ──────────────────────────────────────────────
 const VANDAAG_TOOLS = [
   { href: "/dashboard",     icon: LayoutDashboard, label: "Dashboard",        sub: "Overzicht en omzet" },
-  { href: "/agenda",        icon: Calendar,        label: "Agenda",            sub: "3 boekingen vandaag", badge: "€290" },
+  { href: "/agenda",        icon: Calendar,        label: "Agenda",            sub: "Boekingen & planning" },
   { href: "/urenregistratie", icon: Clock,          label: "Urenregistratie",   sub: "Timer per klus" },
   { href: "/inchecken",     icon: QrCode,          label: "QR Check-in",      sub: "Aanwezigheid" },
 ];

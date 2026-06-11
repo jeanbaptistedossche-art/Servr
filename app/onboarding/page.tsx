@@ -119,7 +119,7 @@ export default function OnboardingPage() {
   // ── Demo login (als Supabase nog niet klaar is) ──────────────────────────────
   const handleDemo = (r: UserRole, name: string) => {
     login({ role: r, name, address: "Amsterdam", isAdmin: r === "vakman" });
-    router.replace(r === "vakman" ? "/agenda" : "/");
+    router.replace(r === "vakman" ? "/vakman" : "/");
   };
 
   // ── Echte login ──────────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ export default function OnboardingPage() {
       const { login: authLogin } = await import("@/lib/auth");
       await authLogin(loginEmail, loginPass);
       const { activeView } = useUserStore.getState();
-      router.replace(activeView === "vakman" ? "/agenda" : "/");
+      router.replace(activeView === "vakman" ? "/vakman" : "/");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Inloggen mislukt";
       if (msg.includes("Invalid login")) setLoginError("E-mail of wachtwoord klopt niet.");

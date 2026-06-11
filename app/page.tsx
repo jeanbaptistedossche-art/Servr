@@ -126,7 +126,7 @@ export default function KlantHomePage() {
   // Vakman hoort op /agenda, niet hier
   useEffect(() => {
     if (mounted && activeView === "vakman") {
-      router.replace("/agenda");
+      router.replace("/vakman");
     }
   }, [mounted, activeView, router]);
 
@@ -253,7 +253,7 @@ export default function KlantHomePage() {
           </div>
 
           {hasBoth && (
-            <button className="touch-scale" onClick={() => { const next = isKlant ? "vakman" : "klant"; setActiveView(next); router.push(next === "vakman" ? "/agenda" : "/"); }}
+            <button className="touch-scale" onClick={() => { const next = isKlant ? "vakman" : "klant"; setActiveView(next); router.push(next === "vakman" ? "/vakman" : "/"); }}
               style={{ display: "flex", padding: 3, background: "var(--accent-bg)", borderRadius: 99, border: "none", cursor: "pointer" }}>
               <span style={{
                 fontSize: 11, padding: "5px 11px",

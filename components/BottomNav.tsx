@@ -4,20 +4,17 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  CalendarDays, Briefcase, Zap, MessageCircle, User,
-  Home, Search, ClipboardList, Terminal, LucideIcon,
+  CalendarDays, MessageCircle, User,
+  Home, ClipboardList, Terminal, LucideIcon,
 } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 
 const HIDDEN_ON = ["/onboarding", "/chat", "/os"];
 
-const SERIF = "'Source Serif 4', Georgia, serif";
-
 type NavItem = {
   href: string;
   icon: LucideIcon;
   label: string;
-  isSpoed?: boolean;
 };
 
 const FOUNDER_EMAIL = process.env.NEXT_PUBLIC_FOUNDER_EMAIL;
@@ -44,17 +41,18 @@ export default function BottomNav() {
   const isVakman = activeView === "vakman";
   const isFounder = !!FOUNDER_EMAIL && sessionEmail === FOUNDER_EMAIL;
 
+  // Max 4 items per rol — OS alleen zichtbaar voor de founder
   const baseVakman: NavItem[] = [
-    { href: "/agenda",     icon: CalendarDays,   label: "Vandaag" },
-    { href: "/feed",       icon: ClipboardList,  label: "Opdrachten" },
-    { href: "/panic",      icon: Zap,            label: "Spoed", isSpoed: true },
-    { href: "/berichten",  icon: MessageCircle,  label: "Berichten" },
+    { href: "/vakman",          icon: Home,          label: "Home" },
+    { href: "/agenda",          icon: CalendarDays,  label: "Agenda" },
+    { href: "/berichten",       icon: MessageCircle, label: "Berichten" },
+    { href: "/profile",         icon: User,          label: "Profiel" },
   ];
   const baseKlant: NavItem[] = [
-    { href: "/",           icon: Home,           label: "Home" },
-    { href: "/search",     icon: Search,         label: "Zoeken" },
-    { href: "/panic",      icon: Zap,            label: "Spoed", isSpoed: true },
-    { href: "/berichten",  icon: MessageCircle,  label: "Berichten" },
+    { href: "/",                icon: Home,          label: "Home" },
+    { href: "/mijn-opdrachten", icon: ClipboardList, label: "Opdrachten" },
+    { href: "/berichten",       icon: MessageCircle, label: "Berichten" },
+    { href: "/profile",         icon: User,          label: "Profiel" },
   ];
 
   const osItem: NavItem = { href: "/os", icon: Terminal, label: "OS" };
@@ -73,13 +71,9 @@ export default function BottomNav() {
       }}
     >
       <div className="flex items-center h-full">
-        {navItems.map(({ href, icon: Icon, label, isSpoed }) => {
+        {navItems.map(({ href, icon: Icon, label }) => {
           const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
-          const color = isSpoed
-            ? "#C97A4D"
-            : isActive
-              ? "#1A1D1A"
-              : "#8A8A83";
+          const color = isActive ? "#1A1D1A" : "#8A8A83";
           const weight = isActive ? 500 : 400;
 
           return (
