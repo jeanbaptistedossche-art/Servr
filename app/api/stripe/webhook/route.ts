@@ -3,72 +3,45 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Stripe webhook handler
  *
- * Vercel: stel in via https://dashboard.stripe.com/webhooks
- * Endpoint URL: https://jouw-app.vercel.app/api/stripe/webhook
- * Events: payment_intent.succeeded
+ * Stripe dashboard → Webhooks → endpoint:
+ *   https://jouw-app.vercel.app/api/stripe/webhook
+ * Events: payment_intent.succeeded, payment_intent.payment_failed
  *
- * Voeg toe in Vercel env vars:
- *   STRIPE_WEBHOOK_SECRET = whsec_...
+ * Env: STRIPE_WEBHOOK_SECRET = whsec_…  (verplicht in productie)
  */
-
-// Raw body nodig voor Stripe signature verificatie
 export const dynamic = "force-dynamic";
 
-// Server-side in-memory store voor notificaties (werkt per deploy instance)
-// In productie: vervang door Supabase tabel `notificaties`
-type ServerNotificatie = {
-  id: string;
-  vakmanAccountId: string;
-  vakmanTarief: number;
-  vakmanOntvangt: number;
-  klantBetaald: number;
-  offerte: string;
-  timestamp: string;
-};
-
-const notificatiesMap = new Map<string, ServerNotificatie[]>();
-
-function addServerNotificatie(n: ServerNotificatie) {
-  const lijst = notificatiesMap.get(n.vakmanAccountId) ?? [];
-  notificatiesMap.set(n.vakmanAccountId, [n, ...lijst].slice(0, 50));
+async function adminClient() {
+  const { createClient } = await import("@supabase/supabase-js");
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
 }
 
-// ─── GET /api/stripe/webhook?accountId=acct_xxx ───────────────────────────────
-// Hiermee pollt de client voor nieuwe notificaties
-export async function GET(req: NextRequest) {
-  const accountId = req.nextUrl.searchParams.get("accountId");
-  if (!accountId) {
-    return NextResponse.json({ notificaties: [] });
-  }
-  const lijst = notificatiesMap.get(accountId) ?? [];
-  return NextResponse.json({ notificaties: lijst });
-}
-
-// ─── POST /api/stripe/webhook ─────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  const secretKey     = process.env.STRIPE_SECRET_KEY;
+  const secretKey = process.env.STRIPE_SECRET_KEY;
 
   if (!secretKey || !secretKey.startsWith("sk_")) {
     return NextResponse.json({ error: "Stripe niet geconfigureerd" }, { status: 503 });
   }
 
-  // Lees raw body (nodig voor signature verificatie)
+  // Raw body nodig voor signature verificatie
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
 
   let event: import("stripe").Stripe.Event;
-
   try {
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(secretKey, { apiVersion: "2026-04-22.dahlia" });
-
     if (webhookSecret && signature) {
-      // Productie: verifieer signature
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    } else {
-      // Dev/test: parse zonder verificatie
+    } else if (process.env.NODE_ENV !== "production") {
+      // Alleen dev/test: parse zonder verificatie
       event = JSON.parse(body) as import("stripe").Stripe.Event;
+    } else {
+      return NextResponse.json({ error: "STRIPE_WEBHOOK_SECRET ontbreekt" }, { status: 400 });
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Webhook error";
@@ -76,49 +49,69 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  // ─── Verwerk payment_intent.succeeded ──────────────────────────────────────
+  const admin = await adminClient();
+  if (!admin) {
+    console.error("[webhook] geen service role — kan database niet bijwerken");
+    return NextResponse.json({ ontvangen: true, warning: "service role ontbreekt" });
+  }
+
+  // ─── payment_intent.succeeded → boeking betaald + notificaties ───
   if (event.type === "payment_intent.succeeded") {
     const intent = event.data.object as import("stripe").Stripe.PaymentIntent;
-    const meta = intent.metadata ?? {};
+    const boekingId = intent.metadata?.boeking_id || null;
 
-    const vakmanAccountId = meta.vakman_account ?? "";
-    const vakmanTarief    = parseFloat(meta.vakman_prijs ?? "0");
-    const offerte         = meta.offerte ?? "";
+    const query = admin
+      .from("boekingen")
+      .select("id, klant_id, vakman_id, betaald, notities, opdracht_id");
+    const { data: boeking } = boekingId
+      ? await query.eq("id", boekingId).maybeSingle()
+      : await query.eq("stripe_intent", intent.id).maybeSingle();
 
-    if (vakmanAccountId && vakmanTarief > 0) {
-      // Dezelfde berekening als in /api/stripe/intent
-      const CLIENT_FEE_PCT = 0.05;
-      const VAKMAN_FEE_PCT = 0.08;
-      const klantBetaald   = Math.round(vakmanTarief * (1 + CLIENT_FEE_PCT) * 100) / 100;
-      const vakmanOntvangt = Math.round(vakmanTarief * (1 - VAKMAN_FEE_PCT) * 100) / 100;
+    if (boeking && !boeking.betaald) {
+      await admin.from("boekingen")
+        .update({ betaald: true, stripe_intent: intent.id })
+        .eq("id", boeking.id);
+      if (boeking.opdracht_id) {
+        await admin.from("opdrachten").update({ status: "bevestigd" }).eq("id", boeking.opdracht_id);
+      }
 
-      const notificatie: ServerNotificatie = {
-        id: Date.now().toString(36),
-        vakmanAccountId,
-        vakmanTarief,
-        vakmanOntvangt,
-        klantBetaald,
-        offerte,
-        timestamp: new Date().toISOString(),
-      };
+      const titel = boeking.notities ?? "Je klus";
+      await admin.from("notificaties").insert([
+        {
+          user_id: boeking.vakman_id, type: "betaling_ontvangen",
+          titel: "Betaling ontvangen ✅",
+          bericht: `${titel} — de klant heeft betaald. Uitbetaling volgt na afronding en bevestiging.`,
+          link: "/agenda", gelezen: false,
+        },
+        {
+          user_id: boeking.klant_id, type: "betaling_gelukt",
+          titel: "Betaling gelukt ✅",
+          bericht: `${titel} — je betaling staat veilig bij Servr tot de klus is afgerond.`,
+          link: boeking.opdracht_id ? `/opdracht/${boeking.opdracht_id}` : "/mijn-opdrachten",
+          gelezen: false,
+        },
+      ]);
+      console.log(`[webhook] betaling verwerkt voor boeking ${boeking.id}`);
+    }
+  }
 
-      addServerNotificatie(notificatie);
-
-      console.log(
-        `[webhook] Betaling ontvangen | vakman: ${vakmanAccountId} | ` +
-        `klant betaald: €${klantBetaald} | vakman ontvangt: €${vakmanOntvangt} | offerte: ${offerte}`
-      );
-
-      // Schrijf betaald=true naar Supabase boekingen tabel
-      try {
-        const { supabase, supabaseReady } = await import("@/lib/supabase");
-        if (supabaseReady && intent.id) {
-          await (supabase.from("boekingen") as any)
-            .update({ betaald: true, status: "gepland" })
-            .eq("stripe_intent", intent.id);
-        }
-      } catch (err) {
-        console.error("[webhook] Supabase update mislukt:", err);
+  // ─── payment_intent.payment_failed → klant informeren ───
+  if (event.type === "payment_intent.payment_failed") {
+    const intent = event.data.object as import("stripe").Stripe.PaymentIntent;
+    const boekingId = intent.metadata?.boeking_id || null;
+    if (boekingId) {
+      const { data: boeking } = await admin
+        .from("boekingen")
+        .select("id, klant_id, notities")
+        .eq("id", boekingId)
+        .maybeSingle();
+      if (boeking) {
+        await admin.from("notificaties").insert({
+          user_id: boeking.klant_id, type: "betaling_mislukt",
+          titel: "Betaling mislukt ⚠️",
+          bericht: `${boeking.notities ?? "Je klus"} — de betaling is niet gelukt. Probeer het opnieuw.`,
+          link: `/te-betalen?boeking=${boeking.id}`, gelezen: false,
+        });
       }
     }
   }

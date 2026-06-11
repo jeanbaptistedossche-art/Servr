@@ -42,12 +42,11 @@ export async function POST(req: NextRequest) {
         vakman_fee_pct: String(VAKMAN_FEE_PCT),
       },
       description: `Servr betaling — ${offerteNummer ?? ""}`,
-      // Stripe Connect: vakman krijgt 93%, Servr houdt 12% (5% van klant + 7% van vakman)
-      ...(stripeAccountId ? {
-        application_fee_amount: applicationFee,
-        transfer_data: { destination: stripeAccountId },
-      } : {}),
+      // ECHTE ESCROW: geld landt op het Servr-platform en wordt pas via een
+      // aparte Transfer (/api/stripe/uitbetalen) doorgestort nadat de klant
+      // de afronding bevestigt. Geen transfer_data hier — bewust.
     });
+    void applicationFee; // fee wordt verrekend bij de uitbetaling (-7% vakman)
 
     // Koppel de intent aan de boeking (server-side, service role)
     if (boekingId && process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL) {
