@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Plus, ArrowLeft, Clock, Euro, ChevronRight, CheckCircle, XCircle } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { useUserStore } from "@/lib/store";
-import { useOfferteStore } from "@/lib/offerteStore";
+import { accepteerOfferte, weigerOfferte } from "@/lib/flow";
 
 const CATEGORIE_ICONS: Record<string, string> = {
   Loodgieter: "🔧",
@@ -66,11 +66,13 @@ function OfferteRij({
   offerte,
   opdrachtId,
   opdrachtTitel,
+  opdrachtAdres,
   onAction,
 }: {
   offerte: Offerte;
   opdrachtId: string;
   opdrachtTitel: string;
+  opdrachtAdres: string | null;
   onAction: () => void;
 }) {
   const router = useRouter();
@@ -85,86 +87,17 @@ function OfferteRij({
     }
     if (!userId) { alert("Niet ingelogd"); setLoading(false); return; }
 
-    const { error: e1 } = await (supabase.from("offertes") as any).update({ status: "geaccepteerd" }).eq("id", offerte.id);
-    if (e1) { alert("Fout: " + e1.message); setLoading(false); return; }
-
-    await (supabase.from("opdrachten") as any).update({ status: "bevestigd" }).eq("id", opdrachtId);
-
-    // Maak boeking aan zodat vakman het ziet in zijn agenda
-    await (supabase.from("boekingen") as any).insert({
-      klant_id:   userId,
-      vakman_id:  offerte.vakman_id,
-      status:     "gepland",
-      start_tijd: new Date(Date.now() + 86400000).toISOString(), // morgen als placeholder
-      bedrag:     offerte.prijs,
-      notities:   opdrachtTitel,
-      offerte_id: offerte.id,
-      opdracht_id: opdrachtId,
-    });
-
-    const { data: gesprek, error: e2 } = await (supabase.from("gesprekken") as any)
-      .insert({
-        klant_id: userId,
-        vakman_id: offerte.vakman_id,
-        context: opdrachtTitel,
-        laatste_bericht: "Offerte geaccepteerd!",
-        laatste_tijd: new Date().toISOString(),
-        opdracht_id: opdrachtId,
-      })
-      .select("id")
-      .single();
-
-    if (e2 || !gesprek) { alert("Chat aanmaken mislukt: " + (e2?.message ?? "onbekend")); setLoading(false); return; }
-
-    if (gesprek?.id) {
-      await (supabase.from("offertes") as any).update({ gesprek_id: gesprek.id }).eq("id", offerte.id);
-    }
-
-    await (supabase.from("notificaties") as any).insert({
-      user_id: offerte.vakman_id,
-      type: "offerte_geaccepteerd",
-      titel: "Offerte geaccepteerd! 🎉",
-      bericht: `${opdrachtTitel} — de klant heeft je offerte geaccepteerd.`,
-      gelezen: false,
-    });
-
-    // Voeg toe aan betaalstore zodat klant kan betalen via Te betalen
-    useOfferteStore.getState().verstuurOfferte({
-      nummer: `OFF-${offerte.id.slice(0, 8).toUpperCase()}`,
-      datum: new Date().toLocaleDateString("nl-NL"),
-      geldigTot: new Date(Date.now() + 14 * 86400000).toLocaleDateString("nl-NL"),
-      vakmanNaam: offerte.vakman?.name ?? "Vakman",
-      vakmanAvatar: "https://i.pravatar.cc/150?img=11",
-      vakmanChatId: gesprek.id,
-      vakmanId: offerte.vakman_id,
-      klantNaam: useUserStore.getState().name ?? "Klant",
-      klantAvatar: "",
-      regels: [{
-        id: "r1",
-        omschrijving: offerte.omschrijving ?? opdrachtTitel,
-        aantal: 1,
-        eenheid: "klus",
-        prijsPerEenheid: offerte.prijs,
-        btwPercentage: 0,
-      }],
-      subtotaal: offerte.prijs,
-      totaalBtw: 0,
-      totaal: offerte.prijs,
-      notities: opdrachtTitel,
-    });
-
-    // Stuur klant direct naar betaalpagina
-    router.push(`/te-betalen`);
+    const res = await accepteerOfferte(userId, offerte, { id: opdrachtId, titel: opdrachtTitel, adres: opdrachtAdres });
+    setLoading(false);
+    if (!res.ok) { alert(res.reden); onAction(); return; }
+    router.push(`/te-betalen?boeking=${res.boekingId}`);
   };
 
   const handleWeiger = async () => {
     setLoading(true);
-    try {
-      await (supabase.from("offertes") as any).update({ status: "geweigerd" }).eq("id", offerte.id);
-      onAction();
-    } catch (e) {
-      console.error(e);
-    }
+    const err = await weigerOfferte(offerte.id, offerte.vakman_id, opdrachtTitel);
+    if (err) console.error(err);
+    onAction();
     setLoading(false);
   };
 
@@ -274,6 +207,7 @@ function OpdrachtKaart({
             offerte={offerte}
             opdrachtId={opdracht.id}
             opdrachtTitel={opdracht.titel}
+            opdrachtAdres={opdracht.adres ?? null}
             onAction={onAction}
           />
         ))}

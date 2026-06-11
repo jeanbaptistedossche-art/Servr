@@ -125,12 +125,13 @@ export default function BerichtenPage() {
     setPersoonBusy(true);
     const klantId  = isVakman ? andereId : userId;
     const vakmanId = isVakman ? userId : andereId;
-    const { data: bestaand } = await supabase
+    const { data: bestaandRaw } = await supabase
       .from("gesprekken").select("id")
       .eq("klant_id", klantId).eq("vakman_id", vakmanId)
       .order("laatste_tijd", { ascending: false }).limit(1).maybeSingle();
+    const bestaand = bestaandRaw as { id: string } | null;
     if (bestaand?.id) { router.push(`/chat/${bestaand.id}`); return; }
-    const { data: nieuw, error } = await supabase
+    const { data: nieuwRaw, error } = await supabase
       .from("gesprekken")
       .insert({
         klant_id: klantId, vakman_id: vakmanId,
@@ -140,6 +141,7 @@ export default function BerichtenPage() {
       } as never)
       .select("id").single();
     setPersoonBusy(false);
+    const nieuw = nieuwRaw as { id: string } | null;
     if (error || !nieuw?.id) { alert("Gesprek starten mislukt" + (error ? `: ${error.message}` : "")); return; }
     router.push(`/chat/${nieuw.id}`);
   };

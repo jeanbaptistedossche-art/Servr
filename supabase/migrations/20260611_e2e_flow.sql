@@ -75,6 +75,18 @@ alter table public.boekingen add column if not exists transfer_id    text;
 
 -- FK's expliciet (kolommen kunnen al bestaan zonder FK — joins via PostgREST vereisen ze)
 do $$ begin
+  alter table public.opdrachten add constraint opdrachten_klant_id_fkey
+    foreign key (klant_id) references public.profiles(id);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.offertes add constraint offertes_vakman_id_fkey
+    foreign key (vakman_id) references public.profiles(id);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.offertes add constraint offertes_opdracht_id_fkey
+    foreign key (opdracht_id) references public.opdrachten(id);
+exception when duplicate_object then null; end $$;
+do $$ begin
   alter table public.boekingen add constraint boekingen_opdracht_id_fkey
     foreign key (opdracht_id) references public.opdrachten(id);
 exception when duplicate_object then null; end $$;

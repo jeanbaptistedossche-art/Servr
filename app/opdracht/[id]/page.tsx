@@ -1,264 +1,431 @@
 "use client";
 
-import { use, useState } from "react";
-import { useRouter } from "next/navigation";
+import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Clock, Euro, AlertTriangle, MessageCircle, X, Check } from "lucide-react";
-import { MOCK_OPDRACHTEN } from "@/lib/store";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft, MapPin, Clock, Navigation, MessageCircle,
+  Star, CheckCircle2, X, AlertTriangle, QrCode,
+} from "lucide-react";
+import { useUserStore } from "@/lib/store";
+import {
+  supabase, supabaseReady, formatEuro, wazeUrl, afstandKm,
+  type Opdracht, type Offerte,
+} from "@/lib/supabase";
+import { accepteerOfferte, weigerOfferte, annuleerOpdracht } from "@/lib/flow";
+
+const SERIF = "'Source Serif 4', Georgia, serif";
+
+const CAT_EMOJI: Record<string, string> = {
+  loodgieter: "🔧", elektricien: "⚡", schilder: "🖌️",
+  schoonmaak: "🧹", tuinman: "🌿", tuinier: "🌿", klusser: "🔨", timmerman: "🪚",
+};
+function emoji(cat: string | null) {
+  return CAT_EMOJI[(cat ?? "").toLowerCase()] ?? "🔨";
+}
+
+const URGENTIE: Record<string, { label: string; color: string; bg: string }> = {
+  hoog:   { label: "Urgent",   color: "#C97A4D", bg: "#F5EDE5" },
+  middel: { label: "Normaal",  color: "#8A8A83", bg: "#F0EDEA" },
+  laag:   { label: "Flexibel", color: "#2B4030", bg: "#EAF0EC" },
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  open: "Open — wacht op offertes",
+  offerte_ontvangen: "Offertes ontvangen",
+  geaccepteerd: "Offerte geaccepteerd",
+  bevestigd: "Ingepland",
+  afgerond: "Afgerond",
+  geannuleerd: "Geannuleerd",
+};
+
+function tijdGeleden(iso: string) {
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "zojuist";
+  if (min < 60) return `${min}m geleden`;
+  const uur = Math.floor(min / 60);
+  if (uur < 24) return `${uur}u geleden`;
+  return `${Math.floor(uur / 24)}d geleden`;
+}
+
+type OfferteRij = Offerte & {
+  vakman: { name: string; vakmensen: { specialty: string | null; rating: number; review_count: number } | null } | null;
+};
+
+type Boekinkje = { id: string; status: string; betaald: boolean };
 
 export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const opdracht = MOCK_OPDRACHTEN.find(o => o.id === id) ?? MOCK_OPDRACHTEN[0];
-  const [actie, setActie] = useState<"idle" | "offerte" | "geweigerd" | "verstuurd">("idle");
-  const [prijs, setPrijs] = useState("");
-  const [offerteText, setOfferteText] = useState("");
-  const [eta, setEta] = useState("Vandaag");
+  const { userId, activeView } = useUserStore();
 
-  const urgentieKleur = { laag: "#16a34a", middel: "#d97706", hoog: "#dc2626" }[opdracht.urgentie];
-  const urgentieLabel = { laag: "Niet urgent", middel: "Komende week", hoog: "SPOED" }[opdracht.urgentie];
+  const [opdracht, setOpdracht] = useState<(Opdracht & { klant: { name: string } | null }) | null>(null);
+  const [offertes, setOffertes] = useState<OfferteRij[]>([]);
+  const [boeking, setBoeking] = useState<Boekinkje | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [eigenLat, setEigenLat] = useState<number | null>(null);
+  const [eigenLng, setEigenLng] = useState<number | null>(null);
 
-  if (actie === "geweigerd") return (
-    <div className="flex flex-col items-center justify-center min-h-dvh gap-6 px-6 text-center animate-bounce-in">
-      <span className="text-6xl">👋</span>
-      <div>
-        <h2 className="font-black text-xl mb-2">Opdracht geweigerd</h2>
-        <p className="text-sm" style={{ color: "#8A8A83" }}>
-          Geen probleem — er komen meer opdrachten in jouw buurt.
-        </p>
-      </div>
-      <button onClick={() => router.push("/dashboard")}
-        className="touch-scale px-6 py-3.5 rounded-2xl font-bold text-white"
-        style={{ background: "#2B4030" }}>
-        Terug naar dashboard
+  const laad = useCallback(async () => {
+    if (!supabaseReady) { setLoading(false); return; }
+    const { data: o } = await supabase
+      .from("opdrachten")
+      .select("*, klant:profiles!opdrachten_klant_id_fkey(name)")
+      .eq("id", id)
+      .maybeSingle();
+    setOpdracht((o as (Opdracht & { klant: { name: string } | null }) | null) ?? null);
+
+    if (o) {
+      const { data: offs } = await supabase
+        .from("offertes")
+        .select("*, vakman:profiles!offertes_vakman_id_fkey(name, vakmensen(specialty, rating, review_count))")
+        .eq("opdracht_id", id)
+        .order("created_at", { ascending: false });
+      setOffertes((offs as unknown as OfferteRij[]) ?? []);
+
+      const { data: b } = await supabase
+        .from("boekingen")
+        .select("id, status, betaald")
+        .eq("opdracht_id", id)
+        .neq("status", "geannuleerd")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setBoeking((b as Boekinkje | null) ?? null);
+    }
+    setLoading(false);
+  }, [id]);
+
+  useEffect(() => { laad(); }, [laad]);
+
+  // Realtime: offertes + opdracht + boeking voor deze pagina
+  useEffect(() => {
+    if (!supabaseReady) return;
+    const channel = supabase.channel(`opdracht_${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "offertes", filter: `opdracht_id=eq.${id}` }, () => laad())
+      .on("postgres_changes", { event: "*", schema: "public", table: "opdrachten", filter: `id=eq.${id}` }, () => laad())
+      .on("postgres_changes", { event: "*", schema: "public", table: "boekingen", filter: `opdracht_id=eq.${id}` }, () => laad())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id, laad]);
+
+  // Eigen locatie voor afstandsbadge (vakman)
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      pos => { setEigenLat(pos.coords.latitude); setEigenLng(pos.coords.longitude); },
+      () => {}, { timeout: 5000, maximumAge: 3600000 }
+    );
+  }, []);
+
+  const isEigenaar = opdracht != null && userId === opdracht.klant_id;
+  const isVakmanView = !isEigenaar && activeView === "vakman";
+  const eigenOfferte = userId ? offertes.find(of => of.vakman_id === userId) : undefined;
+  const afstand = opdracht?.lat != null && opdracht?.lng != null && eigenLat != null && eigenLng != null
+    ? Math.round(afstandKm(eigenLat, eigenLng, opdracht.lat, opdracht.lng) * 10) / 10
+    : null;
+
+  // ── Acties ──────────────────────────────────────────────────
+  const handleAccept = async (off: OfferteRij) => {
+    if (!userId || !opdracht || busy) return;
+    setBusy(true);
+    const res = await accepteerOfferte(userId, off, opdracht);
+    setBusy(false);
+    if (!res.ok) { alert(res.reden); laad(); return; }
+    router.push(`/te-betalen?boeking=${res.boekingId}`);
+  };
+
+  const handleWeiger = async (off: OfferteRij) => {
+    if (busy || !opdracht) return;
+    setBusy(true);
+    const err = await weigerOfferte(off.id, off.vakman_id, opdracht.titel);
+    setBusy(false);
+    if (err) alert("Weigeren mislukt: " + err);
+    laad();
+  };
+
+  const handleAnnuleer = async () => {
+    if (!opdracht || busy) return;
+    if (!confirm("Weet je zeker dat je deze opdracht wil annuleren?")) return;
+    setBusy(true);
+    const err = await annuleerOpdracht(opdracht);
+    setBusy(false);
+    if (err) { alert(err); return; }
+    laad();
+  };
+
+  // ── Loading / niet gevonden ─────────────────────────────────
+  if (loading) return (
+    <div style={{ minHeight: "100dvh", background: "#F5EFE5", padding: "80px 20px" }}>
+      <div className="skeleton" style={{ height: 28, width: "60%", marginBottom: 16 }} />
+      <div className="skeleton" style={{ height: 120, marginBottom: 12 }} />
+      <div className="skeleton" style={{ height: 80 }} />
+    </div>
+  );
+
+  if (!opdracht) return (
+    <div style={{ minHeight: "100dvh", background: "#F5EFE5", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+      <p style={{ fontSize: 32, marginBottom: 12 }}>🔍</p>
+      <p style={{ fontFamily: SERIF, fontSize: 19, color: "#1A1D1A", margin: "0 0 8px" }}>Opdracht niet gevonden</p>
+      <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 20px" }}>Deze opdracht bestaat niet meer of is verwijderd.</p>
+      <button onClick={() => router.back()} className="touch-scale" style={{ padding: "12px 24px", background: "#2B4030", color: "#F5EFE5", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
+        ← Terug
       </button>
     </div>
   );
 
-  if (actie === "verstuurd") return (
-    <div className="flex flex-col items-center justify-center min-h-dvh gap-6 px-6 text-center animate-bounce-in">
-      <span className="text-6xl">🎉</span>
-      <div>
-        <h2 className="font-black text-xl mb-2">Offerte verstuurd!</h2>
-        <p className="text-sm" style={{ color: "#8A8A83" }}>
-          Je offerte van <strong>€{prijs}</strong> is verstuurd naar {opdracht.klant}.<br />
-          Je hoort het zodra zij accepteren.
-        </p>
-      </div>
-      <div className="card p-4 w-full text-left">
-        <p className="text-xs font-bold uppercase mb-2" style={{ color: "#8A8A83" }}>Jouw offerte</p>
-        <p className="font-black text-2xl mb-1" style={{ color: "#2B4030" }}>€{prijs}</p>
-        <p className="text-sm" style={{ color: "#8A8A83" }}>{offerteText}</p>
-        <p className="text-xs mt-2" style={{ color: "#8A8A83" }}>📅 {eta}</p>
-      </div>
-      <button onClick={() => router.push("/dashboard")}
-        className="touch-scale w-full py-3.5 rounded-2xl font-bold text-white"
-        style={{ background: "#2B4030" }}>
-        Terug naar dashboard
-      </button>
-    </div>
-  );
+  const urg = URGENTIE[opdracht.urgentie] ?? URGENTIE.middel;
+  const waze = wazeUrl(opdracht.lat, opdracht.lng, opdracht.adres);
 
   return (
-    <div className="flex flex-col min-h-full pb-8 animate-fade-in">
+    <div style={{ minHeight: "100dvh", background: "#F5EFE5" }} className="animate-fade-in">
+
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
-        <button onClick={() => router.back()}
-          className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
-          <ArrowLeft size={18} />
+      <div className="px-5 pt-14 pb-4" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button onClick={() => router.back()} className="touch-scale" style={{
+          width: 36, height: 36, borderRadius: "50%", background: "#EDE4D2",
+          display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer",
+        }}>
+          <ArrowLeft size={17} color="#1A1D1A" />
         </button>
-        <h1 className="font-black text-lg flex-1 truncate">{opdracht.title}</h1>
-        {opdracht.urgentie === "hoog" && (
-          <span className="text-xs font-black px-2.5 py-1 rounded-full animate-dot"
-            style={{ background: "#fee2e2", color: "#dc2626" }}>
-            SPOED
-          </span>
-        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 400, margin: 0, color: "#1A1D1A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {opdracht.titel}
+          </h1>
+          <p style={{ fontSize: 11, color: "#8A8A83", margin: "1px 0 0" }}>
+            {STATUS_LABEL[opdracht.status] ?? opdracht.status} · {tijdGeleden(opdracht.created_at)}
+          </p>
+        </div>
+        <span style={{ fontSize: 11, fontWeight: 600, color: urg.color, background: urg.bg, borderRadius: 99, padding: "4px 10px", flexShrink: 0 }}>
+          {urg.label}
+        </span>
       </div>
 
-      <div className="px-5 pt-4 flex flex-col gap-5">
-        {/* Klant info */}
-        <div className="card p-4 flex items-center gap-4">
-          <img src={opdracht.klantAvatar} className="w-14 h-14 rounded-2xl object-cover" alt="" />
-          <div className="flex-1">
-            <p className="font-bold text-base">{opdracht.klant}</p>
-            <p className="text-sm" style={{ color: "#8A8A83" }}>Klant</p>
+      <div className="px-5 pb-28">
+
+        {/* Opdracht-kaart */}
+        <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 18, marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+            <div style={{ width: 46, height: 46, borderRadius: "50%", background: "#EAF0EC", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+              {emoji(opdracht.categorie)}
+            </div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, margin: 0, color: "#1A1D1A" }}>{opdracht.categorie ?? "Klus"}</p>
+              <p style={{ fontSize: 11, color: "#8A8A83", margin: "1px 0 0" }}>
+                {isEigenaar ? "Jouw opdracht" : `Geplaatst door ${opdracht.klant?.name ?? "klant"}`}
+              </p>
+            </div>
           </div>
-          <Link href={`/chat/new`}
-            className="touch-scale w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: "#2B4030" + "15", color: "#2B4030" }}>
-            <MessageCircle size={18} />
-          </Link>
+
+          {opdracht.beschrijving && (
+            <p style={{ fontSize: 14, color: "#1A1D1A", lineHeight: 1.6, margin: "0 0 14px" }}>
+              {opdracht.beschrijving}
+            </p>
+          )}
+
+          {opdracht.foto_url && (
+            <img src={opdracht.foto_url} alt="opdracht foto" style={{ width: "100%", height: 180, objectFit: "cover", borderRadius: 10, marginBottom: 14 }} />
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(opdracht.adres || afstand != null) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#5C5C56" }}>
+                <MapPin size={14} style={{ color: "#2B4030", flexShrink: 0 }} />
+                {afstand != null ? `${afstand} km — ` : ""}{opdracht.adres ?? "Exacte locatie na acceptatie"}
+                {waze && !isEigenaar && (
+                  <button onClick={() => window.open(waze, "_blank")} className="touch-scale" style={{
+                    marginLeft: "auto", display: "flex", alignItems: "center", gap: 4,
+                    padding: "5px 10px", background: "#EDE4D2", border: "none", borderRadius: 99,
+                    fontSize: 11, fontWeight: 600, color: "#1A1D1A", cursor: "pointer", flexShrink: 0,
+                  }}>
+                    <Navigation size={11} /> Waze
+                  </button>
+                )}
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#5C5C56" }}>
+              <Clock size={14} style={{ color: "#2B4030", flexShrink: 0 }} />
+              {tijdGeleden(opdracht.created_at)}
+              {opdracht.budget && (
+                <span style={{ marginLeft: "auto", fontFamily: SERIF, fontSize: 16, color: "#2B4030" }}>
+                  Budget: {formatEuro(Number(opdracht.budget) || 0)}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Foto */}
-        {opdracht.foto && (
-          <div className="rounded-3xl overflow-hidden">
-            <img src={opdracht.foto} alt="opdracht" className="w-full h-48 object-cover" />
-          </div>
+        {/* ═══ VAKMAN VIEW ═══ */}
+        {isVakmanView && (
+          <>
+            {opdracht.status === "geannuleerd" ? (
+              <div style={{ background: "#F9EDEA", borderRadius: 12, padding: 14, display: "flex", gap: 10, alignItems: "center" }}>
+                <AlertTriangle size={16} style={{ color: "#dc2626", flexShrink: 0 }} />
+                <p style={{ fontSize: 13, color: "#dc2626", margin: 0 }}>Deze opdracht is geannuleerd door de klant.</p>
+              </div>
+            ) : eigenOfferte ? (
+              <div style={{
+                background: eigenOfferte.status === "geaccepteerd" ? "#EAF0EC" : eigenOfferte.status === "geweigerd" ? "#F9EDEA" : "#FAF0E6",
+                borderRadius: 12, padding: 16,
+              }}>
+                <p style={{ fontSize: 13, fontWeight: 600, margin: "0 0 4px", color: "#1A1D1A" }}>
+                  {eigenOfferte.status === "geaccepteerd" ? "✓ Jouw offerte is geaccepteerd!"
+                    : eigenOfferte.status === "geweigerd" ? "Jouw offerte is geweigerd"
+                    : "Jouw offerte is verstuurd"}
+                </p>
+                <p style={{ fontSize: 12, color: "#5C5C56", margin: 0 }}>
+                  {formatEuro(eigenOfferte.prijs)} · {eigenOfferte.omschrijving}
+                </p>
+                {eigenOfferte.status === "geaccepteerd" && (
+                  <Link href="/agenda" className="touch-scale" style={{
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 12,
+                    padding: "12px 0", background: "#2B4030", color: "#F5EFE5",
+                    borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: "none",
+                  }}>
+                    <QrCode size={14} /> Naar je agenda
+                  </Link>
+                )}
+              </div>
+            ) : opdracht.status === "open" || opdracht.status === "offerte_ontvangen" ? (
+              <button
+                onClick={() => router.push(`/offerte/maak?opdracht_id=${opdracht.id}&titel=${encodeURIComponent(opdracht.titel)}&klant_id=${opdracht.klant_id}`)}
+                className="touch-scale"
+                style={{
+                  width: "100%", padding: "16px 0", background: "#2B4030", color: "#F5EFE5",
+                  border: "none", borderRadius: 12, fontSize: 15, fontWeight: 500, cursor: "pointer",
+                }}>
+                Offerte sturen
+              </button>
+            ) : (
+              <div style={{ background: "#F0EDEA", borderRadius: 12, padding: 14 }}>
+                <p style={{ fontSize: 13, color: "#5C5C56", margin: 0 }}>Deze opdracht is al vergeven.</p>
+              </div>
+            )}
+          </>
         )}
 
-        {/* Details */}
-        <div className="card p-4 flex flex-col gap-3">
-          <div>
-            <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>Categorie</p>
-            <p className="font-semibold">{opdracht.categorieIcon} {opdracht.categorie}</p>
-          </div>
-          <div className="h-px" style={{ background: "#E5DDD0" }} />
-          <div>
-            <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>Beschrijving</p>
-            <p className="text-sm leading-relaxed">{opdracht.beschrijving}</p>
-          </div>
-          <div className="h-px" style={{ background: "#E5DDD0" }} />
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>Urgentie</p>
-              <div className="flex items-center gap-1.5">
-                <AlertTriangle size={14} style={{ color: urgentieKleur }} />
-                <span className="font-semibold text-sm" style={{ color: urgentieKleur }}>{urgentieLabel}</span>
-              </div>
-            </div>
-            <div className="flex-1">
-              <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>Budget</p>
-              <p className="font-semibold text-sm" style={{ color: "#2B4030" }}>{opdracht.budget}</p>
-            </div>
-          </div>
-          <div className="h-px" style={{ background: "#E5DDD0" }} />
-          <div>
-            <p className="text-xs font-bold uppercase mb-1" style={{ color: "#8A8A83" }}>⏰ Geplaatst</p>
-            <p className="text-sm">{opdracht.aangemaakt}</p>
-          </div>
-        </div>
-
-        {/* KAART — klantadres */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="font-black text-base">📍 Locatie klant</p>
-            <span className="text-xs px-2 py-1 rounded-full font-semibold"
-              style={{ background: "#2B4030" + "15", color: "#2B4030" }}>
-              {opdracht.afstand} van jou
-            </span>
-          </div>
-
-          {/* Kaart placeholder — vervang door Mapbox met echte token */}
-          <div className="relative h-44 rounded-3xl overflow-hidden"
-            style={{ background: "#dde8dd" }}>
-            {/* Grid lijnen */}
-            <div className="absolute inset-0 opacity-20"
-              style={{
-                backgroundImage: "repeating-linear-gradient(0deg,#0F6E56 0,#0F6E56 1px,transparent 0,transparent 40px),repeating-linear-gradient(90deg,#0F6E56 0,#0F6E56 1px,transparent 0,transparent 40px)",
-                backgroundSize: "40px 40px",
-              }} />
-            {/* Straten */}
-            <div className="absolute" style={{ top: "40%", left: 0, right: 0, height: 6, background: "rgba(255,255,255,0.5)" }} />
-            <div className="absolute" style={{ top: 0, bottom: 0, left: "35%", width: 6, background: "rgba(255,255,255,0.5)" }} />
-            <div className="absolute" style={{ top: 0, bottom: 0, left: "65%", width: 4, background: "rgba(255,255,255,0.3)" }} />
-            <div className="absolute" style={{ top: "65%", left: 0, right: 0, height: 4, background: "rgba(255,255,255,0.3)" }} />
-
-            {/* Klant pin */}
-            <div className="absolute" style={{ top: "35%", left: "50%", transform: "translate(-50%,-50%)" }}>
-              <div className="relative">
-                <div className="animate-pulse-ring absolute inset-0 w-10 h-10 rounded-full"
-                  style={{ background: "rgba(220,38,38,0.2)" }} />
-                <div className="w-8 h-8 rounded-full border-3 border-white shadow-lg flex items-center justify-center"
-                  style={{ background: "#dc2626", borderWidth: 3 }}>
-                  <MapPin size={14} color="white" />
+        {/* ═══ KLANT VIEW (eigenaar) ═══ */}
+        {isEigenaar && (
+          <>
+            {/* Boeking-status */}
+            {boeking && (
+              <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16, marginBottom: 14 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#8A8A83", margin: "0 0 8px", textTransform: "uppercase" }}>Status</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <CheckCircle2 size={18} style={{ color: "#2B4030", flexShrink: 0 }} />
+                  <p style={{ fontSize: 14, color: "#1A1D1A", margin: 0, flex: 1 }}>
+                    {boeking.status === "gepland" && !boeking.betaald ? "Geaccepteerd — betaling nodig om te bevestigen"
+                      : boeking.status === "gepland" ? "Betaald — vakman komt langs"
+                      : boeking.status === "ingecheckt" ? "Vakman is bezig"
+                      : boeking.status === "afgerond" ? "Klaar — bevestig de afronding"
+                      : boeking.status === "bevestigd" ? "Bevestigd — vakman wordt uitbetaald"
+                      : boeking.status === "uitbetaald" ? "Volledig afgerond ✓"
+                      : boeking.status}
+                  </p>
+                  {boeking.status === "gepland" && !boeking.betaald && (
+                    <Link href={`/te-betalen?boeking=${boeking.id}`} className="touch-scale" style={{
+                      padding: "8px 14px", background: "#C97A4D", color: "#1A1D1A", borderRadius: 99,
+                      fontSize: 12, fontWeight: 600, textDecoration: "none", flexShrink: 0,
+                    }}>
+                      Betaal nu
+                    </Link>
+                  )}
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Adres label */}
-            <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2.5 flex items-center gap-2">
-              <MapPin size={14} style={{ color: "#C97A4D", flexShrink: 0 }} />
-              <div>
-                <p className="font-bold text-xs">{opdracht.adres}</p>
-                <p className="text-[11px]" style={{ color: "#8A8A83" }}>
-                  Exact adres zichtbaar na acceptatie
+            {/* Ontvangen offertes */}
+            <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 14, color: "#1A1D1A", margin: "4px 0 10px" }}>
+              {offertes.length === 0 ? "Nog geen offertes" : `${offertes.length} offerte${offertes.length !== 1 ? "s" : ""}`}
+            </p>
+
+            {offertes.length === 0 && opdracht.status === "open" && (
+              <div style={{ background: "#FBF7F0", border: "0.5px dashed #E5DDD0", borderRadius: 14, padding: 24, textAlign: "center" }}>
+                <p style={{ fontSize: 26, margin: "0 0 8px" }}>⏳</p>
+                <p style={{ fontSize: 13, color: "#8A8A83", margin: 0 }}>
+                  Vakmensen in de buurt zijn op de hoogte gebracht.<br />Offertes verschijnen hier direct.
                 </p>
               </div>
-            </div>
-          </div>
-        </div>
+            )}
 
-        {/* Offerte formulier */}
-        {actie === "offerte" ? (
-          <div className="card p-4 flex flex-col gap-4 animate-slide-up">
-            <p className="font-black text-base">Stuur een offerte</p>
+            {offertes.map(off => (
+              <div key={off.id} style={{
+                background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16, marginBottom: 10,
+                opacity: off.status === "geweigerd" ? 0.55 : 1,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#2B4030", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 16, color: "#F5EFE5", flexShrink: 0 }}>
+                    {(off.vakman?.name ?? "V").charAt(0)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#1A1D1A" }}>{off.vakman?.name ?? "Vakman"}</p>
+                    <p style={{ fontSize: 11, color: "#8A8A83", margin: "1px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
+                      {off.vakman?.vakmensen?.specialty ?? "Vakman"}
+                      {(off.vakman?.vakmensen?.review_count ?? 0) > 0 && (
+                        <><Star size={10} style={{ color: "#C97A4D", fill: "#C97A4D" }} /> {off.vakman?.vakmensen?.rating} ({off.vakman?.vakmensen?.review_count})</>
+                      )}
+                    </p>
+                  </div>
+                  <span style={{ fontFamily: SERIF, fontSize: 20, color: "#2B4030", flexShrink: 0 }}>{formatEuro(off.prijs)}</span>
+                </div>
 
-            <div>
-              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
-                Jouw prijs *
-              </label>
-              <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2"
-                style={{ borderColor: prijs ? "#2B4030" : "#E5DDD0", background: "#FBF7F0" }}>
-                <Euro size={17} style={{ color: "#2B4030" }} />
-                <input value={prijs} onChange={e => setPrijs(e.target.value.replace(/\D/g, ""))}
-                  placeholder="85" inputMode="numeric"
-                  className="flex-1 bg-transparent outline-none text-2xl font-black"
-                  style={{ color: "#2B4030" }} />
-                <span className="text-sm" style={{ color: "#8A8A83" }}>totaal</span>
-              </div>
-            </div>
+                {off.omschrijving && <p style={{ fontSize: 13, color: "#5C5C56", margin: "0 0 6px", lineHeight: 1.5 }}>{off.omschrijving}</p>}
+                {off.eta && <p style={{ fontSize: 12, color: "#8A8A83", margin: "0 0 10px" }}>📅 {off.eta}</p>}
 
-            <div>
-              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
-                Wanneer kun je?
-              </label>
-              <div className="flex gap-2">
-                {["Vandaag", "Morgen", "Deze week", "Volgende week"].map(t => (
-                  <button key={t} onClick={() => setEta(t)}
-                    className="touch-scale flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all"
-                    style={{
-                      borderColor: eta === t ? "#2B4030" : "#E5DDD0",
-                      background: eta === t ? "#2B4030" : "#FBF7F0",
-                      color: eta === t ? "white" : "#1A1D1A",
+                {off.status === "wachtend" ? (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => handleWeiger(off)} disabled={busy} className="touch-scale" style={{
+                      width: 44, height: 44, borderRadius: 10, background: "transparent",
+                      border: "0.5px solid #E5DDD0", color: "#8A8A83", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                     }}>
-                    {t}
-                  </button>
-                ))}
+                      <X size={17} />
+                    </button>
+                    <Link href={`/offerte/${off.id}`} className="touch-scale" style={{
+                      flex: 1, height: 44, borderRadius: 10, border: "0.5px solid #2B4030",
+                      color: "#2B4030", fontSize: 13, fontWeight: 500, textDecoration: "none",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      Bekijken
+                    </Link>
+                    <button onClick={() => handleAccept(off)} disabled={busy} className="touch-scale" style={{
+                      flex: 1, height: 44, borderRadius: 10, background: busy ? "#8A8A83" : "#2B4030",
+                      color: "#F5EFE5", border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                    }}>
+                      {busy ? "Bezig…" : "Accepteren"}
+                    </button>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 12, fontWeight: 600, margin: 0, color: off.status === "geaccepteerd" ? "#2B4030" : "#8A8A83" }}>
+                    {off.status === "geaccepteerd" ? "✓ Geaccepteerd" : off.status === "geweigerd" ? "Geweigerd" : off.status}
+                  </p>
+                )}
               </div>
-            </div>
+            ))}
 
-            <div>
-              <label className="text-xs font-bold uppercase mb-1.5 block" style={{ color: "#8A8A83" }}>
-                Toelichting
-              </label>
-              <textarea value={offerteText} onChange={e => setOfferteText(e.target.value)}
-                placeholder="Beschrijf wat je gaat doen en wat er in de prijs is inbegrepen..."
-                rows={3}
-                className="w-full px-4 py-3 rounded-2xl border outline-none text-sm resize-none"
-                style={{ borderColor: "#E5DDD0", background: "#FBF7F0", color: "#1A1D1A" }} />
-            </div>
+            {/* Chat met geaccepteerde vakman */}
+            {offertes.find(o => o.status === "geaccepteerd")?.gesprek_id && (
+              <Link href={`/chat/${offertes.find(o => o.status === "geaccepteerd")!.gesprek_id}`} className="touch-scale" style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                padding: "14px 0", marginTop: 4, border: "0.5px solid #2B4030", color: "#2B4030",
+                borderRadius: 12, fontSize: 14, fontWeight: 500, textDecoration: "none",
+              }}>
+                <MessageCircle size={16} /> Chat met je vakman
+              </Link>
+            )}
 
-            <div className="flex gap-3">
-              <button onClick={() => setActie("idle")}
-                className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-sm border"
-                style={{ borderColor: "#E5DDD0" }}>
-                Annuleren
+            {/* Annuleren */}
+            {["open", "offerte_ontvangen", "geaccepteerd"].includes(opdracht.status) && !boeking?.betaald && (
+              <button onClick={handleAnnuleer} disabled={busy} className="touch-scale" style={{
+                width: "100%", marginTop: 16, padding: "13px 0", background: "transparent",
+                border: "none", color: "#dc2626", fontSize: 13, fontWeight: 500, cursor: "pointer",
+                textDecoration: "underline",
+              }}>
+                Opdracht annuleren
               </button>
-              <button
-                onClick={() => prijs && setActie("verstuurd")}
-                className="touch-scale flex-1 py-3.5 rounded-2xl font-bold text-white text-sm"
-                style={{ background: prijs ? "#2B4030" : "#8A8A83" }}>
-                Offerte sturen ✓
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* Accepteer / Weiger knoppen */
-          <div className="flex flex-col gap-3">
-            <button onClick={() => setActie("offerte")}
-              className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-base flex items-center justify-center gap-2"
-              style={{ background: "#2B4030" }}>
-              <Check size={20} /> Offerte sturen
-            </button>
-            <button onClick={() => setActie("geweigerd")}
-              className="touch-scale w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 border"
-              style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
-              <X size={18} /> Weigeren
-            </button>
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -1,299 +1,53 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, CheckCircle2, ChevronRight, MessageCircle,
-  Shield, X, Loader2, Lock, Star, Phone, FileText,
-  CalendarDays, User, Building2, CheckCircle, Clock,
+  ArrowLeft, CheckCircle2, MessageCircle, Shield, Loader2, Lock, Star,
 } from "lucide-react";
-import { useOfferteStore, type VerstuurdeOfferte } from "@/lib/offerteStore";
-import { useStripeConnectStore } from "@/lib/stripeConnectStore";
-import { useNotificatieStore } from "@/lib/notificatieStore";
+import { useUserStore } from "@/lib/store";
+import { supabase, supabaseReady, formatEuro } from "@/lib/supabase";
 
 import { loadStripe } from "@stripe/stripe-js";
-import {
-  Elements,
-  PaymentElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
-function fmt(n: number) {
-  return n.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+const SERIF = "'Source Serif 4', Georgia, serif";
 
 let stripeCache: Awaited<ReturnType<typeof loadStripe>> | null = null;
 
-// ─── Offerte preview (volledige opmaak) ───────────────────────────────────────
+type BoekingRij = {
+  id: string;
+  klant_id: string;
+  vakman_id: string;
+  status: string;
+  betaald: boolean;
+  bedrag: number | null;
+  notities: string | null;
+  opdracht_id: string | null;
+  stripe_intent: string | null;
+  vakman: {
+    name: string;
+    vakmensen: { specialty: string | null; rating: number; review_count: number; stripe_account: string | null } | null;
+  } | null;
+  offerte: { omschrijving: string | null; eta: string | null; gesprek_id: string | null } | null;
+  opdracht: { titel: string } | null;
+};
 
-function OffertePreview({
-  offerte,
-  onBetaal,
-  onWeiger,
-  onSluit,
-}: {
-  offerte: VerstuurdeOfferte;
-  onBetaal: () => void;
-  onWeiger: () => void;
-  onSluit: () => void;
-}) {
-  const serviceFee = Math.round(offerte.totaal * 0.05 * 100) / 100;
-  const klantTotaal = Math.round((offerte.totaal + serviceFee) * 100) / 100;
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col animate-fade-in"
-      style={{ background: "#F5EFE5" }}>
-
-      {/* Sticky header */}
-      <div className="flex items-center gap-3 px-5 pt-12 pb-4 flex-shrink-0"
-        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
-        <button onClick={onSluit}
-          className="touch-scale w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ background: "#EDE4D2" }}>
-          <ArrowLeft size={18} />
-        </button>
-        <div className="flex-1">
-          <h1 className="font-black text-lg">Offerte bekijken</h1>
-          <p className="text-xs" style={{ color: "#8A8A83" }}>{offerte.nummer}</p>
-        </div>
-        <Link href={`/chat/${offerte.vakmanChatId}`}
-          className="touch-scale flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border"
-          style={{ borderColor: "#2B4030", color: "#2B4030" }}>
-          <MessageCircle size={13} /> Chat
-        </Link>
-      </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto pb-4">
-
-        {/* Offerte document */}
-        <div className="mx-5 mt-5 rounded-3xl overflow-hidden border"
-          style={{ borderColor: "#E5DDD0" }}>
-
-          {/* ── Document header ── */}
-          <div className="px-6 py-6"
-            style={{ background: "linear-gradient(135deg, #2B4030 0%, #1A2D22 100%)" }}>
-            <div className="flex items-start justify-between mb-5">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-                    <FileText size={16} color="white" />
-                  </div>
-                  <span className="text-white font-black text-xl tracking-wide">OFFERTE</span>
-                </div>
-                <p className="text-white/60 text-xs">{offerte.nummer}</p>
-              </div>
-              {/* Servr logo badge */}
-              <div className="px-3 py-1.5 rounded-xl bg-white/20">
-                <p className="text-white font-black text-sm">✦ Servr</p>
-              </div>
-            </div>
-
-            {/* Datum rij */}
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: "Datum", value: offerte.datum },
-                { label: "Geldig tot", value: offerte.geldigTot },
-              ].map(item => (
-                <div key={item.label} className="rounded-xl p-3 bg-white/10">
-                  <p className="text-white/60 text-[10px] uppercase font-bold mb-0.5">{item.label}</p>
-                  <p className="text-white font-bold text-sm">{item.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Van / Aan ── */}
-          <div className="grid grid-cols-2 border-b" style={{ borderColor: "#E5DDD0" }}>
-
-            {/* Van (vakman) */}
-            <div className="px-4 py-4 border-r" style={{ borderColor: "#E5DDD0" }}>
-              <p className="text-[10px] font-black uppercase mb-2" style={{ color: "#8A8A83" }}>Van</p>
-              <div className="flex items-center gap-2 mb-2">
-                <img src={offerte.vakmanAvatar} className="w-9 h-9 rounded-xl object-cover" alt="" />
-                <div className="min-w-0">
-                  <p className="font-black text-xs leading-tight truncate">{offerte.vakmanNaam.split(" ")[0]}</p>
-                  <p className="text-[10px] truncate" style={{ color: "#8A8A83" }}>
-                    {offerte.vakmanNaam.split(" ").slice(1).join(" ")}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <Star size={10} className="fill-yellow-400 text-yellow-400" />
-                <span className="text-xs font-bold">4.9</span>
-                <span className="text-[10px]" style={{ color: "#8A8A83" }}>(127)</span>
-              </div>
-            </div>
-
-            {/* Aan (klant) */}
-            <div className="px-4 py-4">
-              <p className="text-[10px] font-black uppercase mb-2" style={{ color: "#8A8A83" }}>Aan</p>
-              <div className="flex items-center gap-2 mb-2">
-                <img src={offerte.klantAvatar} className="w-9 h-9 rounded-xl object-cover" alt="" />
-                <div className="min-w-0">
-                  <p className="font-black text-xs leading-tight truncate">{offerte.klantNaam}</p>
-                  <p className="text-[10px]" style={{ color: "#8A8A83" }}>Klant</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full" style={{ background: "#22c55e" }} />
-                <span className="text-[10px]" style={{ color: "#8A8A83" }}>Verified klant</span>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Regels / prijsopbouw ── */}
-          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
-            <p className="text-[10px] font-black uppercase mb-3" style={{ color: "#8A8A83" }}>
-              Werkzaamheden
-            </p>
-
-            {/* Header */}
-            <div className="grid grid-cols-12 gap-1 mb-2 pb-1.5 border-b" style={{ borderColor: "#E5DDD0" }}>
-              <p className="col-span-6 text-[10px] font-bold uppercase" style={{ color: "#8A8A83" }}>Omschrijving</p>
-              <p className="col-span-2 text-[10px] font-bold uppercase text-center" style={{ color: "#8A8A83" }}>Aantal</p>
-              <p className="col-span-2 text-[10px] font-bold uppercase text-right" style={{ color: "#8A8A83" }}>P/stuk</p>
-              <p className="col-span-2 text-[10px] font-bold uppercase text-right" style={{ color: "#8A8A83" }}>Totaal</p>
-            </div>
-
-            {/* Regels */}
-            {offerte.regels.map((r) => (
-              <div key={r.id} className="grid grid-cols-12 gap-1 py-2 border-b last:border-0"
-                style={{ borderColor: "#E5DDD0" + "60" }}>
-                <div className="col-span-6">
-                  <p className="text-xs font-semibold leading-tight">{r.omschrijving}</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: "#8A8A83" }}>{r.eenheid}</p>
-                </div>
-                <p className="col-span-2 text-xs text-center self-center">{r.aantal}</p>
-                <p className="col-span-2 text-xs text-right self-center">€{fmt(r.prijsPerEenheid)}</p>
-                <p className="col-span-2 text-xs font-bold text-right self-center">
-                  €{fmt(r.aantal * r.prijsPerEenheid)}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Totalen ── */}
-          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
-            <div className="flex flex-col gap-1.5">
-              {offerte.subtotaal !== offerte.totaal && (
-                <div className="flex justify-between text-xs">
-                  <span style={{ color: "#8A8A83" }}>Subtotaal</span>
-                  <span>€{fmt(offerte.subtotaal)}</span>
-                </div>
-              )}
-              {offerte.totaalBtw > 0 && (
-                <div className="flex justify-between text-xs">
-                  <span style={{ color: "#8A8A83" }}>BTW (21%)</span>
-                  <span>€{fmt(offerte.totaalBtw)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-sm font-bold pt-1.5 border-t mt-0.5"
-                style={{ borderColor: "#E5DDD0" }}>
-                <span>Klus totaal (vakman tarief)</span>
-                <span>€{fmt(offerte.totaal)}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span style={{ color: "#8A8A83" }}>+ Servr service fee (5%)</span>
-                <span style={{ color: "#8A8A83" }}>€{fmt(serviceFee)}</span>
-              </div>
-            </div>
-
-            {/* Groot totaal */}
-            <div className="flex justify-between items-center mt-3 pt-3 border-t"
-              style={{ borderColor: "#E5DDD0" }}>
-              <div>
-                <p className="font-black text-base">Jij betaalt</p>
-                <p className="text-[10px]" style={{ color: "#8A8A83" }}>Incl. Servr service fee</p>
-              </div>
-              <p className="font-black text-3xl" style={{ color: "#2B4030" }}>€{fmt(klantTotaal)}</p>
-            </div>
-          </div>
-
-          {/* ── Notities ── */}
-          {offerte.notities && (
-            <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
-              <p className="text-[10px] font-black uppercase mb-2" style={{ color: "#8A8A83" }}>Notities</p>
-              <p className="text-sm leading-relaxed italic" style={{ color: "#1A1D1A" }}>
-                &ldquo;{offerte.notities}&rdquo;
-              </p>
-            </div>
-          )}
-
-          {/* ── Garantie / bescherming ── */}
-          <div className="px-5 py-4">
-            <div className="flex flex-col gap-2">
-              {[
-                { icon: "🔒", tekst: "Betaal pas nadat de klus klaar is en jij tevreden bent" },
-                { icon: "🛡️", tekst: "Geld wordt pas vrijgegeven aan de vakman na jouw akkoord" },
-                { icon: "⭐", tekst: "Na betaling kun je een review achterlaten" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2.5">
-                  <span className="text-sm flex-shrink-0">{item.icon}</span>
-                  <p className="text-xs" style={{ color: "#8A8A83" }}>{item.tekst}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Extra ruimte onderaan */}
-        <div className="h-4" />
-      </div>
-
-      {/* ── Sticky footer met knoppen ── */}
-      <div className="flex-shrink-0 px-5 pt-4 pb-8 flex flex-col gap-3"
-        style={{ borderTop: "1px solid #E5DDD0", background: "#F5EFE5" }}>
-
-        {/* Prijs samenvatting */}
-        <div className="flex items-center justify-between px-1">
-          <div>
-            <p className="font-bold text-sm">Te betalen</p>
-            <p className="text-[11px]" style={{ color: "#8A8A83" }}>
-              €{fmt(offerte.totaal)} klus + €{fmt(serviceFee)} fee
-            </p>
-          </div>
-          <p className="font-black text-2xl" style={{ color: "#2B4030" }}>
-            €{fmt(klantTotaal)}
-          </p>
-        </div>
-
-        {/* Knoppen */}
-        <div className="flex gap-3">
-          <button onClick={onWeiger}
-            className="touch-scale w-12 h-12 rounded-2xl flex items-center justify-center border flex-shrink-0"
-            style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
-            <X size={18} />
-          </button>
-          <button onClick={onBetaal}
-            className="touch-scale flex-1 py-3.5 rounded-2xl font-black text-white flex items-center justify-center gap-2"
-            style={{ background: "#2B4030" }}>
-            <Lock size={18} /> Betaal nu · €{fmt(klantTotaal)}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+function titelVan(b: BoekingRij) {
+  return b.opdracht?.titel ?? b.notities ?? "Klus";
 }
 
-// ─── Stripe checkout form ─────────────────────────────────────────────────────
-
-function StripeForm({
-  onSuccess,
-  onCancel,
-  offerte,
-}: {
-  onSuccess: () => void;
+// ─── Stripe checkout form ─────────────────────────────────────
+function StripeForm({ boeking, chargeAmount, serviceFee, onCancel }: {
+  boeking: BoekingRij;
+  chargeAmount: number;
+  serviceFee: number;
   onCancel: () => void;
-  offerte: { totaal: number; chargeAmount: number; serviceFee: number; nummer: string; vakmanNaam: string };
 }) {
-  const stripe   = useStripe();
+  const stripe = useStripe();
   const elements = useElements();
   const [bezig, setBezig] = useState(false);
-  const [fout,  setFout]  = useState<string | null>(null);
+  const [fout, setFout] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -305,7 +59,7 @@ function StripeForm({
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${appUrl}/te-betalen?betaald=1&offerte=${offerte.nummer}`,
+        return_url: `${appUrl}/te-betalen?betaald=1&boeking=${boeking.id}`,
       },
     });
 
@@ -316,667 +70,360 @@ function StripeForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="rounded-2xl p-4 flex flex-col gap-2"
-        style={{ background: "#2B4030" + "12" }}>
-        <div className="flex items-center justify-between">
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ background: "#EAF0EC", borderRadius: 12, padding: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <p className="font-bold text-sm">{offerte.vakmanNaam}</p>
-            <p className="text-xs" style={{ color: "#8A8A83" }}>{offerte.nummer}</p>
+            <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#1A1D1A" }}>{boeking.vakman?.name ?? "Vakman"}</p>
+            <p style={{ fontSize: 12, color: "#8A8A83", margin: "1px 0 0" }}>{titelVan(boeking)}</p>
           </div>
-          <p className="font-black text-2xl" style={{ color: "#2B4030" }}>
-            €{fmt(offerte.chargeAmount)}
-          </p>
+          <p style={{ fontFamily: SERIF, fontSize: 26, margin: 0, color: "#2B4030" }}>{formatEuro(chargeAmount)}</p>
         </div>
-        {offerte.serviceFee > 0 && (
-          <>
-            <div className="flex justify-between text-xs pt-1 border-t" style={{ borderColor: "#2B4030" + "30" }}>
-              <span style={{ color: "#8A8A83" }}>Klus</span>
-              <span>€{fmt(offerte.totaal)}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span style={{ color: "#8A8A83" }}>Service fee (5%)</span>
-              <span>€{fmt(offerte.serviceFee)}</span>
-            </div>
-          </>
-        )}
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, paddingTop: 8, marginTop: 8, borderTop: "0.5px solid rgba(43,64,48,0.2)" }}>
+          <span style={{ color: "#8A8A83" }}>Klus {formatEuro(boeking.bedrag ?? 0)} + service fee {formatEuro(serviceFee)}</span>
+        </div>
       </div>
 
-      <div className="rounded-2xl overflow-hidden border" style={{ borderColor: "#E5DDD0" }}>
-        <PaymentElement
-          options={{
-            layout: "tabs",
-            paymentMethodOrder: ["apple_pay", "google_pay", "card", "bancontact", "ideal"],
-          }}
-        />
+      <div style={{ borderRadius: 14, overflow: "hidden", border: "0.5px solid #E5DDD0", background: "#FFFFFF", padding: 4 }}>
+        <PaymentElement options={{ layout: "tabs", paymentMethodOrder: ["bancontact", "card", "ideal"] }} />
       </div>
 
       {fout && (
-        <div className="p-3 rounded-xl text-sm flex items-center gap-2"
-          style={{ background: "#fee2e2", color: "#dc2626" }}>
-          <span>⚠️</span> {fout}
+        <div style={{ padding: "12px 14px", borderRadius: 10, background: "#F9EDEA", color: "#dc2626", fontSize: 13 }}>
+          ⚠️ {fout}
         </div>
       )}
 
-      <div className="flex flex-col gap-2.5">
-        <button type="submit" disabled={!stripe || bezig}
-          className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-          style={{ background: stripe && !bezig ? "#2B4030" : "#8A8A83" }}>
-          {bezig
-            ? <><Loader2 size={18} className="animate-spin" /> Even wachten…</>
-            : <><Lock size={18} /> Betaling bevestigen · €{fmt(offerte.chargeAmount)}</>}
-        </button>
-        <button type="button" onClick={onCancel}
-          className="touch-scale w-full py-3 rounded-2xl font-semibold text-sm border"
-          style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
-          Terug naar offerte
-        </button>
-      </div>
-
-      <p className="text-center text-xs flex items-center justify-center gap-1"
-        style={{ color: "#8A8A83" }}>
-        <Lock size={10} /> Beveiligd door Stripe · SSL versleuteld
+      <button type="submit" disabled={!stripe || bezig} className="touch-scale" style={{
+        width: "100%", padding: "16px 0", borderRadius: 12, border: "none", cursor: "pointer",
+        background: stripe && !bezig ? "#2B4030" : "#8A8A83", color: "#F5EFE5",
+        fontSize: 15, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+      }}>
+        {bezig ? <><Loader2 size={17} className="animate-spin" /> Even wachten…</> : <><Lock size={16} /> Betaal {formatEuro(chargeAmount)}</>}
+      </button>
+      <button type="button" onClick={onCancel} className="touch-scale" style={{
+        width: "100%", padding: "12px 0", borderRadius: 12, border: "0.5px solid #E5DDD0",
+        background: "transparent", color: "#8A8A83", fontSize: 13, fontWeight: 500, cursor: "pointer",
+      }}>
+        Annuleren
+      </button>
+      <p style={{ textAlign: "center", fontSize: 11, color: "#8A8A83", display: "flex", alignItems: "center", justifyContent: "center", gap: 4, margin: 0 }}>
+        <Lock size={10} /> Beveiligd door Stripe · escrow tot jij bevestigt
       </p>
     </form>
   );
 }
 
-// ─── mock betaalflow ─────────────────────────────────────────────────────────
-
-type BetaalFase = "selectie" | "loading" | "bank_auth";
-
-type BankBrand = { bg: string; dark: string; naam: string };
-
-const BANK_BRANDS: Record<string, BankBrand> = {
-  "ING":                { bg: "#FF6200", dark: "#CC4E00", naam: "ING" },
-  "ABN AMRO":           { bg: "#009FE3", dark: "#0077B0", naam: "ABN AMRO" },
-  "Rabobank":           { bg: "#EC0000", dark: "#B80000", naam: "Rabobank" },
-  "SNS Bank":           { bg: "#00589C", dark: "#003D70", naam: "SNS Bank" },
-  "Triodos Bank":       { bg: "#00A650", dark: "#007D3C", naam: "Triodos Bank" },
-  "Bunq":               { bg: "#00D7B0", dark: "#00A88A", naam: "bunq" },
-  "Bancontact":         { bg: "#005298", dark: "#003D74", naam: "Bancontact" },
-};
-
-function getBankBrand(key: string): BankBrand {
-  return BANK_BRANDS[key] ?? { bg: "#1a1a2e", dark: "#0d0f18", naam: key };
-}
-
-const DEFAULT_METHODES = [
-  { naam: "iDEAL",      icoon: "🏦", sub: "Via jouw bank",     type: "ideal"      },
-  { naam: "Creditcard", icoon: "💳", sub: "Visa / Mastercard", type: "creditcard" },
-  { naam: "Bancontact", icoon: "🇧🇪", sub: "Belgische kaart",  type: "bancontact" },
-];
-
-// ─── hoofdpagina ──────────────────────────────────────────────────────────────
-
+// ─── Hoofdpagina ──────────────────────────────────────────────
 export default function TeBetalenPage() {
-  const { offertes, betaalOfferte, weigerOfferte } = useOfferteStore();
-  const { accountId: vakmanAccountId } = useStripeConnectStore();
-  const { addNotificatie } = useNotificatieStore();
+  const { userId } = useUserStore();
+  const [boekingen, setBoekingen] = useState<BoekingRij[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Welke offerte bekijken we? (preview)
-  const [bekijkId, setBekijkId]             = useState<string | null>(null);
-  // Welke offerte betalen we? (betaalsheet)
-  const [betalendId, setBetalendId]         = useState<string | null>(null);
-  const [betaaldIds, setBetaaldIds]         = useState<string[]>([]);
-  const [clientSecret, setClientSecret]     = useState<string | null>(null);
+  // Betaalsheet
+  const [betalendId, setBetalendId] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [stripeInstance, setStripeInstance] = useState<Awaited<ReturnType<typeof loadStripe>> | null>(null);
-  const [loadingSecret, setLoadingSecret]   = useState(false);
-  const [stripeError, setStripeError]       = useState<string | null>(null);
-  const [chargeAmount, setChargeAmount]     = useState<number | null>(null);
-  const [serviceFee, setServiceFee]         = useState<number | null>(null);
+  const [loadingSecret, setLoadingSecret] = useState(false);
+  const [stripeError, setStripeError] = useState<string | null>(null);
+  const [stripeNietActief, setStripeNietActief] = useState(false);
+  const [chargeAmount, setChargeAmount] = useState<number | null>(null);
+  const [serviceFee, setServiceFee] = useState<number | null>(null);
 
-  // Mock-fallback state
-  const [gekozenIdx, setGekozenIdx]     = useState(0);
-  const [betaalFase, setBetaalFase]     = useState<BetaalFase>("selectie");
-  const [redirectBank, setRedirectBank] = useState<BankBrand | null>(null);
+  // Verificatie na redirect
+  const [verifieren, setVerifieren] = useState(false);
+  const [netBetaald, setNetBetaald] = useState<string | null>(null);     // boeking-id
+  const [betaalFout, setBetaalFout] = useState<string | null>(null);
 
-  const openstaand = offertes.filter(o => o.status === "openstaand");
-  const bekijkende = openstaand.find(o => o.id === bekijkId);
-  const betalende  = openstaand.find(o => o.id === betalendId);
+  const laad = useCallback(async () => {
+    if (!supabaseReady) { setLoading(false); return; }
+    let uid = userId;
+    if (!uid) {
+      const { data: { session } } = await supabase.auth.getSession();
+      uid = session?.user?.id ?? null;
+    }
+    if (!uid) { setLoading(false); return; }
 
-  // URL-param ?betaald=1 afhandelen (Stripe return_url)
+    const { data } = await supabase
+      .from("boekingen")
+      .select(`*,
+        vakman:profiles!boekingen_vakman_id_fkey(name, vakmensen(specialty, rating, review_count, stripe_account)),
+        offerte:offertes(omschrijving, eta, gesprek_id),
+        opdracht:opdrachten(titel)`)
+      .eq("klant_id", uid)
+      .eq("betaald", false)
+      .eq("status", "gepland")
+      .order("created_at", { ascending: false });
+    setBoekingen((data as unknown as BoekingRij[]) ?? []);
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => { laad(); }, [laad]);
+
+  // URL-params: ?boeking={id} opent betaalsheet · ?betaald=1 verifieert
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("betaald") === "1") {
-      const num   = params.get("offerte");
-      const match = offertes.find(o => o.nummer === num);
-      if (match) {
-        betaalOfferte(match.id);
-        setBetaaldIds(v => [...v, match.id]);
-      }
+    const boekingParam = params.get("boeking");
+    const isReturn = params.get("betaald") === "1";
+    const intentParam = params.get("payment_intent");
+
+    if (isReturn && boekingParam) {
+      setVerifieren(true);
+      fetch("/api/stripe/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ boekingId: boekingParam, paymentIntentId: intentParam }),
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.status === "betaald") setNetBetaald(boekingParam);
+          else setBetaalFout(d.error ?? `Betaling niet voltooid (status: ${d.status ?? "onbekend"}). Probeer opnieuw.`);
+        })
+        .catch(() => setBetaalFout("Kon de betaling niet verifiëren. Herlaad de pagina."))
+        .finally(() => { setVerifieren(false); laad(); });
+      window.history.replaceState({}, "", "/te-betalen");
+    } else if (boekingParam) {
+      setBetalendId(boekingParam);
       window.history.replaceState({}, "", "/te-betalen");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Stap 1: open offerte preview
-  const handleBekijk = (id: string) => {
-    setBekijkId(id);
-  };
+  // Betaalsheet openen → intent aanmaken
+  const betalende = boekingen.find(b => b.id === betalendId) ?? null;
+  useEffect(() => {
+    if (!betalende || clientSecret || loadingSecret) return;
+    (async () => {
+      setLoadingSecret(true);
+      setStripeError(null);
+      setStripeNietActief(false);
+      try {
+        const stripeAccount = betalende.vakman?.vakmensen?.stripe_account ?? null;
+        const res = await fetch("/api/stripe/intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: betalende.bedrag ?? 0,
+            offerteNummer: `BOEK-${betalende.id.slice(0, 8).toUpperCase()}`,
+            stripeAccountId: stripeAccount ?? undefined,
+            boekingId: betalende.id,
+          }),
+        });
+        const data = await res.json();
+        if (res.status === 503) { setStripeNietActief(true); return; }
+        if (!data.clientSecret || !data.publishableKey) {
+          setStripeError(data.error ?? "Stripe kon geen betaling aanmaken");
+          return;
+        }
+        if (!stripeCache) stripeCache = await loadStripe(data.publishableKey);
+        setStripeInstance(stripeCache);
+        setClientSecret(data.clientSecret);
+        setChargeAmount(data.chargeAmount ?? null);
+        setServiceFee(data.serviceFee ?? null);
+      } catch {
+        setStripeError("Kan Stripe niet bereiken.");
+      } finally {
+        setLoadingSecret(false);
+      }
+    })();
+  }, [betalende, clientSecret, loadingSecret]);
 
-  // Stap 2: vanuit preview → open betaalsheet
-  const handleOpenBetalen = async () => {
-    if (!bekijkende) return;
-    const id = bekijkende.id;
-    setBekijkId(null);           // sluit preview
-    setBetalendId(id);           // open betaalsheet
-    setBetaalFase("selectie");
-    setGekozenIdx(0);
-    setRedirectBank(null);
+  const sluitSheet = () => {
+    setBetalendId(null);
     setClientSecret(null);
     setStripeError(null);
-    setStripeInstance(null);
+    setStripeNietActief(false);
     setChargeAmount(null);
     setServiceFee(null);
-    setLoadingSecret(true);
-
-    const offerte = openstaand.find(o => o.id === id);
-    if (!offerte) { setLoadingSecret(false); return; }
-
-    // Haal vakman's Stripe account ID op uit Supabase
-    let vakmanStripeId: string | null = null;
-    if (offerte.vakmanId) {
-      try {
-        const { supabase } = await import("@/lib/supabase");
-        const { data } = await (supabase.from("profiles") as any)
-          .select("stripe_account_id")
-          .eq("id", offerte.vakmanId)
-          .single();
-        vakmanStripeId = data?.stripe_account_id ?? null;
-      } catch { /* geen Stripe account gevonden */ }
-    }
-
-    try {
-      const res = await fetch("/api/stripe/intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: offerte.totaal,
-          offerteNummer: offerte.nummer,
-          stripeAccountId: vakmanStripeId ?? undefined,
-        }),
-      });
-      const data = await res.json();
-
-      if (res.status === 503) { setLoadingSecret(false); return; }
-      if (!data.clientSecret) {
-        setStripeError(data.error ?? "Stripe kon geen betaling aanmaken");
-        setLoadingSecret(false);
-        return;
-      }
-      const pk = data.publishableKey;
-      if (!pk) {
-        setStripeError("Publishable key ontbreekt");
-        setLoadingSecret(false);
-        return;
-      }
-      if (!stripeCache) stripeCache = await loadStripe(pk);
-      setStripeInstance(stripeCache);
-      setClientSecret(data.clientSecret);
-      if (data.chargeAmount) setChargeAmount(data.chargeAmount);
-      if (data.serviceFee)   setServiceFee(data.serviceFee);
-    } catch {
-      setStripeError("Kan Stripe niet bereiken.");
-    } finally {
-      setLoadingSecret(false);
-    }
-  };
-
-  const handleStripeSuccess = () => {
-    if (!betalende) return;
-    betaalOfferte(betalende.id);
-    setBetaaldIds(v => [...v, betalende.id]);
-    const tarief   = betalende.totaal;
-    const klantB   = Math.round(tarief * 1.05 * 100) / 100;
-    const ontvangt = Math.round(tarief * 0.92 * 100) / 100;
-    addNotificatie({
-      type: "betaling_ontvangen",
-      titel: "✅ Betaling ontvangen!",
-      bericht: `Klus betaald voor offerte ${betalende.nummer}. Je ontvangt €${ontvangt.toLocaleString("nl-NL", { minimumFractionDigits: 2 })} (na 8% Servr fee). Bedrag staat binnen 2 werkdagen op je rekening.`,
-      vakmanOntvangt: ontvangt,
-      klantBetaald:  klantB,
-      vakmanTarief:  tarief,
-      offerte:       betalende.nummer,
-    });
-    setBetalendId(null);
-    setClientSecret(null);
-  };
-
-  const handleMockBevestig = () => {
-    if (!betalende) return;
-    const methode = DEFAULT_METHODES[gekozenIdx];
-    if (methode.type === "ideal" || methode.type === "bancontact") {
-      const brand = getBankBrand(methode.type === "bancontact" ? "Bancontact" : "ING");
-      setRedirectBank(brand);
-      setBetaalFase("loading");
-      setTimeout(() => setBetaalFase("bank_auth"), 1600);
-    } else {
-      _voltooi(betalende);
-      setBetalendId(null);
-    }
-  };
-
-  const handleMockBankAutoriseer = () => {
-    if (!betalende) return;
-    _voltooi(betalende);
-    setBetalendId(null);
-    setBetaalFase("selectie");
-    setRedirectBank(null);
-  };
-
-  const _voltooi = (o: typeof betalende) => {
-    if (!o) return;
-    betaalOfferte(o.id);
-    setBetaaldIds(v => [...v, o.id]);
-    const tarief   = o.totaal;
-    const klantB   = Math.round(tarief * 1.05 * 100) / 100;
-    const ontvangt = Math.round(tarief * 0.92 * 100) / 100;
-    addNotificatie({
-      type: "betaling_ontvangen",
-      titel: "✅ Betaling ontvangen!",
-      bericht: `Klus betaald voor offerte ${o.nummer}. Je ontvangt €${ontvangt.toLocaleString("nl-NL", { minimumFractionDigits: 2 })} (na 8% Servr fee). Bedrag staat binnen 2 werkdagen op je rekening.`,
-      vakmanOntvangt: ontvangt,
-      klantBetaald:  klantB,
-      vakmanTarief:  tarief,
-      offerte:       o.nummer,
-    });
-  };
-
-  const handleAnnuleer = () => {
-    setBetalendId(null);
-    setClientSecret(null);
-    setBetaalFase("selectie");
-    setRedirectBank(null);
-  };
-
-  const handleWeigerVanPreview = () => {
-    if (!bekijkende) return;
-    weigerOfferte(bekijkende.id);
-    setBekijkId(null);
   };
 
   return (
-    <div className="flex flex-col min-h-full pb-8 animate-fade-in">
+    <div className="animate-fade-in" style={{ minHeight: "100dvh", background: "#F5EFE5", paddingBottom: 32 }}>
 
-      {/* ── Header ── */}
-      <div className="px-5 pt-12 pb-5"
-        style={{ background: "linear-gradient(160deg, #2B4030 0%, #1A2D22 100%)" }}>
-        <div className="flex items-center gap-3 mb-4">
-          <Link href="/profile"
-            className="touch-scale w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-            <ArrowLeft size={18} color="white" />
+      {/* Header */}
+      <div className="px-5 pt-12 pb-5" style={{ background: "linear-gradient(160deg, #2B4030 0%, #1A2D22 100%)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <Link href="/mijn-opdrachten" className="touch-scale" style={{
+            width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.2)",
+            display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none",
+          }}>
+            <ArrowLeft size={17} color="white" />
           </Link>
-          <h1 className="text-white font-black text-xl flex-1">Te betalen</h1>
-          {openstaand.length > 0 && (
-            <span className="text-xs font-bold px-3 py-1 rounded-full"
-              style={{ background: "#C97A4D", color: "white" }}>
-              {openstaand.length} openstaand
+          <h1 style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 400, color: "#F5EFE5", margin: 0, flex: 1 }}>Te betalen</h1>
+          {boekingen.length > 0 && (
+            <span style={{ fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 99, background: "#C97A4D", color: "#1A1D1A" }}>
+              {boekingen.length} openstaand
             </span>
           )}
         </div>
-        {openstaand.length > 0 && (
-          <div className="bg-white/15 rounded-2xl p-3 flex items-center gap-3">
-            <Shield size={16} color="rgba(255,255,255,0.8)" />
-            <p className="text-white/80 text-xs">
-              Bekijk de offerte, controleer alles en betaal pas als de klus klaar is.
-            </p>
-          </div>
-        )}
+        <div style={{ background: "rgba(255,255,255,0.12)", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+          <Shield size={15} color="rgba(255,255,255,0.8)" style={{ flexShrink: 0 }} />
+          <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, margin: 0 }}>
+            Je geld staat veilig in escrow en gaat pas naar de vakman nadat jij de klus bevestigt.
+          </p>
+        </div>
       </div>
 
-      <div className="px-5 pt-5 flex flex-col gap-4">
+      <div className="px-5 pt-5" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
-        {/* Net betaalde feedback */}
-        {betaaldIds.map(id => {
-          const o = offertes.find(x => x.id === id);
-          if (!o) return null;
-          return (
-            <div key={id} className="card p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "#dcfce7" }}>
-                <CheckCircle2 size={20} style={{ color: "#16a34a" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm truncate">{o.vakmanNaam}</p>
-                <p className="text-xs" style={{ color: "#8A8A83" }}>{o.nummer} · Betaald ✓</p>
-              </div>
-              <span className="font-black text-base flex-shrink-0" style={{ color: "#16a34a" }}>
-                €{fmt(o.totaal)}
-              </span>
-            </div>
-          );
-        })}
-
-        {/* Openstaande offertes — compacte kaartjes */}
-        {openstaand.map(o => (
-          <div key={o.id} className="card overflow-hidden">
-            {/* Vakman info */}
-            <div className="p-4 pb-3">
-              <div className="flex items-center gap-3 mb-3">
-                <img src={o.vakmanAvatar} className="w-12 h-12 rounded-2xl object-cover flex-shrink-0" alt="" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm">{o.vakmanNaam}</p>
-                  <p className="text-xs" style={{ color: "#8A8A83" }}>
-                    {o.nummer} · Geldig tot {o.geldigTot}
-                  </p>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Star size={10} className="fill-yellow-400 text-yellow-400" />
-                    <span className="text-xs font-semibold">4.9</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-black text-2xl" style={{ color: "#2B4030" }}>
-                    €{fmt(o.totaal)}
-                  </p>
-                  <p className="text-[10px]" style={{ color: "#8A8A83" }}>
-                    +€{fmt(Math.round(o.totaal * 0.05 * 100) / 100)} fee
-                  </p>
-                </div>
-              </div>
-
-              {/* Korte preview van regels */}
-              <div className="rounded-xl p-3 mb-3" style={{ background: "#EDE4D2" }}>
-                {o.regels.slice(0, 2).map(r => (
-                  <div key={r.id} className="flex justify-between text-xs py-0.5">
-                    <span className="truncate pr-2" style={{ color: "#8A8A83" }}>{r.omschrijving}</span>
-                    <span className="font-semibold flex-shrink-0">€{fmt(r.aantal * r.prijsPerEenheid)}</span>
-                  </div>
-                ))}
-                {o.regels.length > 2 && (
-                  <p className="text-[10px] mt-1" style={{ color: "#8A8A83" }}>
-                    +{o.regels.length - 2} meer...
-                  </p>
-                )}
-              </div>
-
-              {/* Knoppen */}
-              <div className="flex gap-2">
-                <button onClick={() => weigerOfferte(o.id)}
-                  className="touch-scale w-10 h-10 rounded-xl flex items-center justify-center border flex-shrink-0"
-                  style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
-                  <X size={16} />
-                </button>
-                <Link href={`/chat/${o.vakmanChatId}`}
-                  className="touch-scale flex-1 h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 border"
-                  style={{ borderColor: "#2B4030", color: "#2B4030" }}>
-                  <MessageCircle size={14} /> Vraag stellen
-                </Link>
-                <button onClick={() => handleBekijk(o.id)}
-                  className="touch-scale flex-1 h-10 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-1"
-                  style={{ background: "#2B4030" }}>
-                  Bekijk offerte <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
+        {/* Verificatie na redirect */}
+        {verifieren && (
+          <div style={{ background: "#FBF7F0", borderRadius: 14, padding: 20, display: "flex", alignItems: "center", gap: 12 }}>
+            <Loader2 size={20} className="animate-spin" style={{ color: "#2B4030" }} />
+            <p style={{ fontSize: 14, color: "#1A1D1A", margin: 0 }}>Betaling verifiëren bij Stripe…</p>
           </div>
-        ))}
+        )}
 
-        {/* Lege states */}
-        {openstaand.length === 0 && betaaldIds.length > 0 && (
-          <div className="flex flex-col items-center py-10 gap-3 text-center">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center"
-              style={{ background: "#dcfce7" }}>
-              <CheckCircle2 size={38} style={{ color: "#16a34a" }} />
-            </div>
-            <h2 className="font-black text-lg">Alles betaald! 🎉</h2>
-            <p className="text-sm" style={{ color: "#8A8A83" }}>De vakman is op de hoogte en kan aan de slag.</p>
-            <Link href="/mijn-opdrachten"
-              className="touch-scale mt-2 px-6 py-3 rounded-2xl font-bold text-white text-sm"
-              style={{ background: "#2B4030" }}>
-              Terug naar opdrachten
+        {netBetaald && (
+          <div className="animate-bounce-in" style={{ background: "#EAF0EC", borderRadius: 14, padding: 20, textAlign: "center" }}>
+            <CheckCircle2 size={36} style={{ color: "#2B4030", margin: "0 auto 10px" }} />
+            <p style={{ fontFamily: SERIF, fontSize: 19, color: "#1A1D1A", margin: "0 0 6px" }}>Betaling gelukt!</p>
+            <p style={{ fontSize: 13, color: "#5C5C56", margin: "0 0 14px" }}>
+              De vakman is op de hoogte. Je geld staat veilig tot jij de afronding bevestigt.
+            </p>
+            <Link href="/mijn-opdrachten" className="touch-scale" style={{
+              display: "inline-block", padding: "12px 24px", background: "#2B4030", color: "#F5EFE5",
+              borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: "none",
+            }}>
+              Naar mijn opdrachten
             </Link>
           </div>
         )}
 
-        {openstaand.length === 0 && betaaldIds.length === 0 && (
-          <div className="flex flex-col items-center py-16 gap-3 text-center">
-            <span className="text-5xl">✅</span>
-            <p className="font-bold text-base">Geen openstaande betalingen</p>
-            <p className="text-sm" style={{ color: "#8A8A83" }}>
-              Ontvang een offerte van een vakman om hier te betalen.
+        {betaalFout && (
+          <div style={{ background: "#F9EDEA", borderRadius: 14, padding: 16 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#dc2626", margin: "0 0 4px" }}>Betaling niet gelukt</p>
+            <p style={{ fontSize: 12, color: "#5C5C56", margin: 0 }}>{betaalFout}</p>
+          </div>
+        )}
+
+        {/* Skeleton */}
+        {loading && <><div className="skeleton" style={{ height: 110 }} /><div className="skeleton" style={{ height: 110 }} /></>}
+
+        {/* Openstaande boekingen */}
+        {!loading && boekingen.map(b => {
+          const vm = b.vakman?.vakmensen;
+          const fee = Math.round((b.bedrag ?? 0) * 0.05 * 100) / 100;
+          return (
+            <div key={b.id} style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#2B4030", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 17, color: "#F5EFE5", flexShrink: 0 }}>
+                  {(b.vakman?.name ?? "V").charAt(0)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#1A1D1A" }}>{b.vakman?.name ?? "Vakman"}</p>
+                  <p style={{ fontSize: 11, color: "#8A8A83", margin: "2px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
+                    {titelVan(b)}
+                    {(vm?.review_count ?? 0) > 0 && (
+                      <><Star size={10} style={{ color: "#C97A4D", fill: "#C97A4D" }} /> {vm?.rating}</>
+                    )}
+                  </p>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <p style={{ fontFamily: SERIF, fontSize: 22, margin: 0, color: "#2B4030" }}>{formatEuro(b.bedrag ?? 0)}</p>
+                  <p style={{ fontSize: 10, color: "#8A8A83", margin: 0 }}>+{formatEuro(fee)} fee</p>
+                </div>
+              </div>
+
+              {b.offerte?.omschrijving && (
+                <p style={{ fontSize: 12, color: "#5C5C56", margin: "0 0 12px", background: "#EDE4D2", borderRadius: 8, padding: "8px 12px" }}>
+                  {b.offerte.omschrijving}
+                </p>
+              )}
+
+              <div style={{ display: "flex", gap: 8 }}>
+                {b.offerte?.gesprek_id && (
+                  <Link href={`/chat/${b.offerte.gesprek_id}`} className="touch-scale" style={{
+                    flex: 1, height: 44, borderRadius: 10, border: "0.5px solid #2B4030", color: "#2B4030",
+                    fontSize: 13, fontWeight: 500, textDecoration: "none",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  }}>
+                    <MessageCircle size={14} /> Vraag stellen
+                  </Link>
+                )}
+                <button onClick={() => setBetalendId(b.id)} className="touch-scale" style={{
+                  flex: 1.4, height: 44, borderRadius: 10, background: "#2B4030", color: "#F5EFE5",
+                  border: "none", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                }}>
+                  <Lock size={13} /> Betaal {formatEuro((b.bedrag ?? 0) + fee)}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Lege state */}
+        {!loading && boekingen.length === 0 && !netBetaald && !verifieren && (
+          <div style={{ textAlign: "center", padding: "56px 0" }}>
+            <p style={{ fontSize: 40, margin: "0 0 12px" }}>✅</p>
+            <p style={{ fontFamily: SERIF, fontSize: 18, color: "#1A1D1A", margin: "0 0 6px" }}>Geen openstaande betalingen</p>
+            <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 20px" }}>
+              Accepteer een offerte om hier te betalen.
             </p>
-            <Link href="/mijn-opdrachten"
-              className="touch-scale mt-2 px-5 py-2.5 rounded-2xl font-bold text-white text-sm"
-              style={{ background: "#2B4030" }}>
+            <Link href="/mijn-opdrachten" className="touch-scale" style={{
+              display: "inline-block", padding: "12px 24px", background: "#2B4030", color: "#F5EFE5",
+              borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: "none",
+            }}>
               Naar mijn opdrachten
             </Link>
           </div>
         )}
       </div>
 
-      {/* ══ OFFERTE PREVIEW (full screen) ══ */}
-      {bekijkende && (
-        <OffertePreview
-          offerte={bekijkende}
-          onBetaal={handleOpenBetalen}
-          onWeiger={handleWeigerVanPreview}
-          onSluit={() => setBekijkId(null)}
-        />
-      )}
-
       {/* ══ BETAALSHEET ══ */}
-      {betalende && betaalFase === "selectie" && (
-        <div className="fixed inset-0 z-50 flex items-end"
-          style={{ background: "rgba(0,0,0,0.55)" }}
-          onClick={handleAnnuleer}>
-          <div className="w-full rounded-t-3xl animate-slide-up overflow-y-auto"
-            style={{
-              background: "#F5EFE5",
-              maxHeight: "calc(100dvh - var(--bottom-nav-height) - 52px)",
-              paddingBottom: "calc(var(--bottom-nav-height) + 20px)",
-            }}
-            onClick={e => e.stopPropagation()}>
-            <div className="px-6 pt-5">
-              <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "#E5DDD0" }} />
-              <h2 className="font-black text-xl mb-0.5">Betaling</h2>
-              <p className="text-sm mb-5" style={{ color: "#8A8A83" }}>
-                {betalende.nummer} · {betalende.vakmanNaam}
-              </p>
+      {betalende && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "flex-end" }}
+          onClick={sluitSheet}>
+          <div className="animate-slide-up" onClick={e => e.stopPropagation()} style={{
+            width: "100%", maxHeight: "88dvh", overflowY: "auto",
+            background: "#F5EFE5", borderRadius: "24px 24px 0 0", padding: "20px 24px 40px",
+          }}>
+            <div style={{ width: 40, height: 4, borderRadius: 99, background: "#E5DDD0", margin: "0 auto 20px" }} />
+            <h2 style={{ fontFamily: SERIF, fontSize: 21, fontWeight: 400, margin: "0 0 2px", color: "#1A1D1A" }}>Betaling</h2>
+            <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 20px" }}>{titelVan(betalende)} · {betalende.vakman?.name}</p>
 
-              {(stripeInstance || loadingSecret || stripeError) ? (
-                loadingSecret ? (
-                  <div className="flex flex-col items-center py-10 gap-3">
-                    <Loader2 size={28} className="animate-spin" style={{ color: "#2B4030" }} />
-                    <p className="text-sm" style={{ color: "#8A8A83" }}>Betaalmethoden laden…</p>
-                  </div>
-                ) : stripeError ? (
-                  <div className="flex flex-col gap-4">
-                    <div className="p-4 rounded-2xl text-sm" style={{ background: "#fee2e2", color: "#dc2626" }}>
-                      <p className="font-bold mb-1">⚠️ Stripe fout</p>
-                      <p className="text-xs">{stripeError}</p>
-                    </div>
-                    <MockBetaalForm
-                      betalende={betalende}
-                      gekozenIdx={gekozenIdx}
-                      setGekozenIdx={setGekozenIdx}
-                      onBevestig={handleMockBevestig}
-                    />
-                  </div>
-                ) : clientSecret ? (
-                  <Elements
-                    stripe={stripeInstance}
-                    options={{
-                      clientSecret,
-                      appearance: {
-                        theme: "stripe",
-                        variables: { colorPrimary: "#0F6E56", borderRadius: "16px" },
-                      },
-                    }}>
-                    <StripeForm
-                      offerte={{
-                        ...betalende,
-                        chargeAmount: chargeAmount ?? betalende.totaal,
-                        serviceFee: serviceFee ?? 0,
-                      }}
-                      onSuccess={handleStripeSuccess}
-                      onCancel={handleAnnuleer}
-                    />
-                  </Elements>
-                ) : (
-                  <div className="flex flex-col items-center py-10 gap-3">
-                    <Loader2 size={28} className="animate-spin" style={{ color: "#2B4030" }} />
-                    <p className="text-sm" style={{ color: "#8A8A83" }}>Verbinden met Stripe…</p>
-                  </div>
-                )
-              ) : (
-                <MockBetaalForm
-                  betalende={betalende}
-                  gekozenIdx={gekozenIdx}
-                  setGekozenIdx={setGekozenIdx}
-                  onBevestig={handleMockBevestig}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mock bank loading */}
-      {betalende && betaalFase === "loading" && redirectBank && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5"
-          style={{ background: redirectBank.bg }}>
-          <p className="text-white font-black text-3xl">{redirectBank.naam}</p>
-          <Loader2 size={36} color="rgba(255,255,255,0.85)" className="animate-spin" />
-          <p className="text-white/75 text-sm font-medium">Doorsturen naar {redirectBank.naam}…</p>
-        </div>
-      )}
-
-      {/* Mock bank auth */}
-      {betalende && betaalFase === "bank_auth" && redirectBank && (
-        <div className="fixed inset-0 z-50 flex flex-col animate-fade-in"
-          style={{ background: "#F5EFE5" }}>
-          <div className="px-5 pt-12 pb-6 flex items-center gap-3"
-            style={{ background: redirectBank.bg }}>
-            <button onClick={handleAnnuleer}
-              className="touch-scale w-9 h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-              <ArrowLeft size={18} color="white" />
-            </button>
-            <div className="flex-1">
-              <p className="text-white font-black text-xl">{redirectBank.naam}</p>
-              <p className="text-white/70 text-xs">Internetbankieren · Beveiligde verbinding</p>
-            </div>
-            <Lock size={16} color="rgba(255,255,255,0.7)" />
-          </div>
-          <div className="flex-1 overflow-y-auto px-5 pt-6 pb-4">
-            <p className="font-black text-lg mb-1">Betaalopdracht bevestigen</p>
-            <p className="text-sm mb-5" style={{ color: "#8A8A83" }}>
-              Controleer de gegevens en autoriseer.
-            </p>
-            <div className="card p-4 mb-4">
-              {[
-                ["Begunstigde", "Servr B.V."],
-                ["IBAN", "NL18 SERV •••• 0001"],
-                ["Omschrijving", betalende.nummer],
-                ["Vakman", betalende.vakmanNaam],
-              ].map(([k, v]) => (
-                <div key={k} className="flex justify-between py-2.5 border-b last:border-0"
-                  style={{ borderColor: "#E5DDD0" }}>
-                  <span className="text-xs font-semibold" style={{ color: "#8A8A83" }}>{k}</span>
-                  <span className="font-semibold text-sm">{v}</span>
-                </div>
-              ))}
-              <div className="flex justify-between pt-3 mt-1">
-                <span className="font-black">Bedrag</span>
-                <span className="font-black text-2xl" style={{ color: redirectBank.bg }}>
-                  €{fmt(betalende.totaal)}
-                </span>
+            {loadingSecret ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "40px 0" }}>
+                <Loader2 size={28} className="animate-spin" style={{ color: "#2B4030" }} />
+                <p style={{ fontSize: 13, color: "#8A8A83", margin: 0 }}>Betaalmethoden laden…</p>
               </div>
-            </div>
-            <div className="rounded-2xl p-3 flex items-start gap-2.5 mb-4"
-              style={{ background: redirectBank.bg + "12" }}>
-              <Lock size={14} style={{ color: redirectBank.bg, marginTop: 2 }} />
-              <p className="text-xs" style={{ color: redirectBank.bg }}>
-                <strong>Beveiligd door {redirectBank.naam}.</strong> Uw bankgegevens worden nooit gedeeld.
-              </p>
-            </div>
-          </div>
-          <div className="px-5 pb-10 pt-4 flex flex-col gap-3 border-t" style={{ borderColor: "#E5DDD0" }}>
-            <button onClick={handleMockBankAutoriseer}
-              className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-              style={{ background: redirectBank.bg }}>
-              <Lock size={18} /> Betaling autoriseren · €{fmt(betalende.totaal)}
-            </button>
-            <button onClick={handleAnnuleer}
-              className="touch-scale w-full py-3.5 rounded-2xl font-semibold text-sm border"
-              style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
-              Annuleren
-            </button>
+            ) : stripeNietActief ? (
+              <div style={{ background: "#FAF0E6", borderRadius: 14, padding: 20, textAlign: "center" }}>
+                <p style={{ fontSize: 26, margin: "0 0 8px" }}>🚧</p>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#1A1D1A", margin: "0 0 6px" }}>Online betalen is nog niet actief</p>
+                <p style={{ fontSize: 13, color: "#5C5C56", margin: 0 }}>
+                  De beheerder moet de Stripe-sleutels nog instellen. Probeer het later opnieuw.
+                </p>
+              </div>
+            ) : stripeError ? (
+              <div style={{ background: "#F9EDEA", borderRadius: 14, padding: 16 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#dc2626", margin: "0 0 4px" }}>⚠️ Stripe fout</p>
+                <p style={{ fontSize: 12, color: "#5C5C56", margin: 0 }}>{stripeError}</p>
+              </div>
+            ) : clientSecret && stripeInstance ? (
+              <Elements
+                stripe={stripeInstance}
+                options={{
+                  clientSecret,
+                  appearance: { theme: "stripe", variables: { colorPrimary: "#2B4030", borderRadius: "12px" } },
+                }}>
+                <StripeForm
+                  boeking={betalende}
+                  chargeAmount={chargeAmount ?? (betalende.bedrag ?? 0) * 1.05}
+                  serviceFee={serviceFee ?? Math.round((betalende.bedrag ?? 0) * 0.05 * 100) / 100}
+                  onCancel={sluitSheet}
+                />
+              </Elements>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "40px 0" }}>
+                <Loader2 size={28} className="animate-spin" style={{ color: "#2B4030" }} />
+                <p style={{ fontSize: 13, color: "#8A8A83", margin: 0 }}>Verbinden met Stripe…</p>
+              </div>
+            )}
           </div>
         </div>
       )}
     </div>
-  );
-}
-
-// ─── Mock betaalform component ────────────────────────────────────────────────
-
-function MockBetaalForm({
-  betalende,
-  gekozenIdx,
-  setGekozenIdx,
-  onBevestig,
-}: {
-  betalende: VerstuurdeOfferte;
-  gekozenIdx: number;
-  setGekozenIdx: (i: number) => void;
-  onBevestig: () => void;
-}) {
-  return (
-    <>
-      <div className="card p-4 mb-5">
-        {betalende.regels.map(r => (
-          <div key={r.id} className="flex justify-between text-sm mb-1">
-            <span className="truncate pr-2" style={{ color: "#8A8A83" }}>{r.omschrijving}</span>
-            <span>€{fmt(r.aantal * r.prijsPerEenheid)}</span>
-          </div>
-        ))}
-        {betalende.totaalBtw > 0 && (
-          <div className="flex justify-between text-sm mb-1">
-            <span style={{ color: "#8A8A83" }}>BTW (21%)</span>
-            <span>€{fmt(betalende.totaalBtw)}</span>
-          </div>
-        )}
-        <div className="flex justify-between text-xs border-t pt-2 mt-1"
-          style={{ borderColor: "#E5DDD0" }}>
-          <span style={{ color: "#8A8A83" }}>Service fee (5%)</span>
-          <span>€{fmt(Math.round(betalende.totaal * 0.05 * 100) / 100)}</span>
-        </div>
-        <div className="flex justify-between font-black text-lg pt-2 mt-1 border-t"
-          style={{ borderColor: "#E5DDD0", color: "#2B4030" }}>
-          <span>Te betalen</span>
-          <span>€{fmt(Math.round(betalende.totaal * 1.05 * 100) / 100)}</span>
-        </div>
-      </div>
-
-      <p className="text-xs font-bold uppercase mb-3" style={{ color: "#8A8A83" }}>
-        Betaalmethode
-      </p>
-      <div className="flex flex-col gap-2 mb-5">
-        {DEFAULT_METHODES.map((m, i) => (
-          <button key={m.naam} onClick={() => setGekozenIdx(i)}
-            className="touch-scale flex items-center gap-3 p-3.5 rounded-2xl border-2 text-left"
-            style={{
-              borderColor: gekozenIdx === i ? "#2B4030" : "#E5DDD0",
-              background:  gekozenIdx === i ? "#2B4030" + "12" : "#FBF7F0",
-            }}>
-            <span className="text-xl">{m.icoon}</span>
-            <div className="flex-1">
-              <p className="font-bold text-sm">{m.naam}</p>
-              <p className="text-xs" style={{ color: "#8A8A83" }}>{m.sub}</p>
-            </div>
-            <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-              style={{ borderColor: gekozenIdx === i ? "#2B4030" : "#E5DDD0" }}>
-              {gekozenIdx === i && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#2B4030" }} />}
-            </div>
-          </button>
-        ))}
-      </div>
-      <button onClick={onBevestig}
-        className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-        style={{ background: "#2B4030" }}>
-        <Lock size={18} /> Bevestig betaling · €{fmt(Math.round(betalende.totaal * 1.05 * 100) / 100)}
-      </button>
-    </>
   );
 }

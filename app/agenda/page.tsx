@@ -97,7 +97,7 @@ export default function VandaagPage() {
   // Chat openen: vind (of maak) het gesprek met deze klant
   const openChat = async (b: BoekingRow) => {
     if (!supabaseReady || !userId) return;
-    const { data: bestaand } = await supabase
+    const { data: bestaandRaw } = await supabase
       .from("gesprekken")
       .select("id")
       .eq("klant_id", b.klant_id)
@@ -105,8 +105,9 @@ export default function VandaagPage() {
       .order("laatste_tijd", { ascending: false })
       .limit(1)
       .maybeSingle();
+    const bestaand = bestaandRaw as { id: string } | null;
     if (bestaand?.id) { router.push(`/chat/${bestaand.id}`); return; }
-    const { data: nieuw } = await supabase
+    const { data: nieuwRaw } = await supabase
       .from("gesprekken")
       .insert({
         klant_id: b.klant_id,
@@ -121,6 +122,7 @@ export default function VandaagPage() {
       } as never)
       .select("id")
       .single();
+    const nieuw = nieuwRaw as { id: string } | null;
     if (nieuw?.id) router.push(`/chat/${nieuw.id}`);
   };
 

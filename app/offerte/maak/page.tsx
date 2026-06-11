@@ -7,9 +7,7 @@ import {
   ArrowLeft, Plus, Trash2, Send, Eye, Euro,
   Package, CheckCircle2, CircleDashed,
 } from "lucide-react";
-import { MOCK_BEDRIJF, MOCK_DIENSTEN, type OfferteRegel } from "@/lib/bedrijfStore";
-import { useOfferteStore } from "@/lib/offerteStore";
-import { supabase, supabaseReady } from "@/lib/supabase";
+import { supabase, supabaseReady, stuurNotificatie } from "@/lib/supabase";
 import { useUserStore } from "@/lib/store";
 
 type Fase = "opstellen" | "preview" | "verstuurd";
@@ -52,11 +50,29 @@ function OffertesMaakInner() {
   const opdrachtTitel = searchParams.get("titel") ?? "Opdracht";
   const klantId = searchParams.get("klant_id");
 
-  const bedrijf = MOCK_BEDRIJF;
-  const { verstuurOfferte } = useOfferteStore();
-
   const [fase, setFase] = useState<Fase>("opstellen");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Eigen bedrijfsgegevens — live uit Supabase
+  const [bedrijf, setBedrijf] = useState({ naam: "", email: "", telefoon: "", iban: "" });
+  useEffect(() => {
+    (async () => {
+      if (!supabaseReady) return;
+      let uid = useUserStore.getState().userId;
+      if (!uid) {
+        const { data: { session } } = await supabase.auth.getSession();
+        uid = session?.user?.id ?? null;
+      }
+      if (!uid) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("name, email, phone, vakmensen(iban)")
+        .eq("id", uid)
+        .maybeSingle();
+      const p = data as unknown as { name: string; email: string | null; phone: string | null; vakmensen: { iban: string | null } | null } | null;
+      if (p) setBedrijf({ naam: p.name ?? "", email: p.email ?? "", telefoon: p.phone ?? "", iban: p.vakmensen?.iban ?? "" });
+    })();
+  }, []);
 
   // Klant — automatisch geladen uit Supabase
   const [klantNaam, setKlantNaam] = useState("");
@@ -103,7 +119,7 @@ function OffertesMaakInner() {
   const btwBedrag     = btw ? subtotaal * 0.21 : 0;
   const totaal        = subtotaal + btwBedrag;
 
-  const nummer    = `${bedrijf.offertePrefix}${bedrijf.offerteVolgNr}`;
+  const [nummer] = useState(() => `OFF-${Date.now().toString(36).toUpperCase()}`);
   const datum     = new Date().toLocaleDateString("nl-NL");
   const geldigTot = new Date(Date.now() + 14 * 86400000).toLocaleDateString("nl-NL");
 
@@ -126,45 +142,6 @@ function OffertesMaakInner() {
   const handleVersturen = async () => {
     setIsSaving(true);
     try {
-      // Also save to local store
-      const regels: OfferteRegel[] = [
-        {
-          id: "r1",
-          omschrijving,
-          aantal: 1,
-          eenheid: "klus",
-          prijsPerEenheid: prijs,
-          btwPercentage: btw ? 21 : 0,
-        },
-        ...(kostenType === "plus_materiaal"
-          ? materialen.map((m, i) => ({
-              id: `rm${i + 1}`,
-              omschrijving: m.naam,
-              aantal: m.aantal,
-              eenheid: "stuk",
-              prijsPerEenheid: m.prijs,
-              btwPercentage: btw ? 21 : 0,
-            }))
-          : []),
-      ];
-      verstuurOfferte({
-        nummer,
-        datum,
-        geldigTot,
-        vakmanId: useUserStore.getState().userId ?? "unknown",
-        vakmanNaam: bedrijf.handelsnaam,
-        vakmanAvatar: "https://i.pravatar.cc/150?img=11",
-        vakmanChatId: "p1",
-        klantNaam: klantNaam || "Klant",
-        klantAvatar: "https://i.pravatar.cc/150?img=68",
-        regels,
-        subtotaal,
-        totaalBtw: btwBedrag,
-        totaal,
-        notities,
-      });
-
-      // Save to Supabase
       let userId = useUserStore.getState().userId;
       if (!userId && supabaseReady) {
         const { data: { session } } = await supabase.auth.getSession();
@@ -175,28 +152,38 @@ function OffertesMaakInner() {
       const totaalBedrag = totaal;
       const allOmschrijvingen = [omschrijving, ...materialen.map(m => m.naam)].filter(Boolean).join(", ");
 
-      const { error: offerteError } = await (supabase.from("offertes") as any).insert({
+      const { data: nieuweOfferte, error: offerteError } = await supabase.from("offertes").insert({
         opdracht_id: opdrachtId || null,
         vakman_id: userId,
         prijs: totaalBedrag,
         omschrijving: allOmschrijvingen,
         eta: eta || null,
         status: "wachtend",
-      });
+      } as never).select("id").single();
 
       if (offerteError) { alert("Fout bij verzenden: " + offerteError.message); return; }
 
       if (opdrachtId) {
-        await (supabase.from("opdrachten") as any)
-          .update({ status: "offerte_ontvangen" })
+        await supabase.from("opdrachten")
+          .update({ status: "offerte_ontvangen" } as never)
           .eq("id", opdrachtId);
+      }
+
+      // Klant informeren
+      if (klantId) {
+        stuurNotificatie({
+          user_id: klantId,
+          type: "offerte_ontvangen",
+          titel: "Nieuwe offerte ontvangen 📬",
+          bericht: `${bedrijf.naam || "Een vakman"} stuurde een offerte van €${fmt(totaalBedrag)} voor "${opdrachtTitel}".`,
+          link: nieuweOfferte ? `/offerte/${(nieuweOfferte as { id: string }).id}` : "/mijn-opdrachten",
+        });
       }
 
       setFase("verstuurd");
     } catch (err) {
       console.error("Fout bij opslaan offerte:", err);
       alert("Er ging iets mis: " + String(err));
-      setFase("verstuurd");
     } finally {
       setIsSaving(false);
     }
@@ -304,10 +291,10 @@ function OffertesMaakInner() {
           <div className="flex items-start justify-between">
             <div>
               <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-3">
-                <span className="text-white font-black text-xl">{bedrijf.handelsnaam.charAt(0)}</span>
+                <span className="text-white font-black text-xl">{(bedrijf.naam || "V").charAt(0)}</span>
               </div>
-              <p className="text-white font-black text-lg">{bedrijf.handelsnaam}</p>
-              <p className="text-white/70 text-xs">{bedrijf.email} · {bedrijf.telefoon}</p>
+              <p className="text-white font-black text-lg">{bedrijf.naam || "Vakman"}</p>
+              <p className="text-white/70 text-xs">{[bedrijf.email, bedrijf.telefoon].filter(Boolean).join(" · ")}</p>
             </div>
             <div className="text-right">
               <p className="text-white/60 text-xs font-semibold uppercase">Offerte</p>
@@ -403,8 +390,8 @@ function OffertesMaakInner() {
         </div>
 
         <div className="px-6 py-4" style={{ background: "#f9fafb" }}>
-          <p className="text-xs" style={{ color: "#666" }}>IBAN: {bedrijf.iban} · t.n.v. {bedrijf.naam}</p>
-          <p className="text-xs mt-0.5" style={{ color: "#666" }}>Betalingstermijn: {bedrijf.betalingstermijn} dagen</p>
+          <p className="text-xs" style={{ color: "#666" }}>Betaling verloopt veilig via Servr — escrow tot de klus bevestigd is.</p>
+          {bedrijf.iban && <p className="text-xs mt-0.5" style={{ color: "#666" }}>Uitbetaling op {bedrijf.iban}</p>}
           {notities && <p className="text-xs mt-2 italic" style={{ color: "#888" }}>{notities}</p>}
         </div>
       </div>

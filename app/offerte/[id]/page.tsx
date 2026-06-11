@@ -1,499 +1,277 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, Star, CheckCircle, MapPin, MessageCircle, Clock,
-  Phone, FileText, Loader2, Lock,
+  ArrowLeft, Star, MessageCircle, Clock, FileText, Shield, X,
 } from "lucide-react";
-import { MOCK_OFFERTES, MOCK_OPDRACHTEN } from "@/lib/store";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { useStripeConnectStore } from "@/lib/stripeConnectStore";
+import { useUserStore } from "@/lib/store";
+import {
+  supabase, supabaseReady, formatEuro,
+  type Offerte, type Opdracht,
+} from "@/lib/supabase";
+import { accepteerOfferte, weigerOfferte } from "@/lib/flow";
 
-type Fase = "overzicht" | "geaccepteerd" | "betalen" | "succes";
+const SERIF = "'Source Serif 4', Georgia, serif";
 
-const BANKEN = ["ING", "ABN AMRO", "Rabobank", "SNS", "ASN", "Bunq", "Triodos", "RegioBank"];
-
-function fmt(n: number) {
-  return n.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-type Regel = { omschrijving: string; qty?: number; eenheid?: string; tarief?: number; bedrag: number };
-
-const OFFERTE_DATA: Record<string, {
-  nummer: string; datum: string; regels: Regel[];
-  btw: boolean; chatId: string; vakmanBedrijf: string; vakmanTel: string;
-}> = {
-  off1: {
-    nummer: "OFF-2026-041", datum: "18 mei 2026",
-    regels: [
-      { omschrijving: "Arbeid loodgieterswerk", qty: 2, eenheid: "uur", tarief: 32.50, bedrag: 65 },
-      { omschrijving: "Afdichtingsmateriaal & pakkingen", bedrag: 8 },
-      { omschrijving: "Voorrijkosten", bedrag: 0 },
-    ],
-    btw: false, chatId: "p1", vakmanBedrijf: "Marco Loodgieter", vakmanTel: "06-12 34 56 78",
-  },
-  off2: {
-    nummer: "OFF-2026-042", datum: "18 mei 2026",
-    regels: [
-      { omschrijving: "Arbeid loodgieterswerk", qty: 2, eenheid: "uur", tarief: 40, bedrag: 80 },
-      { omschrijving: "Nieuw afdichtingsmateriaal", bedrag: 5 },
-    ],
-    btw: false, chatId: "p5", vakmanBedrijf: "Aydın Installaties", vakmanTel: "06-98 76 54 32",
-  },
+type OfferteVol = Offerte & {
+  vakman: { name: string; phone: string | null; vakmensen: { specialty: string | null; rating: number; review_count: number } | null } | null;
+  opdracht: (Opdracht & { klant: { name: string } | null }) | null;
 };
 
-const FALLBACK_DATA = OFFERTE_DATA["off1"];
+const STATUS_BADGE: Record<string, { label: string; color: string; bg: string }> = {
+  wachtend:     { label: "Wacht op antwoord", color: "#d97706", bg: "#FAF0E6" },
+  geaccepteerd: { label: "Geaccepteerd",      color: "#2B4030", bg: "#EAF0EC" },
+  geweigerd:    { label: "Geweigerd",         color: "#dc2626", bg: "#F9EDEA" },
+  ingetrokken:  { label: "Ingetrokken",       color: "#8A8A83", bg: "#F0EDEA" },
+};
 
-// ─── Stripe betaalformulier ────────────────────────────────────────────────────
+export default function OfferteDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  const { userId } = useUserStore();
 
-function StripeForm({ totaal, nummer, onSuccess, onBack }: {
-  totaal: number; nummer: string;
-  onSuccess: () => void; onBack: () => void;
-}) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [bezig, setBezig] = useState(false);
-  const [fout, setFout] = useState<string | null>(null);
+  const [offerte, setOfferte] = useState<OfferteVol | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stripe || !elements) return;
-    setBezig(true);
-    setFout(null);
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: `${window.location.origin}/offerte/succes?nr=${nummer}` },
-      redirect: "if_required",
-    });
-    if (error) {
-      setFout(error.message ?? "Betaling mislukt");
-      setBezig(false);
-    } else {
-      onSuccess();
-    }
+  const laad = useCallback(async () => {
+    if (!supabaseReady) { setLoading(false); return; }
+    const { data } = await supabase
+      .from("offertes")
+      .select(`*,
+        vakman:profiles!offertes_vakman_id_fkey(name, phone, vakmensen(specialty, rating, review_count)),
+        opdracht:opdrachten(*, klant:profiles!opdrachten_klant_id_fkey(name))`)
+      .eq("id", id)
+      .maybeSingle();
+    setOfferte((data as unknown as OfferteVol | null) ?? null);
+    setLoading(false);
+  }, [id]);
+
+  useEffect(() => { laad(); }, [laad]);
+
+  // Realtime status-updates
+  useEffect(() => {
+    if (!supabaseReady) return;
+    const channel = supabase.channel(`offerte_${id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "offertes", filter: `id=eq.${id}` }, () => laad())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id, laad]);
+
+  const isVakman = offerte != null && userId === offerte.vakman_id;
+  const isKlant = offerte?.opdracht != null && userId === offerte.opdracht.klant_id;
+
+  // ── Acties ──────────────────────────────────────────────────
+  const handleAccept = async () => {
+    if (!userId || !offerte?.opdracht || busy) return;
+    setBusy(true);
+    const res = await accepteerOfferte(userId, offerte, offerte.opdracht);
+    setBusy(false);
+    if (!res.ok) { alert(res.reden); laad(); return; }
+    router.push(`/te-betalen?boeking=${res.boekingId}`);
   };
+
+  const handleWeiger = async () => {
+    if (!offerte || busy) return;
+    setBusy(true);
+    const err = await weigerOfferte(offerte.id, offerte.vakman_id, offerte.opdracht?.titel ?? "Opdracht");
+    setBusy(false);
+    if (err) { alert("Weigeren mislukt: " + err); return; }
+    router.push(offerte.opdracht ? `/opdracht/${offerte.opdracht.id}` : "/mijn-opdrachten");
+  };
+
+  const handleIntrekken = async () => {
+    if (!offerte || busy) return;
+    if (!confirm("Offerte intrekken? De klant kan hem daarna niet meer accepteren.")) return;
+    setBusy(true);
+    await supabase.from("offertes").update({ status: "ingetrokken" } as never).eq("id", offerte.id).eq("status", "wachtend");
+    setBusy(false);
+    laad();
+  };
+
+  // ── Loading / niet gevonden ─────────────────────────────────
+  if (loading) return (
+    <div style={{ minHeight: "100dvh", background: "#F5EFE5", padding: "80px 20px" }}>
+      <div className="skeleton" style={{ height: 28, width: "50%", marginBottom: 16 }} />
+      <div className="skeleton" style={{ height: 200, marginBottom: 12 }} />
+      <div className="skeleton" style={{ height: 56 }} />
+    </div>
+  );
+
+  if (!offerte) return (
+    <div style={{ minHeight: "100dvh", background: "#F5EFE5", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, textAlign: "center" }}>
+      <p style={{ fontSize: 32, marginBottom: 12 }}>📄</p>
+      <p style={{ fontFamily: SERIF, fontSize: 19, color: "#1A1D1A", margin: "0 0 8px" }}>Offerte niet gevonden</p>
+      <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 20px" }}>Deze offerte bestaat niet meer.</p>
+      <button onClick={() => router.back()} className="touch-scale" style={{ padding: "12px 24px", background: "#2B4030", color: "#F5EFE5", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
+        ← Terug
+      </button>
+    </div>
+  );
+
+  const badge = STATUS_BADGE[offerte.status] ?? STATUS_BADGE.wachtend;
+  const serviceFee = Math.round(offerte.prijs * 0.05 * 100) / 100;
+  const klantTotaal = Math.round((offerte.prijs + serviceFee) * 100) / 100;
+  const vakmanNaam = offerte.vakman?.name ?? "Vakman";
+  const vm = offerte.vakman?.vakmensen;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="rounded-2xl overflow-hidden border" style={{ borderColor: "#E5DDD0" }}>
-        <PaymentElement options={{ layout: "tabs", paymentMethodOrder: ["apple_pay", "google_pay", "card", "bancontact", "ideal"] }} />
+    <div style={{ minHeight: "100dvh", background: "#F5EFE5" }} className="animate-fade-in">
+
+      {/* Header */}
+      <div className="px-5 pt-14 pb-4" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button onClick={() => router.back()} className="touch-scale" style={{
+          width: 36, height: 36, borderRadius: "50%", background: "#EDE4D2",
+          display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer",
+        }}>
+          <ArrowLeft size={17} color="#1A1D1A" />
+        </button>
+        <div style={{ flex: 1 }}>
+          <h1 style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 400, margin: 0, color: "#1A1D1A" }}>Offerte</h1>
+          <p style={{ fontSize: 11, color: "#8A8A83", margin: "1px 0 0" }}>
+            {offerte.opdracht?.titel ?? "Opdracht"}
+          </p>
+        </div>
+        <span style={{ fontSize: 11, fontWeight: 600, color: badge.color, background: badge.bg, borderRadius: 99, padding: "4px 10px", flexShrink: 0 }}>
+          {badge.label}
+        </span>
       </div>
-      {fout && (
-        <div className="p-3 rounded-xl text-sm flex items-center gap-2" style={{ background: "#fee2e2", color: "#dc2626" }}>
-          ⚠️ {fout}
+
+      <div className="px-5 pb-28">
+
+        {/* Offerte-document */}
+        <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, overflow: "hidden", marginBottom: 14 }}>
+
+          {/* Document header */}
+          <div style={{ padding: "20px 18px", background: "linear-gradient(135deg, #2B4030 0%, #1A2D22 100%)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <FileText size={18} color="rgba(255,255,255,0.85)" />
+                <span style={{ color: "#F5EFE5", fontFamily: SERIF, fontSize: 18 }}>Offerte</span>
+              </div>
+              <span style={{ color: "rgba(245,239,229,0.6)", fontSize: 11 }}>
+                {new Date(offerte.created_at).toLocaleDateString("nl-BE", { day: "numeric", month: "long", year: "numeric" })}
+              </span>
+            </div>
+          </div>
+
+          {/* Vakman */}
+          <div style={{ padding: 16, borderBottom: "0.5px solid #E5DDD0", display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#2B4030", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: SERIF, fontSize: 17, color: "#F5EFE5", flexShrink: 0 }}>
+              {vakmanNaam.charAt(0)}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#1A1D1A" }}>{vakmanNaam}</p>
+              <p style={{ fontSize: 11, color: "#8A8A83", margin: "2px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
+                {vm?.specialty ?? "Vakman"}
+                {(vm?.review_count ?? 0) > 0 && (
+                  <><Star size={10} style={{ color: "#C97A4D", fill: "#C97A4D" }} /> {vm?.rating} ({vm?.review_count} reviews)</>
+                )}
+              </p>
+            </div>
+            {offerte.gesprek_id && (
+              <Link href={`/chat/${offerte.gesprek_id}`} className="touch-scale" style={{
+                display: "flex", alignItems: "center", gap: 5, padding: "8px 12px",
+                border: "0.5px solid #2B4030", borderRadius: 99, color: "#2B4030",
+                fontSize: 12, fontWeight: 500, textDecoration: "none", flexShrink: 0,
+              }}>
+                <MessageCircle size={13} /> Chat
+              </Link>
+            )}
+          </div>
+
+          {/* Werkzaamheden */}
+          <div style={{ padding: 16, borderBottom: "0.5px solid #E5DDD0" }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: "#8A8A83", margin: "0 0 8px", textTransform: "uppercase" }}>Werkzaamheden</p>
+            <p style={{ fontSize: 14, color: "#1A1D1A", lineHeight: 1.6, margin: 0 }}>
+              {offerte.omschrijving ?? offerte.opdracht?.titel ?? "Klus"}
+            </p>
+            {offerte.eta && (
+              <p style={{ fontSize: 12, color: "#8A8A83", margin: "10px 0 0", display: "flex", alignItems: "center", gap: 5 }}>
+                <Clock size={12} /> Geschat: {offerte.eta}
+              </p>
+            )}
+          </div>
+
+          {/* Totalen */}
+          <div style={{ padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
+              <span style={{ color: "#8A8A83" }}>Klus (vakman-tarief)</span>
+              <span style={{ color: "#1A1D1A" }}>{formatEuro(offerte.prijs)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 10 }}>
+              <span style={{ color: "#8A8A83" }}>Servr service fee (5%)</span>
+              <span style={{ color: "#8A8A83" }}>{formatEuro(serviceFee)}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 12, borderTop: "0.5px solid #E5DDD0" }}>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#1A1D1A" }}>{isVakman ? "Klant betaalt" : "Jij betaalt"}</p>
+                <p style={{ fontSize: 10, color: "#8A8A83", margin: "1px 0 0" }}>Incl. service fee</p>
+              </div>
+              <p style={{ fontFamily: SERIF, fontSize: 28, margin: 0, color: "#2B4030" }}>{formatEuro(klantTotaal)}</p>
+            </div>
+          </div>
         </div>
-      )}
-      <button type="submit" disabled={!stripe || bezig}
-        className="touch-scale w-full py-4 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-        style={{ background: stripe && !bezig ? "#2B4030" : "#8A8A83" }}>
-        {bezig ? <><Loader2 size={18} className="animate-spin" /> Even wachten…</> : <><Lock size={18} /> Betaal €{fmt(totaal)}</>}
-      </button>
-      <button type="button" onClick={onBack}
-        className="touch-scale w-full py-3 rounded-2xl font-semibold text-sm border"
-        style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
-        Terug
-      </button>
-      <p className="text-center text-xs flex items-center justify-center gap-1" style={{ color: "#8A8A83" }}>
-        <Lock size={10} /> Beveiligd door Stripe · SSL versleuteld
-      </p>
-    </form>
-  );
-}
 
-// ─── Betaalsectie: laadt Stripe of toont mock ─────────────────────────────────
-
-function BetaalSectie({ totaal, nummer, onSuccess, onBack }: {
-  totaal: number; nummer: string; onSuccess: () => void; onBack: () => void;
-}) {
-  const { accountId: vakmanAccountId } = useStripeConnectStore();
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [stripeInstance, setStripeInstance] = useState<Awaited<ReturnType<typeof loadStripe>> | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [gestart, setGestart] = useState(false);
-  const [mockBank, setMockBank] = useState("ING");
-  const [chargeAmount, setChargeAmount] = useState<number | null>(null);
-  const [serviceFee, setServiceFee]     = useState<number | null>(null);
-
-  const startBetaling = async () => {
-    setGestart(true);
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/stripe/intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: totaal,
-          offerteNummer: nummer,
-          stripeAccountId: vakmanAccountId ?? undefined,
-        }),
-      });
-      const data = await res.json();
-      if (res.status === 503 || !data.clientSecret) {
-        setError(data.error ?? null);
-        setLoading(false);
-        return;
-      }
-      const pk = data.publishableKey;
-      if (pk) {
-        const si = await loadStripe(pk);
-        setStripeInstance(si);
-      }
-      setClientSecret(data.clientSecret);
-      if (data.chargeAmount) setChargeAmount(data.chargeAmount);
-      if (data.serviceFee)   setServiceFee(data.serviceFee);
-    } catch {
-      setError("Kan Stripe niet bereiken");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Nog niet gestart — toon knop
-  if (!gestart) return (
-    <div className="flex flex-col gap-3">
-      <button onClick={startBetaling}
-        className="touch-scale w-full py-4 rounded-2xl font-black text-white text-base flex items-center justify-center gap-2"
-        style={{ background: "#2B4030" }}>
-        <Lock size={20} /> Betaal nu €{fmt(totaal)}
-      </button>
-      <button onClick={onBack}
-        className="touch-scale w-full py-3 rounded-2xl font-semibold text-sm border"
-        style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
-        Terug
-      </button>
-      <p className="text-xs text-center" style={{ color: "#8A8A83" }}>🔒 Beveiligd via Stripe</p>
-    </div>
-  );
-
-  if (loading) return (
-    <div className="flex flex-col items-center py-10 gap-3">
-      <Loader2 size={28} className="animate-spin" style={{ color: "#2B4030" }} />
-      <p className="text-sm" style={{ color: "#8A8A83" }}>Betaalmethoden laden…</p>
-    </div>
-  );
-
-  // Stripe werkt → toon Elements
-  if (clientSecret && stripeInstance) return (
-    <Elements stripe={stripeInstance} options={{ clientSecret, appearance: { theme: "stripe", variables: { colorPrimary: "#0F6E56", borderRadius: "16px" } } }}>
-      <div className="flex flex-col gap-2 mb-3 p-3 rounded-2xl text-xs" style={{ background: "#EDE4D2" }}>
-        <div className="flex justify-between">
-          <span style={{ color: "#8A8A83" }}>Klus</span>
-          <span>€{fmt(totaal)}</span>
+        {/* Escrow uitleg */}
+        <div style={{ background: "#EDE4D2", borderRadius: 12, padding: 14, display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 16 }}>
+          <Shield size={15} style={{ color: "#2B4030", flexShrink: 0, marginTop: 2 }} />
+          <p style={{ fontSize: 12, color: "#5C5C56", margin: 0, lineHeight: 1.5 }}>
+            Je betaling staat veilig bij Servr en wordt pas aan de vakman uitbetaald nadat jij de afronding hebt bevestigd.
+          </p>
         </div>
-        {(serviceFee ?? 0) > 0 && (
-          <div className="flex justify-between">
-            <span style={{ color: "#8A8A83" }}>Service fee</span>
-            <span>€{fmt(serviceFee!)}</span>
+
+        {/* ═══ KLANT ACTIES ═══ */}
+        {isKlant && offerte.status === "wachtend" && (
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={handleWeiger} disabled={busy} className="touch-scale" style={{
+              width: 52, height: 52, borderRadius: 12, background: "transparent",
+              border: "0.5px solid #E5DDD0", color: "#8A8A83", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              <X size={19} />
+            </button>
+            <button onClick={handleAccept} disabled={busy} className="touch-scale" style={{
+              flex: 1, height: 52, borderRadius: 12, background: busy ? "#8A8A83" : "#2B4030",
+              color: "#F5EFE5", border: "none", fontSize: 15, fontWeight: 600, cursor: "pointer",
+            }}>
+              {busy ? "Bezig…" : `Accepteren · ${formatEuro(klantTotaal)}`}
+            </button>
           </div>
         )}
-        <div className="flex justify-between font-black border-t pt-2" style={{ borderColor: "#E5DDD0" }}>
-          <span>Totaal</span>
-          <span style={{ color: "#2B4030" }}>€{fmt(chargeAmount ?? totaal)}</span>
-        </div>
-      </div>
-      <StripeForm totaal={chargeAmount ?? totaal} nummer={nummer} onSuccess={onSuccess} onBack={onBack} />
-    </Elements>
-  );
 
-  // Stripe niet geconfigureerd of fout → mock flow
-  return (
-    <div className="flex flex-col gap-4">
-      {error && (
-        <div className="p-3 rounded-xl text-xs" style={{ background: "#fee2e2", color: "#dc2626" }}>
-          ⚠️ {error}
-        </div>
-      )}
-      <div className="flex flex-col gap-2">
-        {["ING", "ABN AMRO", "Rabobank", "KBC", "Belfius"].map(b => (
-          <button key={b} onClick={() => setMockBank(b)}
-            className="touch-scale flex items-center gap-3 px-4 py-3.5 rounded-2xl border-2"
-            style={{ borderColor: mockBank === b ? "#2B4030" : "#E5DDD0", background: mockBank === b ? "#2B4030" + "10" : "#FBF7F0" }}>
-            <span className="text-lg">🏦</span>
-            <span className="flex-1 text-sm font-semibold text-left">{b}</span>
-            <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: mockBank === b ? "#2B4030" : "#E5DDD0" }}>
-              {mockBank === b && <div className="w-2.5 h-2.5 rounded-full" style={{ background: "#2B4030" }} />}
-            </div>
-          </button>
-        ))}
-      </div>
-      <button onClick={onSuccess}
-        className="touch-scale w-full py-4 rounded-2xl font-bold text-white"
-        style={{ background: "#2B4030" }}>
-        Betaal via {mockBank} · €{fmt(totaal)}
-      </button>
-    </div>
-  );
-}
-
-// ─── Hoofdpagina ──────────────────────────────────────────────────────────────
-
-export default function OffertePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const offerte = MOCK_OFFERTES.find(o => o.id === id) ?? MOCK_OFFERTES[0];
-  const opdracht = MOCK_OPDRACHTEN.find(o => o.id === offerte.opdrachtId) ?? MOCK_OPDRACHTEN[0];
-  const extra = OFFERTE_DATA[id] ?? FALLBACK_DATA;
-
-  const [fase, setFase] = useState<Fase>("overzicht");
-
-  const subtotaal = extra.regels.reduce((s, r) => s + r.bedrag, 0);
-  const btwBedrag = extra.btw ? subtotaal * 0.21 : 0;
-  const totaal = subtotaal + btwBedrag;
-
-  // ── Succes ───────────────────────────────────────────────────────────────
-  if (fase === "succes") return (
-    <div className="flex flex-col items-center justify-center min-h-dvh gap-6 px-6 text-center animate-bounce-in pb-24">
-      <div className="relative">
-        <div className="w-24 h-24 rounded-full flex items-center justify-center" style={{ background: "#2B4030" }}>
-          <CheckCircle size={48} color="white" />
-        </div>
-      </div>
-      <div>
-        <h2 className="font-black text-2xl mb-2">Betaald! 🎉</h2>
-        <p className="text-sm leading-relaxed" style={{ color: "#8A8A83" }}>
-          <strong>€{fmt(totaal)}</strong> succesvol betaald.
-        </p>
-      </div>
-      <div className="w-full card p-4 text-left flex flex-col gap-2">
-        <p className="font-bold text-sm mb-1">Betalingsbevestiging</p>
-        {extra.regels.filter(r => r.bedrag > 0).map((r, i) => (
-          <div key={i} className="flex justify-between text-sm">
-            <span style={{ color: "#8A8A83" }}>{r.omschrijving}</span>
-            <span>€{fmt(r.bedrag)}</span>
-          </div>
-        ))}
-        <div className="flex justify-between text-base font-black pt-2 border-t" style={{ borderColor: "#E5DDD0" }}>
-          <span>Totaal betaald</span>
-          <span style={{ color: "#2B4030" }}>€{fmt(totaal)}</span>
-        </div>
-      </div>
-      <Link href="/" className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-center" style={{ background: "#2B4030" }}>
-        Terug naar home
-      </Link>
-    </div>
-  );
-
-  // ── Betalen ───────────────────────────────────────────────────────────────
-  if (fase === "betalen") return (
-    <div className="flex flex-col min-h-full pb-8 animate-fade-in">
-      <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
-        <button onClick={() => setFase("geaccepteerd")}
-          className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
-          <ArrowLeft size={18} />
-        </button>
-        <h1 className="font-black text-lg">Klus betalen</h1>
-      </div>
-      <div className="px-5 pt-5 flex flex-col gap-5">
-        <div className="card overflow-hidden">
-          <div className="px-4 py-3 border-b" style={{ borderColor: "#E5DDD0", background: "#EDE4D2" }}>
-            <p className="font-bold text-sm">Overzicht {extra.nummer}</p>
-          </div>
-          <div className="px-4 py-3 flex flex-col gap-2">
-            {extra.regels.map((r, i) => (
-              <div key={i} className="flex justify-between text-sm">
-                <span style={{ color: r.bedrag === 0 ? "#8A8A83" : "#1A1D1A" }}>
-                  {r.omschrijving}{r.qty && r.tarief ? ` (${r.qty}× €${fmt(r.tarief)})` : ""}
-                </span>
-                <span style={{ color: r.bedrag === 0 ? "#8A8A83" : "#1A1D1A" }}>
-                  {r.bedrag === 0 ? "Gratis" : `€${fmt(r.bedrag)}`}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="px-4 py-3 border-t flex flex-col gap-1" style={{ borderColor: "#E5DDD0" }}>
-            <div className="flex justify-between text-sm">
-              <span style={{ color: "#8A8A83" }}>Klus subtotaal</span>
-              <span>€{fmt(totaal)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span style={{ color: "#8A8A83" }}>Service fee (5%)</span>
-              <span>€{fmt(totaal * 0.05)}</span>
-            </div>
-            <div className="flex justify-between font-black text-base pt-1">
-              <span>Totaal te betalen</span>
-              <span style={{ color: "#2B4030" }}>€{fmt(totaal * 1.05)}</span>
-            </div>
-          </div>
-        </div>
-        <BetaalSectie totaal={totaal} nummer={extra.nummer} onSuccess={() => setFase("succes")} onBack={() => setFase("geaccepteerd")} />
-      </div>
-    </div>
-  );
-
-  // ── Geaccepteerd ─────────────────────────────────────────────────────────
-  if (fase === "geaccepteerd") return (
-    <div className="flex flex-col min-h-full pb-8 animate-fade-in">
-      <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
-        <Link href="/mijn-opdrachten" className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
-          <ArrowLeft size={18} />
-        </Link>
-        <h1 className="font-black text-lg">Klus in uitvoering</h1>
-      </div>
-      <div className="px-5 pt-5 flex flex-col gap-4">
-        <div className="rounded-3xl overflow-hidden" style={{ background: "linear-gradient(135deg, #2B4030 0%, #1A2D22 100%)" }}>
-          <div className="px-6 py-6 text-center">
-            <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-3">
-              <CheckCircle size={32} color="white" />
-            </div>
-            <h2 className="text-white font-black text-xl mb-1">Offerte geaccepteerd!</h2>
-            <p className="text-white/80 text-sm">Jouw adres is gedeeld met {offerte.vakman.split(" ")[0]}</p>
-          </div>
-        </div>
-        <div className="card p-4 flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#2B4030" + "15" }}>
-            <MapPin size={18} style={{ color: "#2B4030" }} />
-          </div>
-          <div>
-            <p className="font-bold text-sm">Jouw adres is nu zichtbaar</p>
-            <p className="font-semibold text-sm mt-0.5">{opdracht.adres}</p>
-          </div>
-        </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <img src={offerte.vakmanAvatar} className="w-14 h-14 rounded-2xl object-cover" alt="" />
-            <div className="flex-1">
-              <p className="font-bold text-base">{offerte.vakman}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <Star size={12} className="fill-yellow-400 text-yellow-400" />
-                <span className="text-xs font-bold">4.9</span>
-                <span className="text-xs" style={{ color: "#8A8A83" }}>(127 reviews)</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: "#EDE4D2" }}>
-            <Clock size={14} style={{ color: "#2B4030" }} />
-            <p className="text-sm font-semibold">Komt: <strong>{offerte.eta}</strong></p>
-          </div>
-        </div>
-        <Link href={`/chat/${extra.chatId}`}
-          className="touch-scale w-full py-4 rounded-2xl font-bold text-white text-center flex items-center justify-center gap-2"
-          style={{ background: "#2B4030" }}>
-          <MessageCircle size={18} /> Chat met {offerte.vakman.split(" ")[0]}
-        </Link>
-        <div className="card p-5">
-          <p className="font-bold text-sm mb-1">Klus afgerond?</p>
-          <p className="text-xs mb-4" style={{ color: "#8A8A83" }}>Betaal pas nadat de vakman zijn werk heeft gedaan en jij tevreden bent.</p>
-          <button onClick={() => setFase("betalen")}
-            className="touch-scale w-full py-3.5 rounded-2xl font-bold text-white text-sm"
-            style={{ background: "#2B4030" }}>
-            💳 Klus betalen — €{fmt(totaal)}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ── Overzicht ─────────────────────────────────────────────────────────────
-  return (
-    <div className="flex flex-col min-h-full pb-10 animate-fade-in">
-      <div className="flex items-center gap-3 px-5 pt-12 pb-4 sticky top-0 z-10"
-        style={{ background: "#F5EFE5", borderBottom: "1px solid #E5DDD0" }}>
-        <Link href="/offertes" className="touch-scale w-9 h-9 rounded-full card flex items-center justify-center">
-          <ArrowLeft size={18} />
-        </Link>
-        <div className="flex-1">
-          <h1 className="font-black text-lg">Offerte</h1>
-          <p className="text-xs" style={{ color: "#8A8A83" }}>{extra.nummer}</p>
-        </div>
-        <Link href={`/chat/${extra.chatId}`}
-          className="touch-scale flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border"
-          style={{ borderColor: "#2B4030", color: "#2B4030" }}>
-          <MessageCircle size={13} /> Vraag stellen
-        </Link>
-      </div>
-      <div className="px-5 pt-4 flex flex-col gap-4">
-        <div className="card overflow-hidden">
-          <div className="px-5 py-5" style={{ background: "linear-gradient(135deg, #2B4030 0%, #1A2D22 100%)" }}>
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
-                    <FileText size={18} color="white" />
-                  </div>
-                  <div>
-                    <p className="text-white font-black text-lg leading-none">OFFERTE</p>
-                    <p className="text-white/70 text-[11px]">{extra.nummer}</p>
-                  </div>
-                </div>
-                <p className="text-white/70 text-xs">Datum: {extra.datum}</p>
-                <p className="text-white/70 text-xs">Geldig tot: {offerte.geldigTot}</p>
-              </div>
-              <img src={offerte.vakmanAvatar} className="w-14 h-14 rounded-2xl object-cover" style={{ border: "2px solid rgba(255,255,255,0.3)" }} alt="" />
-            </div>
-          </div>
-          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
-            <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "#8A8A83" }}>Van</p>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <p className="font-black text-sm">{offerte.vakman}</p>
-                <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>{extra.vakmanBedrijf}</p>
-                <div className="flex items-center gap-3 mt-1.5">
-                  <div className="flex items-center gap-1">
-                    <Star size={11} className="fill-yellow-400 text-yellow-400" />
-                    <span className="text-xs font-bold">4.9</span>
-                    <span className="text-xs" style={{ color: "#8A8A83" }}>(127)</span>
-                  </div>
-                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full" style={{ background: "#2B4030", color: "white" }}>
-                    S{offerte.vakmanScore}
-                  </span>
-                </div>
-              </div>
-              <a href={`tel:${extra.vakmanTel}`} className="touch-scale w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#2B4030" + "12" }}>
-                <Phone size={16} style={{ color: "#2B4030" }} />
-              </a>
-            </div>
-          </div>
-          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
-            <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "#8A8A83" }}>Voor</p>
-            <p className="font-bold text-sm">{opdracht.categorieIcon} {opdracht.title}</p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <Clock size={11} style={{ color: "#2B4030" }} />
-              <p className="text-xs font-semibold" style={{ color: "#2B4030" }}>Uitvoering: {offerte.eta}</p>
-            </div>
-          </div>
-          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
-            <p className="text-[10px] font-bold uppercase mb-2" style={{ color: "#8A8A83" }}>Omschrijving</p>
-            <p className="text-sm leading-relaxed">{offerte.beschrijving}</p>
-          </div>
-          <div className="px-5 py-4 border-b" style={{ borderColor: "#E5DDD0" }}>
-            <p className="text-[10px] font-bold uppercase mb-3" style={{ color: "#8A8A83" }}>Prijsopbouw</p>
-            <div className="flex flex-col gap-2.5">
-              {extra.regels.map((r, i) => (
-                <div key={i} className="flex items-start justify-between gap-2">
-                  <div className="flex-1">
-                    <p className="text-sm">{r.omschrijving}</p>
-                    {r.qty && r.tarief ? <p className="text-xs mt-0.5" style={{ color: "#8A8A83" }}>{r.qty} {r.eenheid} × €{fmt(r.tarief)}</p> : null}
-                  </div>
-                  <p className="text-sm font-semibold flex-shrink-0" style={{ color: r.bedrag === 0 ? "#8A8A83" : "#1A1D1A" }}>
-                    {r.bedrag === 0 ? "Gratis" : `€${fmt(r.bedrag)}`}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="px-5 py-4">
-            <div className="flex justify-between items-center pt-1">
-              <span className="font-black text-base">Totaal</span>
-              <span className="font-black text-2xl" style={{ color: "#2B4030" }}>€{fmt(totaal)}</span>
-            </div>
-            <p className="text-xs mt-2" style={{ color: "#8A8A83" }}>Je betaalt pas nadat de klus naar wens is afgerond.</p>
-          </div>
-        </div>
-        <div className="flex gap-3 pt-1">
-          <Link href="/offertes" className="touch-scale flex-1 py-4 rounded-2xl font-bold text-sm text-center border" style={{ borderColor: "#E5DDD0", color: "#8A8A83" }}>
-            ✕ Weigeren
+        {isKlant && offerte.status === "geaccepteerd" && (
+          <Link href={offerte.opdracht ? `/opdracht/${offerte.opdracht.id}` : "/mijn-opdrachten"} className="touch-scale" style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            height: 52, borderRadius: 12, background: "#2B4030", color: "#F5EFE5",
+            fontSize: 15, fontWeight: 600, textDecoration: "none",
+          }}>
+            Naar opdracht-status
           </Link>
-          <button onClick={() => setFase("geaccepteerd")}
-            className="touch-scale flex-[2] py-4 rounded-2xl font-black text-white text-sm flex items-center justify-center gap-2"
-            style={{ background: "#2B4030" }}>
-            <CheckCircle size={18} /> Accepteer offerte
+        )}
+
+        {/* ═══ VAKMAN ACTIES ═══ */}
+        {isVakman && offerte.status === "wachtend" && (
+          <button onClick={handleIntrekken} disabled={busy} className="touch-scale" style={{
+            width: "100%", padding: "14px 0", background: "transparent",
+            border: "0.5px solid #E5DDD0", color: "#8A8A83", borderRadius: 12,
+            fontSize: 13, fontWeight: 500, cursor: "pointer",
+          }}>
+            Offerte intrekken
           </button>
-        </div>
+        )}
+
+        {isVakman && offerte.status === "geaccepteerd" && (
+          <Link href="/agenda" className="touch-scale" style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            height: 52, borderRadius: 12, background: "#2B4030", color: "#F5EFE5",
+            fontSize: 15, fontWeight: 600, textDecoration: "none",
+          }}>
+            🎉 Geaccepteerd — naar je agenda
+          </Link>
+        )}
       </div>
     </div>
   );
