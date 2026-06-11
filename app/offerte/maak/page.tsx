@@ -149,6 +149,18 @@ function OffertesMaakInner() {
       }
       if (!userId) { alert("Niet ingelogd — log opnieuw in."); return; }
 
+      // Geblokkeerd: offerte op een klus die al vergeven/betaald/geannuleerd is
+      if (opdrachtId) {
+        const { data: opd } = await supabase
+          .from("opdrachten").select("status").eq("id", opdrachtId).maybeSingle();
+        const opdStatus = (opd as { status: string } | null)?.status;
+        if (opdStatus && !["open", "offerte_ontvangen"].includes(opdStatus)) {
+          alert("Deze klus is al vergeven of niet meer beschikbaar.");
+          router.push("/feed");
+          return;
+        }
+      }
+
       const totaalBedrag = totaal;
       const allOmschrijvingen = [omschrijving, ...materialen.map(m => m.naam)].filter(Boolean).join(", ");
 

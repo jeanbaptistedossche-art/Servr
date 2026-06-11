@@ -1,22 +1,29 @@
-// ─── Gedeelde klant↔vakman flow-acties ─────────────────────────
-// Eén bron van waarheid voor accepteren/weigeren/annuleren,
-// gebruikt door /mijn-opdrachten, /offerte/[id] en /opdracht/[id].
+// ═══════════════════════════════════════════════════════════════
+// GEDEELDE KLANT↔VAKMAN FLOW-ACTIES
+// Eén bron van waarheid voor accepteren / weigeren / annuleren.
+// Statussen komen EXCLUSIEF uit lib/status.ts (matcht DB constraints).
+//
+// Flow:  offerte 'wachtend'
+//          → klant accepteert  → offerte 'geaccepteerd'
+//                                rest    'geweigerd' (+ notificatie)
+//                                opdracht 'geaccepteerd'
+//                                boeking  'gepland' aangemaakt
+//                                gesprek  gevonden/aangemaakt
+//          → klant weigert     → offerte 'geweigerd' (+ notificatie)
+//          → vakman trekt in   → offerte 'ingetrokken'
+// Dubbel accepteren is onmogelijk: de update eist status='wachtend'
+// en bij 0 geraakte rijen lezen we de echte status terug voor een
+// eerlijke foutmelding.
+// ═══════════════════════════════════════════════════════════════
 
 import { supabase, stuurNotificatie, type Offerte, type Opdracht } from "@/lib/supabase";
+import { OFFERTE_LABEL, type OfferteStatus } from "@/lib/status";
 
 export type AccepteerResultaat =
   | { ok: true; boekingId: string; gesprekId: string | null }
   | { ok: false; reden: string };
 
-/**
- * Klant accepteert een offerte:
- * 1. status-check (dubbel accepteren onmogelijk)
- * 2. offerte → geaccepteerd, overige offertes → geweigerd (+ notificaties)
- * 3. opdracht → geaccepteerd
- * 4. boeking aangemaakt (morgen 10:00 als startmoment tot planning bestaat)
- * 5. gesprek gevonden of aangemaakt
- * 6. notificatie naar vakman
- */
+/** Klant accepteert een offerte. Zie statusmachine bovenaan dit bestand. */
 export async function accepteerOfferte(
   klantId: string,
   offerte: Pick<Offerte, "id" | "vakman_id" | "prijs" | "omschrijving">,
@@ -25,34 +32,46 @@ export async function accepteerOfferte(
   // 1. Alleen accepteren als hij nog wacht — voorkomt dubbel accepteren (2 tabs)
   const { data: geaccepteerd, error: e1 } = await supabase
     .from("offertes")
-    .update({ status: "geaccepteerd" } as never)
+    .update({ status: "geaccepteerd" satisfies OfferteStatus } as never)
     .eq("id", offerte.id)
-    .eq("status", "wachtend")
+    .eq("status", "wachtend" satisfies OfferteStatus)
     .select("id");
-  if (e1) return { ok: false, reden: e1.message };
-  if (!geaccepteerd || geaccepteerd.length === 0)
-    return { ok: false, reden: "Deze offerte is niet meer beschikbaar." };
+  if (e1) return { ok: false, reden: "Accepteren mislukt: " + e1.message };
+
+  if (!geaccepteerd || geaccepteerd.length === 0) {
+    // 0 rijen geraakt — lees de echte status terug voor een eerlijke melding
+    const { data: huidige } = await supabase
+      .from("offertes").select("status").eq("id", offerte.id).maybeSingle();
+    const status = (huidige as { status: OfferteStatus } | null)?.status;
+    if (!status)
+      return { ok: false, reden: "We konden deze offerte niet vinden. Herlaad de pagina en probeer opnieuw." };
+    if (status === "geaccepteerd")
+      return { ok: false, reden: "Je hebt deze offerte al geaccepteerd." };
+    if (status === "wachtend")
+      return { ok: false, reden: "Accepteren lukte niet door een rechten-instelling in de database. Draai de migratie 20260611_v3_polish.sql in Supabase." };
+    return { ok: false, reden: `Deze offerte is ${OFFERTE_LABEL[status].toLowerCase()}.` };
+  }
 
   // 2. Overige offertes op dezelfde opdracht weigeren + vakmensen informeren
   const { data: overige } = await supabase
     .from("offertes")
     .select("id, vakman_id")
     .eq("opdracht_id", opdracht.id)
-    .eq("status", "wachtend")
+    .eq("status", "wachtend" satisfies OfferteStatus)
     .neq("id", offerte.id);
   if (overige && overige.length > 0) {
     await supabase
       .from("offertes")
-      .update({ status: "geweigerd" } as never)
+      .update({ status: "geweigerd" satisfies OfferteStatus } as never)
       .eq("opdracht_id", opdracht.id)
-      .eq("status", "wachtend")
+      .eq("status", "wachtend" satisfies OfferteStatus)
       .neq("id", offerte.id);
     for (const o of overige as { id: string; vakman_id: string }[]) {
       stuurNotificatie({
         user_id: o.vakman_id,
         type: "offerte_geweigerd",
-        titel: "Opdracht vergeven",
-        bericht: `${opdracht.titel} — de klant koos een andere offerte.`,
+        titel: "Klus is vergeven",
+        bericht: `${opdracht.titel} — de klant koos een andere offerte. Bedankt voor je aanbod!`,
         link: "/offertes",
       });
     }
@@ -65,7 +84,7 @@ export async function accepteerOfferte(
   const start = new Date();
   start.setDate(start.getDate() + 1);
   start.setHours(10, 0, 0, 0);
-  const { data: boeking, error: e2 } = await supabase
+  const { data: boekingRaw, error: e2 } = await supabase
     .from("boekingen")
     .insert({
       klant_id: klantId,
@@ -81,8 +100,9 @@ export async function accepteerOfferte(
     } as never)
     .select("id")
     .single();
-  if (e2 || !boeking) return { ok: false, reden: "Boeking aanmaken mislukt: " + (e2?.message ?? "onbekend") };
-  const boekingId = (boeking as { id: string }).id;
+  const boeking = boekingRaw as { id: string } | null;
+  if (e2 || !boeking) return { ok: false, reden: "We konden de afspraak niet inplannen: " + (e2?.message ?? "onbekende fout") };
+  const boekingId = boeking.id;
 
   // 5. Gesprek vinden of aanmaken
   let gesprekId: string | null = null;
@@ -128,8 +148,8 @@ export async function accepteerOfferte(
   stuurNotificatie({
     user_id: offerte.vakman_id,
     type: "offerte_geaccepteerd",
-    titel: "Offerte geaccepteerd! 🎉",
-    bericht: `${opdracht.titel} — de klant heeft je offerte geaccepteerd. Zodra de betaling binnen is, staat de klus in je agenda.`,
+    titel: "Je offerte is geaccepteerd! 🎉",
+    bericht: `${opdracht.titel} — zodra de klant betaald heeft, staat de klus in je agenda.`,
     link: "/agenda",
   });
 
@@ -144,9 +164,9 @@ export async function weigerOfferte(
 ): Promise<string | null> {
   const { error } = await supabase
     .from("offertes")
-    .update({ status: "geweigerd" } as never)
+    .update({ status: "geweigerd" satisfies OfferteStatus } as never)
     .eq("id", offerteId)
-    .eq("status", "wachtend");
+    .eq("status", "wachtend" satisfies OfferteStatus);
   if (error) return error.message;
   stuurNotificatie({
     user_id: vakmanId,
@@ -162,7 +182,7 @@ export async function weigerOfferte(
 export async function annuleerOpdracht(
   opdracht: Pick<Opdracht, "id" | "titel">,
 ): Promise<string | null> {
-  // Betaalde boeking? Dan niet zomaar annuleren.
+  // Betaalde boeking? Dan loopt annulatie via /api/stripe/refund.
   const { data: betaaldeBoekingen } = await supabase
     .from("boekingen")
     .select("id")
@@ -170,7 +190,7 @@ export async function annuleerOpdracht(
     .eq("betaald", true)
     .limit(1);
   if (betaaldeBoekingen && betaaldeBoekingen.length > 0)
-    return "Deze opdracht is al betaald — neem contact op via de chat of vraag een terugbetaling aan.";
+    return "Deze klus is al betaald. Annuleer via de klus-pagina, dan storten we je geld terug.";
 
   const { error } = await supabase
     .from("opdrachten")
@@ -183,29 +203,39 @@ export async function annuleerOpdracht(
     .from("boekingen")
     .update({ status: "geannuleerd" } as never)
     .eq("opdracht_id", opdracht.id)
-    .in("status", ["gepland"]);
+    .eq("status", "gepland");
 
   // Vakmensen met openstaande offertes informeren
   const { data: open } = await supabase
     .from("offertes")
     .select("id, vakman_id")
     .eq("opdracht_id", opdracht.id)
-    .in("status", ["wachtend", "geaccepteerd"]);
+    .in("status", ["wachtend", "geaccepteerd"] satisfies OfferteStatus[]);
   if (open) {
     await supabase
       .from("offertes")
-      .update({ status: "geweigerd" } as never)
+      .update({ status: "geweigerd" satisfies OfferteStatus } as never)
       .eq("opdracht_id", opdracht.id)
-      .in("status", ["wachtend", "geaccepteerd"]);
+      .in("status", ["wachtend", "geaccepteerd"] satisfies OfferteStatus[]);
     for (const o of open as { id: string; vakman_id: string }[]) {
       stuurNotificatie({
         user_id: o.vakman_id,
         type: "opdracht_geannuleerd",
-        titel: "Opdracht geannuleerd",
-        bericht: `${opdracht.titel} — de klant heeft de opdracht geannuleerd.`,
+        titel: "Klus geannuleerd",
+        bericht: `${opdracht.titel} — de klant heeft de klus geannuleerd.`,
         link: "/feed",
       });
     }
   }
   return null;
+}
+
+/** Vakman trekt zijn eigen offerte in */
+export async function trekOfferteIn(offerteId: string): Promise<string | null> {
+  const { error } = await supabase
+    .from("offertes")
+    .update({ status: "ingetrokken" satisfies OfferteStatus } as never)
+    .eq("id", offerteId)
+    .eq("status", "wachtend" satisfies OfferteStatus);
+  return error?.message ?? null;
 }

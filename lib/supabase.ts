@@ -31,15 +31,10 @@ export type Database = {
   };
 };
 
-// ─── Status machines (één bron van waarheid) ─────────────────
-export const OPDRACHT_STATUS = ["open", "offerte_ontvangen", "geaccepteerd", "bevestigd", "afgerond", "geannuleerd"] as const;
-export type OpdrachtStatus = (typeof OPDRACHT_STATUS)[number];
-
-export const BOEKING_STATUS = ["gepland", "bezig", "ingecheckt", "afgerond", "bevestigd", "uitbetaald", "geannuleerd", "geschil"] as const;
-export type BoekingStatus = (typeof BOEKING_STATUS)[number];
-
-export const OFFERTE_STATUS = ["wachtend", "geaccepteerd", "geweigerd", "ingetrokken"] as const;
-export type OfferteStatus = (typeof OFFERTE_STATUS)[number];
+// ─── Statussen: één bron van waarheid in lib/status.ts ────────
+import type { OpdrachtStatus, OfferteStatus, BoekingStatus } from "./status";
+export type { OpdrachtStatus, OfferteStatus, BoekingStatus } from "./status";
+export { OPDRACHT_STATUSSEN, OFFERTE_STATUSSEN, BOEKING_STATUSSEN } from "./status";
 
 export type Profile = {
   id: string;

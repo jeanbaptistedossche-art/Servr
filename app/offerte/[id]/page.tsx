@@ -11,7 +11,8 @@ import {
   supabase, supabaseReady, formatEuro,
   type Offerte, type Opdracht,
 } from "@/lib/supabase";
-import { accepteerOfferte, weigerOfferte } from "@/lib/flow";
+import { accepteerOfferte, weigerOfferte, trekOfferteIn } from "@/lib/flow";
+import { OFFERTE_LABEL, statusKleur, type OfferteStatus } from "@/lib/status";
 
 const SERIF = "'Source Serif 4', Georgia, serif";
 
@@ -20,12 +21,7 @@ type OfferteVol = Offerte & {
   opdracht: (Opdracht & { klant: { name: string } | null }) | null;
 };
 
-const STATUS_BADGE: Record<string, { label: string; color: string; bg: string }> = {
-  wachtend:     { label: "Wacht op antwoord", color: "#d97706", bg: "#FAF0E6" },
-  geaccepteerd: { label: "Geaccepteerd",      color: "#2B4030", bg: "#EAF0EC" },
-  geweigerd:    { label: "Geweigerd",         color: "#dc2626", bg: "#F9EDEA" },
-  ingetrokken:  { label: "Ingetrokken",       color: "#8A8A83", bg: "#F0EDEA" },
-};
+// Labels en kleuren komen uit lib/status.ts — geen losse status-strings hier
 
 export default function OfferteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -86,8 +82,9 @@ export default function OfferteDetailPage({ params }: { params: Promise<{ id: st
     if (!offerte || busy) return;
     if (!confirm("Offerte intrekken? De klant kan hem daarna niet meer accepteren.")) return;
     setBusy(true);
-    await supabase.from("offertes").update({ status: "ingetrokken" } as never).eq("id", offerte.id).eq("status", "wachtend");
+    const err = await trekOfferteIn(offerte.id);
     setBusy(false);
+    if (err) alert("Intrekken lukte niet: " + err);
     laad();
   };
 
@@ -111,7 +108,8 @@ export default function OfferteDetailPage({ params }: { params: Promise<{ id: st
     </div>
   );
 
-  const badge = STATUS_BADGE[offerte.status] ?? STATUS_BADGE.wachtend;
+  const badgeStatus = (offerte.status ?? "wachtend") as OfferteStatus;
+  const badge = { label: OFFERTE_LABEL[badgeStatus] ?? badgeStatus, ...statusKleur(badgeStatus) };
   const serviceFee = Math.round(offerte.prijs * 0.05 * 100) / 100;
   const klantTotaal = Math.round((offerte.prijs + serviceFee) * 100) / 100;
   const vakmanNaam = offerte.vakman?.name ?? "Vakman";

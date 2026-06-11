@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { MapPin, ChevronDown, Search, Zap, ChevronRight, Mic, MicOff, Crosshair, X } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 import { supabase, supabaseReady, afstandKm, formatEuro, type Opdracht } from "@/lib/supabase";
+import { OPDRACHT_LABEL, type OpdrachtStatus } from "@/lib/status";
 
 const SERIF = "'Source Serif 4', Georgia, serif";
 
@@ -29,13 +30,7 @@ const CATS = [
   { id: "klusser",     label: "Klusser",     emoji: "🔨" },
 ];
 
-const STATUS_LABEL: Record<string, string> = {
-  open: "Wacht op offertes",
-  offerte_ontvangen: "Offerte ontvangen",
-  geaccepteerd: "Geaccepteerd",
-  bevestigd: "Ingepland",
-  afgerond: "Afgerond",
-};
+// Statuslabels uit lib/status.ts
 
 export default function KlantHomePage() {
   const { name, address, role, activeView, setActiveView, setProfile, userId, lat, lng } = useUserStore();
@@ -607,7 +602,7 @@ export default function KlantHomePage() {
                           {op.titel}
                         </p>
                         <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 11, color: "var(--ink-fade)", margin: "1px 0 0" }}>
-                          {op.categorie ?? "Opdracht"} · {STATUS_LABEL[op.status] ?? op.status}
+                          {op.categorie ?? "Opdracht"} · {OPDRACHT_LABEL[op.status as OpdrachtStatus] ?? op.status}
                         </p>
                       </div>
 

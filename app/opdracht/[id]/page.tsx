@@ -13,6 +13,7 @@ import {
   type Opdracht, type Offerte,
 } from "@/lib/supabase";
 import { accepteerOfferte, weigerOfferte, annuleerOpdracht } from "@/lib/flow";
+import { OPDRACHT_LABEL, OFFERTE_LABEL, wieAanZet, type OpdrachtStatus, type BoekingStatus } from "@/lib/status";
 
 const SERIF = "'Source Serif 4', Georgia, serif";
 
@@ -30,14 +31,7 @@ const URGENTIE: Record<string, { label: string; color: string; bg: string }> = {
   laag:   { label: "Flexibel", color: "#2B4030", bg: "#EAF0EC" },
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  open: "Open — wacht op offertes",
-  offerte_ontvangen: "Offertes ontvangen",
-  geaccepteerd: "Offerte geaccepteerd",
-  bevestigd: "Ingepland",
-  afgerond: "Afgerond",
-  geannuleerd: "Geannuleerd",
-};
+// Statuslabels uit lib/status.ts — geen losse strings hier
 
 function tijdGeleden(iso: string) {
   const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
@@ -269,8 +263,8 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
           <h1 style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 400, margin: 0, color: "#1A1D1A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {opdracht.titel}
           </h1>
-          <p style={{ fontSize: 11, color: "#8A8A83", margin: "1px 0 0" }}>
-            {STATUS_LABEL[opdracht.status] ?? opdracht.status} · {tijdGeleden(opdracht.created_at)}
+          <p style={{ fontSize: 13, color: "#8A8A83", margin: "1px 0 0" }}>
+            {OPDRACHT_LABEL[opdracht.status as OpdrachtStatus] ?? opdracht.status} · {tijdGeleden(opdracht.created_at)}
           </p>
         </div>
         <span style={{ fontSize: 11, fontWeight: 600, color: urg.color, background: urg.bg, borderRadius: 99, padding: "4px 10px", flexShrink: 0 }}>
@@ -387,17 +381,11 @@ export default function OpdrachtDetailPage({ params }: { params: Promise<{ id: s
             {/* Boeking-status */}
             {boeking && (
               <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16, marginBottom: 14 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#8A8A83", margin: "0 0 8px", textTransform: "uppercase" }}>Status</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#8A8A83", margin: "0 0 8px", textTransform: "uppercase" }}>Status</p>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <CheckCircle2 size={18} style={{ color: "#2B4030", flexShrink: 0 }} />
-                  <p style={{ fontSize: 14, color: "#1A1D1A", margin: 0, flex: 1 }}>
-                    {boeking.status === "gepland" && !boeking.betaald ? "Geaccepteerd — betaling nodig om te bevestigen"
-                      : boeking.status === "gepland" ? "Betaald — vakman komt langs"
-                      : boeking.status === "ingecheckt" ? "Vakman is bezig"
-                      : boeking.status === "afgerond" ? "Klaar — bevestig de afronding"
-                      : boeking.status === "bevestigd" ? "Bevestigd — vakman wordt uitbetaald"
-                      : boeking.status === "uitbetaald" ? "Volledig afgerond ✓"
-                      : boeking.status}
+                  <p style={{ fontSize: 15, color: "#1A1D1A", margin: 0, flex: 1 }}>
+                    {wieAanZet(boeking.status as BoekingStatus, boeking.betaald, true)}
                   </p>
                   {boeking.status === "gepland" && !boeking.betaald && (
                     <Link href={`/te-betalen?boeking=${boeking.id}`} className="touch-scale" style={{
