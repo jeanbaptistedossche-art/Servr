@@ -109,7 +109,7 @@ export default function OnboardingPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         const n = session.user.user_metadata?.full_name ?? session.user.email ?? "Gebruiker";
-        login({ role: "klant", name: n, address: "Amsterdam" });
+        login({ role: "klant", name: n });
         router.replace("/");
       }
     });
@@ -118,7 +118,7 @@ export default function OnboardingPage() {
 
   // ── Demo login (als Supabase nog niet klaar is) ──────────────────────────────
   const handleDemo = (r: UserRole, name: string) => {
-    login({ role: r, name, address: "Amsterdam", isAdmin: r === "vakman" });
+    login({ role: r, name, isAdmin: r === "vakman" });
     router.replace(r === "vakman" ? "/vakman" : "/");
   };
 

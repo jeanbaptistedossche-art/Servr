@@ -10,8 +10,8 @@ export type UserState = {
   activeView: "klant" | "vakman";
   name: string;
   address: string;
-  lat: number;
-  lng: number;
+  lat: number | null;
+  lng: number | null;
   isLoggedIn: boolean;
   isAdmin: boolean;
   userId: string | null;   // Supabase auth UID
@@ -52,14 +52,14 @@ export const useUserStore = create<UserState>()(
       role: null,
       activeView: "klant",
       name: "",
-      address: "Amsterdam",
-      lat: 52.3676,
-      lng: 4.9041,
+      address: "",          // geen default-locatie — gebruiker kiest zelf (GPS of adres)
+      lat: null,
+      lng: null,
       isLoggedIn: false,
       isAdmin: false,
       userId: null,
-      unreadMeldingen: 2,
-      unreadBerichten: 3,
+      unreadMeldingen: 0,
+      unreadBerichten: 0,
       avatar: "",
       phone: "",
       email: "",
@@ -75,7 +75,7 @@ export const useUserStore = create<UserState>()(
           role,
           activeView: defaultView(role),
           name: name || "Gebruiker",
-          address: address || "Amsterdam",
+          address: address || "",
           isAdmin: isAdmin ?? false,
         }),
 
