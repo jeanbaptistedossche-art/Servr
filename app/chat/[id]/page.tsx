@@ -2,7 +2,8 @@
 
 import { use, useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, Send, Camera, MoreVertical, Check, CheckCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Send, Camera, MoreVertical, Check, CheckCheck, Archive } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 import { supabase, supabaseReady, type Bericht } from "@/lib/supabase";
 
@@ -37,6 +38,8 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const router = useRouter();
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,12 +101,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     laadBerichten();
   }, [laadGesprek, laadBerichten]);
 
-  // ── Markeer als gelezen ──────────────────────────────────────────────────────
+  // ── Markeer als gelezen (teller op 0 + berichten van de ander gelezen) ──────
   useEffect(() => {
     if (!supabaseReady || !userId || !gesprek) return;
     const field = isVakman ? "ongelezen_vakman" : "ongelezen_klant";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase.from("gesprekken") as any).update({ [field]: 0 }).eq("id", id);
+    supabase.from("gesprekken").update({ [field]: 0 } as never).eq("id", id).then();
+    supabase.from("berichten").update({ gelezen: true } as never)
+      .eq("gesprek_id", id).neq("afzender_id", userId).eq("gelezen", false).then();
   }, [gesprek, userId, isVakman, id]);
 
   // ── Realtime nieuwe berichten ────────────────────────────────────────────────
@@ -150,44 +154,77 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
     setBerichten(prev => [...prev, tempMsg]);
 
     if (supabaseReady) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from("berichten") as any).insert({
+      await supabase.from("berichten").insert({
         gesprek_id: id,
         afzender_id: userId,
         tekst,
-      });
-
-      // Update gesprek preview + ongelezen teller voor de andere partij
-      const andereOngelezen = isVakman ? "ongelezen_klant" : "ongelezen_vakman";
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase.from("gesprekken") as any).update({
-        laatste_bericht: tekst,
-        laatste_tijd: new Date().toISOString(),
-        [andereOngelezen]: 1, // simpele increment
-      }).eq("id", id);
+      } as never);
+      await updateGesprekNaBericht(tekst);
     }
 
     setSending(false);
     inputRef.current?.focus();
   };
 
-  // ── Foto versturen ───────────────────────────────────────────────────────────
+  // Preview + echte increment van de ongelezen-teller voor de andere partij
+  const updateGesprekNaBericht = async (preview: string) => {
+    const andereOngelezen = isVakman ? "ongelezen_klant" : "ongelezen_vakman";
+    const { data: huidige } = await supabase
+      .from("gesprekken").select(andereOngelezen).eq("id", id).single();
+    const teller = ((huidige as Record<string, number> | null)?.[andereOngelezen] ?? 0) + 1;
+    await supabase.from("gesprekken").update({
+      laatste_bericht: preview,
+      laatste_tijd: new Date().toISOString(),
+      [andereOngelezen]: teller,
+    } as never).eq("id", id);
+  };
+
+  // ── Foto versturen: upload naar Supabase Storage, URL in bericht ─────────────
   const sendFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
-    // Voor nu: toon lokaal preview (Supabase Storage upload later)
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const tempMsg: Bericht = {
-        id: `temp_foto_${Date.now()}`,
-        gesprek_id: id, afzender_id: userId,
-        tekst: null, bijlage_url: ev.target?.result as string,
-        bijlage_type: "foto", gelezen: false,
-        created_at: new Date().toISOString(),
-      };
-      setBerichten(prev => [...prev, tempMsg]);
-    };
-    reader.readAsDataURL(file);
+    e.target.value = "";
+
+    // Optimistische preview terwijl de upload loopt
+    const tempId = `temp_foto_${Date.now()}`;
+    const localUrl = URL.createObjectURL(file);
+    setBerichten(prev => [...prev, {
+      id: tempId,
+      gesprek_id: id, afzender_id: userId,
+      tekst: null, bijlage_url: localUrl,
+      bijlage_type: "foto", gelezen: false,
+      created_at: new Date().toISOString(),
+    }]);
+
+    if (!supabaseReady) return;
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const pad = `${id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("chat-fotos").upload(pad, file, { contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("chat-fotos").getPublicUrl(pad);
+
+      await supabase.from("berichten").insert({
+        gesprek_id: id,
+        afzender_id: userId,
+        tekst: null,
+        bijlage_url: pub.publicUrl,
+        bijlage_type: "foto",
+      } as never);
+      await updateGesprekNaBericht("📷 Foto");
+      // Realtime INSERT vervangt de temp-preview
+    } catch (err) {
+      setBerichten(prev => prev.filter(b => b.id !== tempId));
+      alert("Foto versturen mislukt: " + (err instanceof Error ? err.message : "onbekende fout"));
+    }
+  };
+
+  // ── Gesprek archiveren (kebab-menu) ──────────────────────────────────────────
+  const archiveer = async () => {
+    if (supabaseReady) {
+      await supabase.from("gesprekken").update({ gearchiveerd: true } as never).eq("id", id);
+    }
+    router.push("/berichten");
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -242,11 +279,31 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
             </div>
           </div>
 
-          <button style={{ width: 36, height: 36, borderRadius: "50%", background: "#EDE4D2", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
-            <MoreVertical size={17} color="#1A1D1A" />
-          </button>
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setMenuOpen(o => !o)} aria-label="Gespreksopties" style={{ width: 36, height: 36, borderRadius: "50%", background: "#EDE4D2", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer" }}>
+              <MoreVertical size={17} color="#1A1D1A" />
+            </button>
+            {menuOpen && (
+              <div className="animate-fade-in" style={{
+                position: "absolute", right: 0, top: 42, zIndex: 30,
+                background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 12,
+                boxShadow: "0 4px 16px rgba(26,29,26,0.12)", overflow: "hidden", minWidth: 180,
+              }}>
+                <button onClick={archiveer} style={{
+                  display: "flex", alignItems: "center", gap: 10, width: "100%",
+                  padding: "12px 16px", background: "transparent", border: "none",
+                  fontSize: 13, color: "#1A1D1A", cursor: "pointer",
+                }}>
+                  <Archive size={15} color="#5C5C56" /> Gesprek archiveren
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Klik buiten menu sluit het */}
+      {menuOpen && <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 20 }} />}
 
       {/* ── Berichten lijst ── */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 8px", display: "flex", flexDirection: "column", gap: 6 }}>

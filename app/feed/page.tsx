@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MapPin, Clock, AlertTriangle } from "lucide-react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 import { useStripeConnectStore } from "@/lib/stripeConnectStore";
+import { useUserStore } from "@/lib/store";
 
 type Opdracht = {
   id: string;
@@ -80,12 +81,14 @@ function UrgentieBadge({ urgentie }: { urgentie: string }) {
   );
 }
 
-function JobCard({ o, onOfferte }: { o: Opdracht; onOfferte: () => void }) {
+function JobCard({ o, onOfferte, onOpen }: { o: Opdracht; onOfferte: () => void; onOpen: () => void }) {
   const afstandLabel = o.afstand_km != null ? `${o.afstand_km} km` : null;
   const emoji = getEmoji(o.categorie);
 
   return (
     <div
+      onClick={onOpen}
+      className="touch-scale"
       style={{
         background: "#FBF7F0",
         border: "0.5px solid #E5DDD0",
@@ -94,6 +97,7 @@ function JobCard({ o, onOfferte }: { o: Opdracht; onOfferte: () => void }) {
         display: "flex",
         flexDirection: "column",
         gap: 12,
+        cursor: "pointer",
       }}
     >
       {/* Top row */}
@@ -167,7 +171,7 @@ function JobCard({ o, onOfferte }: { o: Opdracht; onOfferte: () => void }) {
           {o.budget != null ? `€${o.budget.toLocaleString("nl-NL")}` : "Budget n.b."}
         </span>
         <button
-          onClick={onOfferte}
+          onClick={(e) => { e.stopPropagation(); onOfferte(); }}
           style={{
             background: "#2B4030",
             color: "#F5EFE5",
@@ -186,7 +190,7 @@ function JobCard({ o, onOfferte }: { o: Opdracht; onOfferte: () => void }) {
   );
 }
 
-const RADIUS_KM = 30;
+const DEFAULT_RADIUS_KM = 30;
 
 export default function FeedPage() {
   const router = useRouter();
@@ -195,6 +199,7 @@ export default function FeedPage() {
   const [filter, setFilter] = useState("Alle");
   const [vakmanLat, setVakmanLat] = useState<number | null>(null);
   const [vakmanLng, setVakmanLng] = useState<number | null>(null);
+  const [radiusKm, setRadiusKm] = useState<number>(DEFAULT_RADIUS_KM);
   const { onboarded } = useStripeConnectStore();
 
   useEffect(() => {
@@ -206,8 +211,24 @@ export default function FeedPage() {
     );
   }, []);
 
+  // Eigen werkstraal uit vakmensen-profiel
+  useEffect(() => {
+    (async () => {
+      if (!supabaseReady) return;
+      let uid = useUserStore.getState().userId;
+      if (!uid) {
+        const { data: { session } } = await supabase.auth.getSession();
+        uid = session?.user?.id ?? null;
+      }
+      if (!uid) return;
+      const { data } = await supabase.from("vakmensen").select("radius_km").eq("id", uid).maybeSingle();
+      const r = (data as { radius_km: number | null } | null)?.radius_km;
+      if (r && r > 0) setRadiusKm(r);
+    })();
+  }, []);
+
   const laadOpdrachten = useCallback(async () => {
-    await supabaseReady;
+    if (!supabaseReady) { setLoading(false); return; }
     const { data } = await supabase
       .from("opdrachten")
       .select("*")
@@ -216,7 +237,7 @@ export default function FeedPage() {
 
     const rijen = (data as Opdracht[]) ?? [];
 
-    // Bereken afstand en filter op straal als locatie bekend
+    // Bereken afstand en filter op eigen werkstraal als locatie bekend
     const metAfstand = rijen.map((o) => {
       if (vakmanLat != null && vakmanLng != null && o.lat != null && o.lng != null) {
         return { ...o, afstand_km: Math.round(haversineKm(vakmanLat, vakmanLng, o.lat, o.lng) * 10) / 10 };
@@ -226,12 +247,21 @@ export default function FeedPage() {
 
     const gefilterd =
       vakmanLat != null && vakmanLng != null
-        ? metAfstand.filter((o) => o.afstand_km == null || o.afstand_km <= RADIUS_KM)
+        ? metAfstand.filter((o) => o.afstand_km == null || o.afstand_km <= radiusKm)
         : metAfstand;
+
+    // Dichtste eerst; opdrachten zonder locatie achteraan (binnen elke groep: nieuwste eerst)
+    gefilterd.sort((a, b) => {
+      if (a.afstand_km == null && b.afstand_km == null)
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (a.afstand_km == null) return 1;
+      if (b.afstand_km == null) return -1;
+      return a.afstand_km - b.afstand_km;
+    });
 
     setOpdrachten(gefilterd);
     setLoading(false);
-  }, [vakmanLat, vakmanLng]);
+  }, [vakmanLat, vakmanLng, radiusKm]);
 
   useEffect(() => {
     laadOpdrachten();
@@ -347,11 +377,16 @@ export default function FeedPage() {
             <JobCard
               key={o.id}
               o={o}
-              onOfferte={() =>
+              onOpen={() => router.push(`/opdracht/${o.id}`)}
+              onOfferte={() => {
+                if (!onboarded) {
+                  router.push("/vakman-setup");
+                  return;
+                }
                 router.push(
                   `/offerte/maak?opdracht_id=${o.id}&titel=${encodeURIComponent(o.titel)}&klant_id=${o.klant_id}`
-                )
-              }
+                );
+              }}
             />
           ))
         )}

@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, Navigation } from "lucide-react";
+import { MessageCircle, Navigation, QrCode } from "lucide-react";
 import { useUserStore } from "@/lib/store";
-import { supabase, supabaseReady } from "@/lib/supabase";
+import { supabase, supabaseReady, formatEuro, wazeUrl, stuurNotificatie } from "@/lib/supabase";
 
 const SERIF = "'Source Serif 4', Georgia, serif";
 const DAYS_NL = ["Zondag", "Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag"];
@@ -12,6 +12,8 @@ const MONTHS_NL = ["januari", "februari", "maart", "april", "mei", "juni", "juli
 
 type BoekingRow = {
   id: string;
+  klant_id: string;
+  opdracht_id: string | null;
   status: string;
   start_tijd: string;
   eind_tijd: string | null;
@@ -20,15 +22,11 @@ type BoekingRow = {
   notities: string | null;
   profiles: { name: string; phone: string | null; address: string | null } | null;
   diensten: { naam: string } | null;
+  opdrachten: { titel: string; lat: number | null; lng: number | null; adres: string | null } | null;
 };
 
 function tijdLabel(iso: string) {
   return new Date(iso).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
-}
-
-function bedragLabel(centen: number | null) {
-  if (!centen) return null;
-  return `€${Math.round(centen / 100)}`;
 }
 
 export default function VandaagPage() {
@@ -48,11 +46,11 @@ export default function VandaagPage() {
 
     const { data } = await supabase
       .from("boekingen")
-      .select(`*, profiles!boekingen_klant_id_fkey(name, phone, address), diensten(naam)`)
+      .select(`*, profiles!boekingen_klant_id_fkey(name, phone, address), diensten(naam), opdrachten(titel, lat, lng, adres)`)
       .eq("vakman_id", userId)
       .gte("start_tijd", vandaag.toISOString())
       .lt("start_tijd", morgen.toISOString())
-      .in("status", ["gepland", "bezig"])
+      .in("status", ["gepland", "bezig", "ingecheckt"])
       .order("start_tijd");
 
     const rows = (data ?? []) as BoekingRow[];
@@ -71,7 +69,7 @@ export default function VandaagPage() {
     const channel = supabase
       .channel("agenda_realtime")
       .on("postgres_changes", {
-        event: "INSERT",
+        event: "*",
         schema: "public",
         table: "boekingen",
         filter: `vakman_id=eq.${userId}`,
@@ -80,10 +78,57 @@ export default function VandaagPage() {
     return () => { supabase.removeChannel(channel); };
   }, [userId, laad]);
 
-  const markeerKlaar = async (id: string) => {
-    setBoekingen(bs => bs.map(b => b.id === id ? { ...b, status: "afgerond" } : b));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (supabaseReady) await (supabase.from("boekingen") as any).update({ status: "afgerond", eind_tijd: new Date().toISOString() }).eq("id", id);
+  const markeerKlaar = async (b: BoekingRow) => {
+    setBoekingen(bs => bs.map(x => x.id === b.id ? { ...x, status: "afgerond" } : x));
+    if (!supabaseReady) return;
+    const nu = new Date().toISOString();
+    await supabase.from("boekingen")
+      .update({ status: "afgerond", eind_tijd: nu, afgerond_at: nu } as never)
+      .eq("id", b.id);
+    stuurNotificatie({
+      user_id: b.klant_id,
+      type: "klus_afgerond",
+      titel: "Klus afgerond ✓",
+      bericht: `${b.opdrachten?.titel ?? b.notities ?? "Je klus"} is klaar. Bevestig de afronding zodat de vakman uitbetaald wordt.`,
+      link: b.opdracht_id ? `/opdracht/${b.opdracht_id}` : "/mijn-opdrachten",
+    });
+  };
+
+  // Chat openen: vind (of maak) het gesprek met deze klant
+  const openChat = async (b: BoekingRow) => {
+    if (!supabaseReady || !userId) return;
+    const { data: bestaand } = await supabase
+      .from("gesprekken")
+      .select("id")
+      .eq("klant_id", b.klant_id)
+      .eq("vakman_id", userId)
+      .order("laatste_tijd", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (bestaand?.id) { router.push(`/chat/${bestaand.id}`); return; }
+    const { data: nieuw } = await supabase
+      .from("gesprekken")
+      .insert({
+        klant_id: b.klant_id,
+        vakman_id: userId,
+        context: b.opdrachten?.titel ?? b.notities ?? "Klus",
+        laatste_bericht: null,
+        ongelezen_klant: 0,
+        ongelezen_vakman: 0,
+        gearchiveerd: false,
+        boeking_id: b.id,
+        spoed_id: null,
+      } as never)
+      .select("id")
+      .single();
+    if (nieuw?.id) router.push(`/chat/${nieuw.id}`);
+  };
+
+  // Waze: coördinaten van de opdracht, anders adres-zoekterm
+  const openWaze = (b: BoekingRow) => {
+    const url = wazeUrl(b.opdrachten?.lat, b.opdrachten?.lng, b.adres ?? b.opdrachten?.adres ?? b.profiles?.address);
+    if (url) window.open(url, "_blank");
+    else alert("Geen adres of locatie bekend voor deze klus.");
   };
 
   const now = new Date();
@@ -141,7 +186,7 @@ export default function VandaagPage() {
           {[
             { label: "Klussen", value: String(zichtbaar.length), color: "#1A1D1A" },
             { label: "Reizen",  value: `${reisKm.toFixed(0)} km`, color: "#1A1D1A" },
-            { label: "Omzet",   value: bedragLabel(omzet) ?? "€0", color: "#2B4030" },
+            { label: "Omzet",   value: formatEuro(omzet), color: "#2B4030" },
           ].map(s => (
             <div key={s.label} style={{ background: "#FBF7F0", padding: "14px 10px" }}>
               <p style={{ fontSize: 11, color: "#8A8A83", margin: 0 }}>{s.label}</p>
@@ -167,19 +212,26 @@ export default function VandaagPage() {
                 )}
               </div>
               <p style={{ fontFamily: SERIF, fontSize: 22, margin: "6px 0 3px" }}>
-                {nuBezig.diensten?.naam ?? "Klus"}
+                {nuBezig.opdrachten?.titel ?? nuBezig.diensten?.naam ?? nuBezig.notities ?? "Klus"}
               </p>
               <p style={{ fontSize: 12, color: "#B8B4A8", margin: "0 0 18px" }}>
-                {nuBezig.profiles?.name ?? "Klant"} · {nuBezig.adres ?? nuBezig.profiles?.address ?? "Adres onbekend"}
+                {nuBezig.profiles?.name ?? "Klant"} · {nuBezig.adres ?? nuBezig.opdrachten?.adres ?? nuBezig.profiles?.address ?? "Adres onbekend"}
+                {nuBezig.bedrag ? ` · ${formatEuro(nuBezig.bedrag)}` : ""}
               </p>
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={() => markeerKlaar(nuBezig.id)} style={{ flex: 1, padding: 11, fontSize: 13, fontWeight: 500, background: "#C97A4D", color: "#1A1D1A", border: "none", borderRadius: 10, cursor: "pointer" }}>
-                  Klaar markeren
-                </button>
-                <button style={{ padding: "11px 12px", background: "transparent", color: "#F5EFE5", border: "0.5px solid #5C5C56", borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center" }}>
+                {nuBezig.status === "gepland" ? (
+                  <button onClick={() => router.push("/inchecken")} style={{ flex: 1, padding: 11, fontSize: 13, fontWeight: 500, background: "#C97A4D", color: "#1A1D1A", border: "none", borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <QrCode size={15} /> Inchecken op locatie
+                  </button>
+                ) : (
+                  <button onClick={() => markeerKlaar(nuBezig)} style={{ flex: 1, padding: 11, fontSize: 13, fontWeight: 500, background: "#C97A4D", color: "#1A1D1A", border: "none", borderRadius: 10, cursor: "pointer" }}>
+                    Klaar markeren
+                  </button>
+                )}
+                <button onClick={() => openChat(nuBezig)} aria-label="Chat met klant" style={{ padding: "11px 12px", background: "transparent", color: "#F5EFE5", border: "0.5px solid #5C5C56", borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center" }}>
                   <MessageCircle size={15} />
                 </button>
-                <button style={{ padding: "11px 12px", background: "transparent", color: "#F5EFE5", border: "0.5px solid #5C5C56", borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center" }}>
+                <button onClick={() => openWaze(nuBezig)} aria-label="Navigeer met Waze" style={{ padding: "11px 12px", background: "transparent", color: "#F5EFE5", border: "0.5px solid #5C5C56", borderRadius: 10, cursor: "pointer", display: "flex", alignItems: "center" }}>
                   <Navigation size={15} />
                 </button>
               </div>
@@ -197,14 +249,19 @@ export default function VandaagPage() {
               {tijdLabel(b.start_tijd)}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "#1A1D1A" }}>{b.diensten?.naam ?? "Klus"}</p>
+              <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "#1A1D1A" }}>{b.opdrachten?.titel ?? b.diensten?.naam ?? b.notities ?? "Klus"}</p>
               <p style={{ fontSize: 11, color: "#8A8A83", margin: "2px 0 0" }}>
-                {b.profiles?.name ?? "Klant"} · {b.adres ?? b.profiles?.address ?? ""}
+                {b.profiles?.name ?? "Klant"} · {b.adres ?? b.opdrachten?.adres ?? b.profiles?.address ?? ""}
               </p>
             </div>
-            {b.bedrag && (
-              <div style={{ fontFamily: SERIF, fontSize: 16, color: "#2B4030", flexShrink: 0 }}>{bedragLabel(b.bedrag)}</div>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              {b.bedrag ? (
+                <span style={{ fontFamily: SERIF, fontSize: 16, color: "#2B4030" }}>{formatEuro(b.bedrag)}</span>
+              ) : null}
+              <button onClick={() => openWaze(b)} aria-label="Navigeer met Waze" className="touch-scale" style={{ padding: 7, background: "transparent", border: "0.5px solid #E5DDD0", borderRadius: 99, cursor: "pointer", display: "flex", color: "#2B4030" }}>
+                <Navigation size={13} />
+              </button>
+            </div>
           </div>
         ))}
 

@@ -73,6 +73,16 @@ alter table public.boekingen add column if not exists bevestigd_at   timestamptz
 alter table public.boekingen add column if not exists uitbetaald_at  timestamptz;
 alter table public.boekingen add column if not exists transfer_id    text;
 
+-- FK's expliciet (kolommen kunnen al bestaan zonder FK — joins via PostgREST vereisen ze)
+do $$ begin
+  alter table public.boekingen add constraint boekingen_opdracht_id_fkey
+    foreign key (opdracht_id) references public.opdrachten(id);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.boekingen add constraint boekingen_offerte_id_fkey
+    foreign key (offerte_id) references public.offertes(id);
+exception when duplicate_object then null; end $$;
+
 alter table public.boekingen drop constraint if exists boekingen_status_check;
 alter table public.boekingen add constraint boekingen_status_check
   check (status in ('gepland','bezig','ingecheckt','afgerond','bevestigd','uitbetaald','geannuleerd','geschil'));

@@ -1,385 +1,380 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, QrCode, CheckCircle, MapPin, Clock, Check, X, Camera, CreditCard, ScanLine } from "lucide-react";
-import { useUserStore } from "@/lib/store";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import QRCode from "qrcode";
+import jsQR from "jsqr";
+import { ArrowLeft, QrCode, Camera, CheckCircle2, KeyRound, MapPin, Clock } from "lucide-react";
+import { useUserStore } from "@/lib/store";
+import { supabase, supabaseReady, formatEuro, stuurNotificatie } from "@/lib/supabase";
 
 const SERIF = "'Source Serif 4', Georgia, serif";
+const QR_PREFIX = "servr:checkin:";
 
-// ─── Vakman data ──────────────────────────────────────────────────────────────
-const TODAY_KLUSSEN = [
-  { id: "k1", titel: "Lekkende kraan keuken",  klant: "Lisa de Vries",  adres: "Prinsengracht 88",        tijd: "09:00", betaald: true },
-  { id: "k2", titel: "CV ketel inspectie",     klant: "Ahmed Mansour", adres: "Ferdinand Bolstraat 45",  tijd: "13:30", betaald: false },
-  { id: "k3", titel: "Woonkamer schilderen",   klant: "Petra Jansen",  adres: "Kinkerstraat 120",        tijd: "08:00", betaald: true },
-];
-
-// QR-code lookup voor demo (in productie: Supabase query)
-const QR_DATABASE: Record<string, { dienst: string; vakman: string; bedrag: number; betaald: boolean; betalingId: string }> = {
-  "SERVR-K1-2026-LISA-KRAAN":    { dienst: "Lekkende kraan keuken",  vakman: "Marco van den Berg", bedrag: 85,  betaald: true,  betalingId: "OFF-1040" },
-  "SERVR-K2-2026-AHMED-CV":      { dienst: "CV ketel inspectie",     vakman: "Marco van den Berg", bedrag: 99,  betaald: false, betalingId: "OFF-1041" },
-  "SERVR-K3-2026-PETRA-SCHILDER":{ dienst: "Woonkamer schilderen",   vakman: "Kim Nguyen",         bedrag: 350, betaald: false, betalingId: "OFF-1042" },
+type BoekingRij = {
+  id: string;
+  klant_id: string;
+  vakman_id: string;
+  status: string;
+  start_tijd: string;
+  adres: string | null;
+  bedrag: number | null;
+  notities: string | null;
+  opdracht_id: string | null;
+  profiles: { name: string } | null;
+  opdrachten: { titel: string; adres: string | null } | null;
 };
 
-// ─── QR code display (vakman toont dit aan klant) ─────────────────────────────
-function QrDisplay({ klus }: { klus: typeof TODAY_KLUSSEN[0] }) {
-  const [getoond, setGetoond] = useState(false);
-  const code = `SERVR-${klus.id.toUpperCase()}-2026-${klus.klant.split(" ")[0].toUpperCase()}-${klus.titel.split(" ").pop()?.toUpperCase()}`;
+function tijdLabel(iso: string) {
+  return new Date(iso).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+}
+
+/** Korte incheckcode: eerste 6 tekens van het boeking-ID */
+function korteCode(id: string) {
+  return id.replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
+function titelVan(b: BoekingRij) {
+  return b.opdrachten?.titel ?? b.notities ?? "Klus";
+}
+
+// ─── Vandaag-boekingen laden voor een rol ──────────────────────
+function useVandaagBoekingen(rol: "klant" | "vakman") {
+  const { userId } = useUserStore();
+  const [boekingen, setBoekingen] = useState<BoekingRij[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const laad = useCallback(async () => {
+    if (!userId || !supabaseReady) { setLoading(false); return; }
+    const vandaag = new Date(); vandaag.setHours(0, 0, 0, 0);
+    const morgen = new Date(vandaag); morgen.setDate(morgen.getDate() + 1);
+    const field = rol === "vakman" ? "vakman_id" : "klant_id";
+    const naamJoin = rol === "vakman"
+      ? "profiles!boekingen_klant_id_fkey(name)"
+      : "profiles!boekingen_vakman_id_fkey(name)";
+
+    const { data } = await supabase
+      .from("boekingen")
+      .select(`*, ${naamJoin}, opdrachten(titel, adres)`)
+      .eq(field, userId)
+      .gte("start_tijd", vandaag.toISOString())
+      .lt("start_tijd", morgen.toISOString())
+      .in("status", ["gepland", "ingecheckt", "bezig"])
+      .order("start_tijd");
+    setBoekingen((data as unknown as BoekingRij[]) ?? []);
+    setLoading(false);
+  }, [userId, rol]);
+
+  useEffect(() => { laad(); }, [laad]);
+
+  // Realtime status-updates (incheck verschijnt live bij beide partijen)
+  useEffect(() => {
+    if (!supabaseReady || !userId) return;
+    const channel = supabase.channel(`inchecken_${rol}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "boekingen" }, () => laad())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [userId, rol, laad]);
+
+  return { boekingen, loading, laad };
+}
+
+// ─── Incheck uitvoeren ─────────────────────────────────────────
+async function checkIn(b: BoekingRij): Promise<string | null> {
+  const nu = new Date().toISOString();
+  const { error } = await supabase
+    .from("boekingen")
+    .update({ status: "ingecheckt", ingecheckt_at: nu } as never)
+    .eq("id", b.id)
+    .eq("status", "gepland");   // dubbel inchecken onmogelijk
+  if (error) return error.message;
+  stuurNotificatie({
+    user_id: b.klant_id,
+    type: "ingecheckt",
+    titel: "Vakman is gearriveerd ✓",
+    bericht: `${titelVan(b)} — de vakman is ingecheckt en gaat aan de slag.`,
+    link: b.opdracht_id ? `/opdracht/${b.opdracht_id}` : "/mijn-opdrachten",
+  });
+  stuurNotificatie({
+    user_id: b.vakman_id,
+    type: "ingecheckt",
+    titel: "Ingecheckt ✓",
+    bericht: `${titelVan(b)} staat nu op "in uitvoering".`,
+    link: "/agenda",
+  });
+  return null;
+}
+
+// ─── QR-canvas ─────────────────────────────────────────────────
+function QrCanvas({ value }: { value: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (ref.current) {
+      QRCode.toCanvas(ref.current, value, { width: 220, margin: 2, color: { dark: "#1A1D1A", light: "#FBF7F0" } });
+    }
+  }, [value]);
+  return <canvas ref={ref} style={{ borderRadius: 12 }} />;
+}
+
+// ═══ VAKMAN: toont QR per klus van vandaag ═════════════════════
+function VakmanView() {
+  const { boekingen, loading } = useVandaagBoekingen("vakman");
+  const [actieveQr, setActieveQr] = useState<string | null>(null);
+
+  const open = boekingen.filter(b => b.status === "gepland");
+  const ingecheckt = boekingen.filter(b => b.status !== "gepland");
 
   return (
-    <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16, marginBottom: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 14, fontWeight: 500, margin: 0, color: "#1A1D1A" }}>{klus.titel}</p>
-          <p style={{ fontSize: 11, color: "#8A8A83", margin: "3px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
-            <Clock size={10} /> {klus.tijd} · <MapPin size={10} /> {klus.adres}
-          </p>
-        </div>
-        <span style={{
-          fontSize: 10, padding: "3px 8px", borderRadius: 99, fontWeight: 500,
-          background: klus.betaald ? "#EAF0EC" : "#FAF0E6",
-          color: klus.betaald ? "#2B4030" : "#C97A4D",
-        }}>
-          {klus.betaald ? "Betaald" : "Openstaand"}
-        </span>
-      </div>
+    <div className="px-5 pb-28">
+      <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 18px" }}>
+        Toon de QR-code aan je klant bij aankomst — of geef de cijfercode door.
+      </p>
 
-      {!getoond ? (
-        <button onClick={() => setGetoond(true)} style={{
-          width: "100%", padding: "10px 0", background: "#2B4030", color: "#F5EFE5",
-          border: "none", borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-        }}>
-          <QrCode size={14} /> QR tonen aan klant
-        </button>
-      ) : (
-        <div style={{ textAlign: "center" }}>
-          {/* Mock QR code als blok patroon */}
-          <div style={{
-            width: 140, height: 140, margin: "0 auto 10px",
-            background: "#1A1D1A", borderRadius: 8, padding: 12,
-            display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2,
-          }}>
-            {Array.from({ length: 49 }, (_, i) => (
-              <div key={i} style={{
-                borderRadius: 2,
-                background: [0,1,2,3,4,5,6,7,13,14,20,21,27,28,34,40,41,42,43,44,45,46,47,48,8,15,22,29,36].includes(i) ? "#F5EFE5" : "transparent",
-              }} />
-            ))}
-          </div>
-          <p style={{ fontSize: 10, color: "#8A8A83", margin: "0 0 8px", fontFamily: "monospace" }}>{code}</p>
-          <button onClick={() => setGetoond(false)} style={{
-            padding: "6px 14px", background: "transparent", border: "0.5px solid #E5DDD0",
-            borderRadius: 99, fontSize: 11, color: "#8A8A83", cursor: "pointer",
-          }}>
-            Verbergen
-          </button>
+      {loading && <div className="skeleton" style={{ height: 90, marginBottom: 10 }} />}
+
+      {!loading && boekingen.length === 0 && (
+        <div style={{ textAlign: "center", paddingTop: 40 }}>
+          <p style={{ fontSize: 32, marginBottom: 10 }}>📅</p>
+          <p style={{ fontFamily: SERIF, fontSize: 17, color: "#1A1D1A", margin: "0 0 6px" }}>Geen klussen vandaag</p>
+          <p style={{ fontSize: 13, color: "#8A8A83" }}>Boekingen van vandaag verschijnen hier met hun incheck-QR.</p>
         </div>
+      )}
+
+      {open.map(b => (
+        <div key={b.id} style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16, marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 600, margin: 0, color: "#1A1D1A" }}>{titelVan(b)}</p>
+              <p style={{ fontSize: 12, color: "#8A8A83", margin: "3px 0 0", display: "flex", alignItems: "center", gap: 4 }}>
+                <Clock size={11} /> {tijdLabel(b.start_tijd)}
+                {(b.adres ?? b.opdrachten?.adres) && <><MapPin size={11} style={{ marginLeft: 6 }} /> {b.adres ?? b.opdrachten?.adres}</>}
+              </p>
+            </div>
+            {b.bedrag != null && <span style={{ fontFamily: SERIF, fontSize: 16, color: "#2B4030" }}>{formatEuro(b.bedrag)}</span>}
+          </div>
+
+          {actieveQr === b.id ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, paddingTop: 12 }}>
+              <QrCanvas value={`${QR_PREFIX}${b.id}`} />
+              <p style={{ fontSize: 12, color: "#8A8A83", margin: 0 }}>Of laat de klant deze code invoeren:</p>
+              <p style={{ fontFamily: SERIF, fontSize: 28, letterSpacing: 6, margin: 0, color: "#1A1D1A" }}>{korteCode(b.id)}</p>
+              <button onClick={() => setActieveQr(null)} className="touch-scale" style={{ fontSize: 12, color: "#8A8A83", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                Verbergen
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setActieveQr(b.id)} className="touch-scale" style={{
+              width: "100%", marginTop: 10, padding: "12px 0", background: "#2B4030", color: "#F5EFE5",
+              border: "none", borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}>
+              <QrCode size={15} /> QR tonen aan klant
+            </button>
+          )}
+        </div>
+      ))}
+
+      {ingecheckt.length > 0 && (
+        <>
+          <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: "#1A1D1A", margin: "20px 0 10px" }}>Ingecheckt</p>
+          {ingecheckt.map(b => (
+            <div key={b.id} style={{ background: "#EAF0EC", borderRadius: 14, padding: 16, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+              <CheckCircle2 size={20} style={{ color: "#2B4030", flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#1A1D1A" }}>{titelVan(b)}</p>
+                <p style={{ fontSize: 12, color: "#5C5C56", margin: "2px 0 0" }}>In uitvoering — markeer als klaar via je agenda.</p>
+              </div>
+              <Link href="/agenda" style={{ fontSize: 12, fontWeight: 500, color: "#2B4030", textDecoration: "underline", flexShrink: 0 }}>Agenda</Link>
+            </div>
+          ))}
+        </>
       )}
     </div>
   );
 }
 
-// ─── Klant scan resultaat ─────────────────────────────────────────────────────
-type ScanResultaat = {
-  dienst: string;
-  vakman: string;
-  bedrag: number;
-  betaald: boolean;
-  betalingId: string;
-} | "niet_gevonden" | null;
+// ═══ KLANT: scant QR of voert code in ══════════════════════════
+function KlantView() {
+  const { boekingen, loading, laad } = useVandaagBoekingen("klant");
+  const [code, setCode] = useState("");
+  const [fout, setFout] = useState<string | null>(null);
+  const [succes, setSucces] = useState<BoekingRij | null>(null);
+  const [bezig, setBezig] = useState(false);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
-// ─── Vakman view ──────────────────────────────────────────────────────────────
-function VakmanView() {
-  const router = useRouter();
-  const betaald = TODAY_KLUSSEN.filter(k => k.betaald).length;
+  const open = boekingen.filter(b => b.status === "gepland");
+
+  const valideerEnCheckIn = async (b: BoekingRij | undefined, foutmelding: string) => {
+    if (!b) { setFout(foutmelding); return; }
+    setBezig(true);
+    const err = await checkIn(b);
+    setBezig(false);
+    if (err) { setFout("Inchecken mislukt: " + err); return; }
+    setSucces(b);
+    setFout(null);
+    laad();
+  };
+
+  // QR uit foto decoderen met jsQR
+  const scanFoto = async (file: File) => {
+    setFout(null);
+    setBezig(true);
+    try {
+      const bitmap = await createImageBitmap(file);
+      const canvas = document.createElement("canvas");
+      // Schaal naar max 1000px voor snelheid
+      const schaal = Math.min(1, 1000 / Math.max(bitmap.width, bitmap.height));
+      canvas.width = Math.round(bitmap.width * schaal);
+      canvas.height = Math.round(bitmap.height * schaal);
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const result = jsQR(imgData.data, imgData.width, imgData.height);
+      setBezig(false);
+
+      if (!result?.data?.startsWith(QR_PREFIX)) {
+        setFout("Geen geldige Servr QR-code gevonden op de foto. Probeer opnieuw of voer de cijfercode in.");
+        return;
+      }
+      const boekingId = result.data.slice(QR_PREFIX.length);
+      await valideerEnCheckIn(
+        open.find(b => b.id === boekingId),
+        "Deze QR-code hoort niet bij een van jouw boekingen van vandaag."
+      );
+    } catch {
+      setBezig(false);
+      setFout("Kon de foto niet verwerken. Probeer opnieuw.");
+    }
+  };
+
+  const checkCode = async () => {
+    const ingevoerd = code.trim().toUpperCase();
+    if (ingevoerd.length < 6) { setFout("Voer de volledige 6-cijferige code in."); return; }
+    await valideerEnCheckIn(
+      open.find(b => korteCode(b.id) === ingevoerd),
+      "Code niet herkend. Controleer de code bij je vakman."
+    );
+  };
+
+  if (succes) return (
+    <div className="px-5 pb-28 animate-bounce-in" style={{ textAlign: "center", paddingTop: 40 }}>
+      <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#2B4030", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+        <CheckCircle2 size={36} color="#F5EFE5" />
+      </div>
+      <h2 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 400, margin: "0 0 8px", color: "#1A1D1A" }}>Vakman ingecheckt!</h2>
+      <p style={{ fontSize: 14, color: "#8A8A83", margin: "0 0 24px" }}>
+        {titelVan(succes)} staat nu op &ldquo;in uitvoering&rdquo;.<br />Je krijgt bericht zodra de klus klaar is.
+      </p>
+      <Link href="/mijn-opdrachten" className="touch-scale" style={{
+        display: "inline-block", padding: "13px 28px", background: "#2B4030", color: "#F5EFE5",
+        borderRadius: 10, fontSize: 14, fontWeight: 500, textDecoration: "none",
+      }}>
+        Naar mijn opdrachten
+      </Link>
+    </div>
+  );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", background: "#F5EFE5" }}>
-      <div className="px-5 pt-14 pb-4" style={{ background: "rgba(245,239,229,0.97)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={() => router.push("/profile")}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex" }}>
-            <ArrowLeft size={18} style={{ color: "#1A1D1A" }} />
-          </button>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, color: "#8A8A83", margin: 0 }}>Vandaag</p>
-            <h2 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 400, margin: 0, color: "#1A1D1A" }}>QR Check-in</h2>
-          </div>
-        </div>
-      </div>
+    <div className="px-5 pb-28">
+      <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 18px" }}>
+        Is je vakman gearriveerd? Scan zijn QR-code of voer de cijfercode in om de start van de klus te bevestigen.
+      </p>
 
-      <div className="px-5 pb-28">
-        {/* Stats */}
-        <div style={{
-          display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
-          background: "#E5DDD0", gap: "0.5px", borderRadius: 12,
-          overflow: "hidden", marginBottom: 24,
-        }}>
-          {[
-            { label: "Klussen", value: String(TODAY_KLUSSEN.length) },
-            { label: "Betaald",  value: String(betaald), groen: true },
-            { label: "Open",     value: String(TODAY_KLUSSEN.length - betaald), koper: true },
-          ].map(s => (
-            <div key={s.label} style={{ background: "#FBF7F0", padding: "14px 10px" }}>
-              <p style={{ fontFamily: SERIF, fontSize: 20, margin: 0, color: s.groen ? "#2B4030" : s.koper ? "#C97A4D" : "#1A1D1A" }}>{s.value}</p>
-              <p style={{ fontSize: 11, color: "#8A8A83", margin: "2px 0 0" }}>{s.label}</p>
+      {loading && <div className="skeleton" style={{ height: 90, marginBottom: 10 }} />}
+
+      {!loading && open.length === 0 && (
+        <div style={{ textAlign: "center", paddingTop: 40 }}>
+          <p style={{ fontSize: 32, marginBottom: 10 }}>📅</p>
+          <p style={{ fontFamily: SERIF, fontSize: 17, color: "#1A1D1A", margin: "0 0 6px" }}>Geen boeking vandaag</p>
+          <p style={{ fontSize: 13, color: "#8A8A83" }}>Zodra een vakman voor vandaag is ingepland, kan je hier inchecken.</p>
+        </div>
+      )}
+
+      {open.length > 0 && (
+        <>
+          {/* Vandaag gepland */}
+          {open.map(b => (
+            <div key={b.id} style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 14, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+              <Clock size={16} style={{ color: "#C97A4D", flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, margin: 0, color: "#1A1D1A" }}>{titelVan(b)}</p>
+                <p style={{ fontSize: 12, color: "#8A8A83", margin: "2px 0 0" }}>{b.profiles?.name ?? "Vakman"} · {tijdLabel(b.start_tijd)}</p>
+              </div>
             </div>
           ))}
-        </div>
 
-        <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 13, color: "#1A1D1A", margin: "0 0 12px" }}>
-          Toon QR aan klant bij aankomst
-        </p>
-
-        {TODAY_KLUSSEN.map(k => <QrDisplay key={k.id} klus={k} />)}
-      </div>
-    </div>
-  );
-}
-
-// ─── Klant view ───────────────────────────────────────────────────────────────
-function KlantView() {
-  const router = useRouter();
-  const [scanning, setScanning] = useState(false);
-  const [code, setCode] = useState("");
-  const [resultaat, setResultaat] = useState<ScanResultaat>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const verwerk = (ingevoerdeCode: string) => {
-    const trimmed = ingevoerdeCode.trim().toUpperCase();
-    const gevonden = QR_DATABASE[trimmed];
-    setResultaat(gevonden ?? "niet_gevonden");
-    setScanning(false);
-  };
-
-  const reset = () => {
-    setResultaat(null);
-    setCode("");
-    setScanning(false);
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", background: "#F5EFE5" }}>
-      <div className="px-5 pt-14 pb-4" style={{ background: "rgba(245,239,229,0.97)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={() => router.push("/profile")}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex" }}>
-            <ArrowLeft size={18} style={{ color: "#1A1D1A" }} />
+          {/* Scan knop */}
+          <button onClick={() => cameraRef.current?.click()} disabled={bezig} className="touch-scale" style={{
+            width: "100%", marginTop: 8, padding: "16px 0", background: "#2B4030", color: "#F5EFE5",
+            border: "none", borderRadius: 12, fontSize: 14, fontWeight: 500, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: bezig ? 0.6 : 1,
+          }}>
+            <Camera size={17} /> {bezig ? "Verwerken…" : "Scan QR-code van vakman"}
           </button>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 12, color: "#8A8A83", margin: 0 }}>Betaling verifiëren</p>
-            <h2 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 400, margin: 0, color: "#1A1D1A" }}>QR Scannen</h2>
-          </div>
-        </div>
-      </div>
+          <input
+            ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }}
+            onChange={e => { if (e.target.files?.[0]) { scanFoto(e.target.files[0]); e.target.value = ""; } }}
+          />
 
-      <div className="px-5 pb-28">
-
-        {/* Resultaat — betaald */}
-        {resultaat && resultaat !== "niet_gevonden" && resultaat.betaald && (
-          <div style={{ textAlign: "center", paddingTop: 20 }}>
-            <div style={{
-              width: 80, height: 80, borderRadius: "50%", background: "#EAF0EC",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 16px",
-            }}>
-              <CheckCircle size={40} style={{ color: "#2B4030" }} />
-            </div>
-            <h2 style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 400, margin: "0 0 8px", color: "#1A1D1A" }}>
-              Betaald ✓
-            </h2>
-            <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 24px" }}>
-              Deze klus is al volledig betaald.
+          {/* Handmatige code */}
+          <div style={{ marginTop: 16, background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "#8A8A83", margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
+              <KeyRound size={13} /> OF VOER DE CODE IN
             </p>
-            <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16, textAlign: "left", marginBottom: 24 }}>
-              {[
-                { label: "Dienst",  value: resultaat.dienst },
-                { label: "Vakman",  value: resultaat.vakman },
-                { label: "Bedrag",  value: `€${resultaat.bedrag}` },
-                { label: "Status",  value: "Betaald" },
-              ].map(r => (
-                <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "0.5px solid #E5DDD0" }}>
-                  <span style={{ fontSize: 13, color: "#8A8A83" }}>{r.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: r.label === "Status" ? "#2B4030" : "#1A1D1A" }}>{r.value}</span>
-                </div>
-              ))}
-            </div>
-            <button onClick={reset} style={{
-              padding: "11px 24px", background: "transparent", border: "0.5px solid #E5DDD0",
-              borderRadius: 99, fontSize: 13, color: "#5C5C56", cursor: "pointer",
-            }}>
-              Nog een scannen
-            </button>
-          </div>
-        )}
-
-        {/* Resultaat — niet betaald */}
-        {resultaat && resultaat !== "niet_gevonden" && !resultaat.betaald && (
-          <div style={{ textAlign: "center", paddingTop: 20 }}>
-            <div style={{
-              width: 80, height: 80, borderRadius: "50%", background: "#FAF0E6",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 16px",
-            }}>
-              <CreditCard size={36} style={{ color: "#C97A4D" }} />
-            </div>
-            <h2 style={{ fontFamily: SERIF, fontSize: 26, fontWeight: 400, margin: "0 0 8px", color: "#1A1D1A" }}>
-              Nog niet betaald
-            </h2>
-            <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 24px" }}>
-              Deze klus wacht nog op jouw betaling.
-            </p>
-            <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16, textAlign: "left", marginBottom: 24 }}>
-              {[
-                { label: "Dienst",  value: resultaat.dienst },
-                { label: "Vakman",  value: resultaat.vakman },
-                { label: "Bedrag",  value: `€${resultaat.bedrag}` },
-                { label: "Status",  value: "Openstaand" },
-              ].map(r => (
-                <div key={r.label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "0.5px solid #E5DDD0" }}>
-                  <span style={{ fontSize: 13, color: "#8A8A83" }}>{r.label}</span>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: r.label === "Status" ? "#C97A4D" : "#1A1D1A" }}>{r.value}</span>
-                </div>
-              ))}
-            </div>
-            <Link href="/te-betalen" style={{
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              padding: "13px 0", background: "#2B4030", color: "#F5EFE5",
-              borderRadius: 12, fontSize: 14, fontWeight: 500, textDecoration: "none", marginBottom: 12,
-            }}>
-              <CreditCard size={16} /> Nu betalen — €{resultaat.bedrag}
-            </Link>
-            <button onClick={reset} style={{
-              width: "100%", padding: "11px 0", background: "transparent",
-              border: "0.5px solid #E5DDD0", borderRadius: 12,
-              fontSize: 13, color: "#5C5C56", cursor: "pointer",
-            }}>
-              Nog een scannen
-            </button>
-          </div>
-        )}
-
-        {/* Resultaat — niet gevonden */}
-        {resultaat === "niet_gevonden" && (
-          <div style={{ textAlign: "center", paddingTop: 20 }}>
-            <div style={{
-              width: 80, height: 80, borderRadius: "50%", background: "#F0EFE8",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              margin: "0 auto 16px",
-            }}>
-              <X size={36} style={{ color: "#8A8A83" }} />
-            </div>
-            <h2 style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 400, margin: "0 0 8px", color: "#1A1D1A" }}>
-              Code niet herkend
-            </h2>
-            <p style={{ fontSize: 13, color: "#8A8A83", margin: "0 0 24px" }}>
-              Vraag je vakman om de QR code opnieuw te tonen.
-            </p>
-            <button onClick={reset} style={{
-              padding: "11px 24px", background: "#2B4030", color: "#F5EFE5",
-              border: "none", borderRadius: 99, fontSize: 13, fontWeight: 500, cursor: "pointer",
-            }}>
-              Opnieuw proberen
-            </button>
-          </div>
-        )}
-
-        {/* Scan interface */}
-        {!resultaat && (
-          <>
-            {/* Scan viewport */}
-            <div style={{
-              background: "#1A1D1A", borderRadius: 20, padding: 32,
-              textAlign: "center", marginBottom: 24, position: "relative", overflow: "hidden",
-            }}>
-              {/* Hoekmarkeringen */}
-              {[
-                { top: 16, left: 16 }, { top: 16, right: 16 },
-                { bottom: 16, left: 16 }, { bottom: 16, right: 16 },
-              ].map((pos, i) => (
-                <div key={i} style={{
-                  position: "absolute", width: 24, height: 24,
-                  borderTop: i < 2 ? "3px solid #2B4030" : "none",
-                  borderBottom: i >= 2 ? "3px solid #2B4030" : "none",
-                  borderLeft: i % 2 === 0 ? "3px solid #2B4030" : "none",
-                  borderRight: i % 2 === 1 ? "3px solid #2B4030" : "none",
-                  borderRadius: i === 0 ? "4px 0 0 0" : i === 1 ? "0 4px 0 0" : i === 2 ? "0 0 0 4px" : "0 0 4px 0",
-                  ...pos,
-                }} />
-              ))}
-              <ScanLine size={48} style={{ color: "#2B4030", margin: "0 auto 12px" }} />
-              <p style={{ color: "#F5EFE5", fontSize: 14, margin: "0 0 4px" }}>
-                {scanning ? "Scannen…" : "Richt op QR code van vakman"}
-              </p>
-              <p style={{ color: "#8A8A83", fontSize: 12, margin: 0 }}>
-                De vakman toont een QR code bij aankomst
-              </p>
-            </div>
-
-            {/* Camera knop */}
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              style={{ display: "none" }}
-              onChange={() => {
-                // In productie: decode QR uit afbeelding
-                // Voor demo: toon handmatige invoer
-                setScanning(true);
-              }}
-            />
-            <button onClick={() => fileRef.current?.click()} style={{
-              width: "100%", padding: 14, background: "#2B4030", color: "#F5EFE5",
-              border: "none", borderRadius: 12, fontSize: 14, fontWeight: 500, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 12,
-            }}>
-              <Camera size={18} /> Camera openen
-            </button>
-
-            {/* Handmatige code invoer */}
-            <div style={{ background: "#FBF7F0", border: "0.5px solid #E5DDD0", borderRadius: 14, padding: 16 }}>
-              <p style={{ fontSize: 13, fontWeight: 500, color: "#1A1D1A", margin: "0 0 10px" }}>
-                Of voer code handmatig in
-              </p>
+            <div style={{ display: "flex", gap: 8 }}>
               <input
+                type="text"
                 value={code}
-                onChange={e => setCode(e.target.value)}
-                placeholder="SERVR-K1-2026-..."
+                onChange={e => { setCode(e.target.value.toUpperCase()); setFout(null); }}
+                placeholder="bv. 4F7A2B"
+                maxLength={6}
                 style={{
-                  width: "100%", padding: "10px 12px", borderRadius: 8,
-                  border: "0.5px solid #E5DDD0", background: "#F5EFE5",
-                  fontSize: 13, color: "#1A1D1A", marginBottom: 10,
-                  fontFamily: "monospace", boxSizing: "border-box",
+                  flex: 1, padding: "12px 14px", background: "#F5EFE5", border: "0.5px solid #E5DDD0",
+                  borderRadius: 10, fontSize: 16, letterSpacing: 4, fontFamily: SERIF, textTransform: "uppercase",
                 }}
               />
-              <button onClick={() => verwerk(code)} disabled={!code.trim()} style={{
-                width: "100%", padding: 10, background: code.trim() ? "#2B4030" : "#E5DDD0",
-                color: code.trim() ? "#F5EFE5" : "#8A8A83",
-                border: "none", borderRadius: 8, fontSize: 13, fontWeight: 500,
-                cursor: code.trim() ? "pointer" : "default",
+              <button onClick={checkCode} disabled={bezig || code.trim().length < 6} className="touch-scale" style={{
+                padding: "12px 18px", background: code.trim().length >= 6 ? "#C97A4D" : "#E5DDD0",
+                color: code.trim().length >= 6 ? "#1A1D1A" : "#8A8A83",
+                border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
               }}>
-                Controleren
+                Check in
               </button>
             </div>
+          </div>
 
-            {/* Demo hint */}
-            <div style={{ background: "#EDE4D2", borderRadius: 10, padding: "10px 14px", marginTop: 16 }}>
-              <p style={{ fontSize: 11, color: "#5C5C56", margin: 0 }}>
-                <strong>Demo:</strong> Probeer code <code style={{ background: "#D8D0C4", padding: "1px 4px", borderRadius: 4 }}>SERVR-K2-2026-AHMED-CV</code> (onbetaald) of <code style={{ background: "#D8D0C4", padding: "1px 4px", borderRadius: 4 }}>SERVR-K1-2026-LISA-KRAAN</code> (betaald)
-              </p>
+          {fout && (
+            <div style={{ marginTop: 12, padding: "12px 14px", background: "#F9EDEA", borderRadius: 10 }}>
+              <p style={{ fontSize: 13, color: "#dc2626", margin: 0 }}>{fout}</p>
             </div>
-          </>
-        )}
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ═══ PAGE ══════════════════════════════════════════════════════
 export default function IncheckenPage() {
   const { activeView } = useUserStore();
-  return activeView === "vakman" ? <VakmanView /> : <KlantView />;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  const isVakman = mounted && activeView === "vakman";
+
+  return (
+    <div style={{ minHeight: "100dvh", background: "#F5EFE5" }}>
+      <div className="px-5 pt-14 pb-4" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Link href={isVakman ? "/agenda" : "/mijn-opdrachten"} className="touch-scale" style={{
+          width: 36, height: 36, borderRadius: "50%", background: "#EDE4D2",
+          display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none",
+        }}>
+          <ArrowLeft size={17} color="#1A1D1A" />
+        </Link>
+        <h2 style={{ fontFamily: SERIF, fontSize: 24, fontWeight: 400, margin: 0, color: "#1A1D1A" }}>
+          {isVakman ? "QR Check-in" : "Vakman inchecken"}
+        </h2>
+      </div>
+      {!mounted ? null : isVakman ? <VakmanView /> : <KlantView />}
+    </div>
+  );
 }
