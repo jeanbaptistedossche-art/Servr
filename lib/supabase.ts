@@ -24,9 +24,22 @@ export type Database = {
       gesprekken:     { Row: Gesprek;        Insert: GesprekInsert;        Update: Partial<GesprekInsert> };
       berichten:      { Row: Bericht;        Insert: BerichtInsert;        Update: Partial<BerichtInsert> };
       reviews:        { Row: Review;         Insert: ReviewInsert;         Update: Partial<ReviewInsert> };
+      opdrachten:     { Row: Opdracht;       Insert: OpdrachtInsert;       Update: Partial<OpdrachtInsert> };
+      offertes:       { Row: Offerte;        Insert: OfferteInsert;        Update: Partial<OfferteInsert> };
+      notificaties:   { Row: Notificatie;    Insert: NotificatieInsert;    Update: Partial<NotificatieInsert> };
     };
   };
 };
+
+// ─── Status machines (één bron van waarheid) ─────────────────
+export const OPDRACHT_STATUS = ["open", "offerte_ontvangen", "geaccepteerd", "bevestigd", "afgerond", "geannuleerd"] as const;
+export type OpdrachtStatus = (typeof OPDRACHT_STATUS)[number];
+
+export const BOEKING_STATUS = ["gepland", "bezig", "ingecheckt", "afgerond", "bevestigd", "uitbetaald", "geannuleerd", "geschil"] as const;
+export type BoekingStatus = (typeof BOEKING_STATUS)[number];
+
+export const OFFERTE_STATUS = ["wachtend", "geaccepteerd", "geweigerd", "ingetrokken"] as const;
+export type OfferteStatus = (typeof OFFERTE_STATUS)[number];
 
 export type Profile = {
   id: string;
@@ -84,17 +97,25 @@ export type Boeking = {
   klant_id: string;
   vakman_id: string;
   dienst_id: string | null;
-  status: "gepland" | "bezig" | "afgerond" | "geannuleerd";
+  status: BoekingStatus;
   start_tijd: string;
   eind_tijd: string | null;
   adres: string | null;
   notities: string | null;
-  bedrag: number | null;
+  bedrag: number | null;          // in euro's
   stripe_intent: string | null;
   betaald: boolean;
+  opdracht_id: string | null;
+  offerte_id: string | null;
+  ingecheckt_at: string | null;
+  afgerond_at: string | null;
+  bevestigd_at: string | null;
+  uitbetaald_at: string | null;
+  transfer_id: string | null;
   created_at: string;
 };
-export type BoekingInsert = Omit<Boeking, "id" | "created_at">;
+export type BoekingInsert = Partial<Omit<Boeking, "id" | "created_at">> &
+  Pick<Boeking, "klant_id" | "vakman_id" | "start_tijd">;
 
 export type SpoedOproep = {
   id: string;
@@ -149,9 +170,55 @@ export type Review = {
   vakman_id: string;
   score: number;
   tekst: string | null;
+  reviewer_rol: "klant" | "vakman";
   created_at: string;
 };
 export type ReviewInsert = Omit<Review, "id" | "created_at">;
+
+export type Opdracht = {
+  id: string;
+  klant_id: string;
+  titel: string;
+  beschrijving: string | null;
+  categorie: string | null;
+  adres: string | null;
+  urgentie: "laag" | "middel" | "hoog";
+  budget: string | null;
+  status: OpdrachtStatus;
+  lat: number | null;
+  lng: number | null;
+  foto_url: string | null;
+  created_at: string;
+};
+export type OpdrachtInsert = Partial<Omit<Opdracht, "id" | "created_at">> &
+  Pick<Opdracht, "klant_id" | "titel">;
+
+export type Offerte = {
+  id: string;
+  opdracht_id: string | null;
+  vakman_id: string;
+  prijs: number;                  // in euro's
+  omschrijving: string | null;
+  eta: string | null;
+  status: OfferteStatus;
+  gesprek_id: string | null;
+  created_at: string;
+};
+export type OfferteInsert = Partial<Omit<Offerte, "id" | "created_at">> &
+  Pick<Offerte, "vakman_id" | "prijs">;
+
+export type Notificatie = {
+  id: string;
+  user_id: string;
+  type: string;
+  titel: string;
+  bericht: string | null;
+  link: string | null;
+  gelezen: boolean;
+  created_at: string;
+};
+export type NotificatieInsert = Partial<Omit<Notificatie, "id" | "created_at">> &
+  Pick<Notificatie, "user_id" | "type" | "titel">;
 
 // ─── Helpers ──────────────────────────────────────────────────
 
@@ -235,7 +302,38 @@ export async function getSpoedOproepen() {
   return data ?? [];
 }
 
-/** Prijsformat: centen → "€85" */
+/** Prijsformat: centen → "€85" (alleen voor diensten — die staan in centen) */
 export function formatPrijs(centen: number): string {
   return `€${Math.round(centen / 100)}`;
+}
+
+/** Euro-format voor opdrachten/offertes/boekingen (staan in euro's): 85 → "€ 85" · 85.5 → "€ 85,50" */
+export function formatEuro(euros: number | null | undefined): string {
+  if (euros == null || isNaN(euros)) return "€ 0";
+  const isRound = Math.abs(euros % 1) < 0.005;
+  return isRound
+    ? `€ ${Math.round(euros).toLocaleString("nl-BE")}`
+    : `€ ${euros.toLocaleString("nl-BE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** Waze deeplink (enige navigatie-app — geen Google Maps key) */
+export function wazeUrl(lat: number | null | undefined, lng: number | null | undefined, adres?: string | null): string | null {
+  if (lat != null && lng != null) return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+  if (adres) return `https://waze.com/ul?q=${encodeURIComponent(adres)}&navigate=yes`;
+  return null;
+}
+
+/** Haversine afstand in km tussen twee coördinaten */
+export function afstandKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** In-app notificatie aanmaken (push kan falen, in-app niet) */
+export async function stuurNotificatie(n: NotificatieInsert) {
+  try { await supabase.from("notificaties").insert(n as never); } catch { /* stil falen */ }
 }
